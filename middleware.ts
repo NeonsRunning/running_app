@@ -9,6 +9,7 @@ import {
 import { applySession, refreshSession } from "@/lib/supabase/proxy";
 import {
   NEXT_PARAM,
+  SELF_PROFILE_PATH,
   isGuestOnlyPath,
   isProtectedPath,
   safeNextPath,
@@ -69,11 +70,11 @@ export default async function middleware(request: NextRequest) {
 
   // A signed-in runner has no use for the login or sign-up screens. If one of
   // those URLs still carries a destination — a stale tab, a bookmarked link —
-  // honour it rather than dropping them on the dashboard.
+  // honour it rather than dropping them on their profile.
   if (isGuestOnlyPath(path) && session.user) {
     const wanted = safeNextPath(request.nextUrl.searchParams.get(NEXT_PARAM));
     const url = request.nextUrl.clone();
-    url.pathname = localizePath(wanted ?? "/dashboard", locale);
+    url.pathname = localizePath(wanted ?? SELF_PROFILE_PATH, locale);
     url.search = "";
     return applySession(NextResponse.redirect(url), session);
   }

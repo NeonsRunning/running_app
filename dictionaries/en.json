@@ -40,7 +40,6 @@
     "results": "Results",
     "community": "Community",
     "about": "About",
-    "dashboard": "Dashboard",
     "notifications": "Notifications",
     "organizerDashboard": "Organizer Dashboard",
     "openMenu": "Open menu",
@@ -53,7 +52,6 @@
   },
   "account": {
     "profile": "My Profile",
-    "myEvents": "My Events",
     "savedEvents": "Saved Events",
     "results": "Results",
     "settings": "Settings",
@@ -62,7 +60,7 @@
   "tabs": {
     "home": "Home",
     "events": "Events",
-    "myRaces": "My Races",
+    "results": "Results",
     "community": "Community",
     "profile": "Profile"
   },
@@ -501,46 +499,6 @@
       "viewLeaderboard": "View leaderboard"
     }
   },
-  "dashboard": {
-    "metaTitle": "Dashboard",
-    "metaDescription": "Your next race, registrations, saved events and results.",
-    "greeting": "Good morning, {name}",
-    "daysToStart": "{days} days to your next start line. Three races on your calendar this season.",
-    "findRace": "Find a race",
-    "myProfile": "My profile",
-    "seasonSummary": "Season summary",
-    "racesThisYear": "Races this year",
-    "distanceRaced": "Distance raced",
-    "podiums": "Podiums",
-    "personalBests": "Personal bests",
-    "nextRace": "Next race",
-    "nextRaceKicker": "Your closest start line",
-    "daysToRaceDay": "{days} days to race day",
-    "date": "Date",
-    "start": "Start",
-    "category": "Category",
-    "bib": "Bib",
-    "viewRegistration": "View registration",
-    "raceInformation": "Race information",
-    "alsoRegistered": "Also registered",
-    "registrationMeta": "{category} · {wave} · bib {bib}",
-    "daysAway": "{days} days away",
-    "addAnotherRace": "Add another race",
-    "savedEvents": "Saved events",
-    "savedKicker": "Bookmarked races",
-    "findMore": "Find more",
-    "recentResults": "Recent results",
-    "recentResultsKicker": "Official times",
-    "fullRaceHistory": "Full race history",
-    "time": "Time",
-    "pace": "Pace",
-    "overall": "Overall",
-    "pb": "PB",
-    "podium": "Podium",
-    "viewResults": "View results",
-    "recommended": "Recommended for you",
-    "recommendedKicker": "Based on {club} and your 10K times"
-  },
   "organizer": {
     "metaTitle": "Organizer dashboard",
     "metaDescription": "Registrations, revenue and event management for organizers.",
@@ -603,7 +561,17 @@
     "noAchievementsBody": "Achievements show up here as soon as {name} crosses a finish line.",
     "noResultsTitle": "No races yet",
     "noResultsBody": "The history fills itself in: every published result lands here.",
-    "noResultsAction": "Browse races"
+    "noResultsAction": "Browse races",
+    "findRace": "Find a race",
+    "editProfile": "Edit profile",
+    "daysToStart": "{days} days to your next start line · {count} races on your calendar this season.",
+    "category": "Category",
+    "registrationMeta": "{category} · {wave} · bib {bib}",
+    "savedEvents": "Saved events",
+    "findMore": "Find more",
+    "recommended": "Recommended for you",
+    "recommendedKicker": "Based on {club} and your 10K times",
+    "recommendedKickerAny": "Most popular this season"
   },
   "auth": {
     "shell": {
@@ -825,7 +793,7 @@
           },
           {
             "q": "When do I get my bib number?",
-            "a": "Immediately. Your bib appears on the confirmation screen and in your dashboard. Physical bibs are collected at the expo or on race morning, depending on the event."
+            "a": "Immediately. Your bib appears on the confirmation screen and on your profile. Physical bibs are collected at the expo or on race morning, depending on the event."
           },
           {
             "q": "What if a race is full?",

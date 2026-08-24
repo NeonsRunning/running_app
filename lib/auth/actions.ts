@@ -11,7 +11,7 @@ import {
 } from "@/lib/i18n/config";
 import { createClient } from "@/lib/supabase/server";
 import { authErrorKey } from "./errors";
-import { safeNextPath } from "./routes";
+import { SELF_PROFILE_PATH, safeNextPath } from "./routes";
 
 /**
  * Auth server actions.
@@ -106,7 +106,7 @@ export async function signInAction(
   if (error) return { error: authErrorKey(error) };
 
   revalidatePath("/", "layout");
-  const next = safeNextPath(readText(formData, "next")) ?? "/dashboard";
+  const next = safeNextPath(readText(formData, "next")) ?? SELF_PROFILE_PATH;
   redirect(localizePath(next, locale));
 }
 
@@ -141,7 +141,11 @@ export async function signUpAction(
       // trigger's to set, never the form's, so a hand-crafted post cannot ask
       // for the organizer tools.
       data: { full_name: name },
-      emailRedirectTo: await emailLink("/auth/confirm", locale, "/dashboard"),
+      emailRedirectTo: await emailLink(
+        "/auth/confirm",
+        locale,
+        SELF_PROFILE_PATH,
+      ),
     },
   });
 
@@ -158,7 +162,7 @@ export async function signUpAction(
   // A project with email confirmation switched off hands back a session right
   // away. Sending that runner to the inbox screen would strand them there
   // waiting for a message no one is going to send, so take them straight in.
-  if (data.session) redirect(localizePath("/dashboard", locale));
+  if (data.session) redirect(localizePath(SELF_PROFILE_PATH, locale));
 
   redirect(
     `${localizePath("/verify-email", locale)}?email=${encodeURIComponent(email)}`,
@@ -189,7 +193,11 @@ export async function resendVerificationAction(
     type: "signup",
     email,
     options: {
-      emailRedirectTo: await emailLink("/auth/confirm", locale, "/dashboard"),
+      emailRedirectTo: await emailLink(
+        "/auth/confirm",
+        locale,
+        SELF_PROFILE_PATH,
+      ),
     },
   });
   if (error) return { error: authErrorKey(error) };
@@ -247,7 +255,7 @@ export async function updatePasswordAction(
   if (error) return { error: authErrorKey(error) };
 
   revalidatePath("/", "layout");
-  redirect(localizePath("/dashboard", locale));
+  redirect(localizePath(SELF_PROFILE_PATH, locale));
 }
 
 /* -------------------------------------------------------------------------- */
@@ -256,7 +264,7 @@ export async function updatePasswordAction(
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
   const locale = readLocale(formData);
-  const next = safeNextPath(readText(formData, "next")) ?? "/dashboard";
+  const next = safeNextPath(readText(formData, "next")) ?? SELF_PROFILE_PATH;
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithOAuth({

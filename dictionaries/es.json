@@ -40,7 +40,6 @@
     "results": "Resultados",
     "community": "Comunidad",
     "about": "Nosotros",
-    "dashboard": "Panel",
     "notifications": "Notificaciones",
     "organizerDashboard": "Panel de organizador",
     "openMenu": "Abrir menú",
@@ -53,7 +52,6 @@
   },
   "account": {
     "profile": "Mi perfil",
-    "myEvents": "Mis carreras",
     "savedEvents": "Carreras guardadas",
     "results": "Resultados",
     "settings": "Ajustes",
@@ -62,7 +60,7 @@
   "tabs": {
     "home": "Inicio",
     "events": "Carreras",
-    "myRaces": "Mis carreras",
+    "results": "Resultados",
     "community": "Comunidad",
     "profile": "Perfil"
   },
@@ -501,46 +499,6 @@
       "viewLeaderboard": "Ver clasificación"
     }
   },
-  "dashboard": {
-    "metaTitle": "Panel",
-    "metaDescription": "Tu próxima carrera, inscripciones, carreras guardadas y resultados.",
-    "greeting": "Buenos días, {name}",
-    "daysToStart": "{days} días para tu próxima línea de salida. Tres carreras en tu calendario esta temporada.",
-    "findRace": "Buscar carrera",
-    "myProfile": "Mi perfil",
-    "seasonSummary": "Resumen de la temporada",
-    "racesThisYear": "Carreras este año",
-    "distanceRaced": "Distancia corrida",
-    "podiums": "Podios",
-    "personalBests": "Marcas personales",
-    "nextRace": "Próxima carrera",
-    "nextRaceKicker": "Tu línea de salida más cercana",
-    "daysToRaceDay": "{days} días para la carrera",
-    "date": "Fecha",
-    "start": "Salida",
-    "category": "Categoría",
-    "bib": "Dorsal",
-    "viewRegistration": "Ver inscripción",
-    "raceInformation": "Información de la carrera",
-    "alsoRegistered": "También inscrito",
-    "registrationMeta": "{category} · {wave} · dorsal {bib}",
-    "daysAway": "faltan {days} días",
-    "addAnotherRace": "Añadir otra carrera",
-    "savedEvents": "Carreras guardadas",
-    "savedKicker": "Carreras marcadas",
-    "findMore": "Buscar más",
-    "recentResults": "Resultados recientes",
-    "recentResultsKicker": "Tiempos oficiales",
-    "fullRaceHistory": "Historial completo",
-    "time": "Tiempo",
-    "pace": "Ritmo",
-    "overall": "General",
-    "pb": "MP",
-    "podium": "Podio",
-    "viewResults": "Ver resultados",
-    "recommended": "Recomendadas para ti",
-    "recommendedKicker": "Basado en {club} y tus tiempos de 10K"
-  },
   "organizer": {
     "metaTitle": "Panel de organizador",
     "metaDescription": "Inscripciones, ingresos y gestión de eventos para organizadores.",
@@ -603,7 +561,17 @@
     "noAchievementsBody": "Los logros aparecen aquí en cuanto {name} cruce su primera meta.",
     "noResultsTitle": "Sin carreras todavía",
     "noResultsBody": "El historial se llena solo: cada resultado publicado aparece aquí.",
-    "noResultsAction": "Ver carreras"
+    "noResultsAction": "Ver carreras",
+    "findRace": "Buscar carrera",
+    "editProfile": "Editar perfil",
+    "daysToStart": "{days} días para tu próxima línea de salida · {count} carreras en tu calendario esta temporada.",
+    "category": "Categoría",
+    "registrationMeta": "{category} · {wave} · dorsal {bib}",
+    "savedEvents": "Carreras guardadas",
+    "findMore": "Buscar más",
+    "recommended": "Recomendadas para ti",
+    "recommendedKicker": "Basado en {club} y tus tiempos de 10K",
+    "recommendedKickerAny": "Las más populares de la temporada"
   },
   "auth": {
     "shell": {
@@ -825,7 +793,7 @@
           },
           {
             "q": "¿Cuándo recibo mi número de dorsal?",
-            "a": "Al instante. Tu dorsal aparece en la pantalla de confirmación y en tu panel. Los dorsales físicos se recogen en la expo o la mañana de la carrera, según el evento."
+            "a": "Al instante. Tu dorsal aparece en la pantalla de confirmación y en tu perfil. Los dorsales físicos se recogen en la expo o la mañana de la carrera, según el evento."
           },
           {
             "q": "¿Y si una carrera está llena?",

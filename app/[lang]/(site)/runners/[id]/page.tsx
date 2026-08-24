@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { Link } from "@/components/i18n/link";
 import { notFound } from "next/navigation";
 import { Badge, Eyebrow } from "@/components/ui/badge";
@@ -6,21 +7,33 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { FollowButton } from "@/components/profile/follow-button";
+import { SavedEventsPanel } from "@/components/profile/saved-panel";
+import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
 import { cn } from "@/lib/cn";
-import { daysUntil, getEventBySlug } from "@/lib/data";
+import { daysUntil, getEventBySlug, getEvents } from "@/lib/data";
 import { getRunnerView, type RunnerView } from "@/lib/profile/view";
+import { getUser, requireUser } from "@/lib/auth/session";
+import { SELF_ID, SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters, type Formatters } from "@/lib/i18n/format";
 import type { Translate } from "@/lib/i18n/translate";
 import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
+import type { RunningEvent } from "@/lib/types";
 
 /**
- * A runner's public page.
+ * A runner's page — public to a visitor, and the runner's own home when they
+ * are the one looking at it.
  *
  * The URL is keyed by account id. `profiles.handle` still exists and is still
  * unique — it is the name a runner picks for themselves — but it is theirs to
- * change, and an id never moves.
+ * change, and an id never moves. `/runners/me` resolves to whoever is signed
+ * in: the one address that can be linked to before an id is known, which is
+ * what the nav, the login redirect and the confirmation emails all need.
+ *
+ * Owning the profile adds to the page rather than replacing it — saved races
+ * and recommendations mean nothing to anyone else, and everything above them
+ * reads the same either way.
  *
  * No `generateStaticParams` here, deliberately. Ids resolve against
  * `profiles`, and reading that table means reading the caller's cookies:
@@ -30,6 +43,15 @@ import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
  * in for everybody.
  */
 
+/**
+ * The signed-in account id, or null. Cached for the render pass so the
+ * metadata and the page share one call rather than each revalidating the
+ * access token with Supabase.
+ */
+const getViewerId = cache(async function getViewerId(): Promise<string | null> {
+  return (await getUser())?.id ?? null;
+});
+
 export async function generateMetadata(
   props: PageProps<"/[lang]/runners/[id]">,
 ): Promise<Metadata> {
@@ -37,7 +59,12 @@ export async function generateMetadata(
   const locale = await getLocale();
   const t = await getT();
 
-  const runner = await getRunnerView(id, locale);
+  // Signed out at `/runners/me`: the page redirects to login, so name the tab
+  // for where the runner was headed rather than resolving a profile.
+  const target = id === SELF_ID ? await getViewerId() : id;
+  if (!target) return { title: t("account.profile") };
+
+  const runner = await getRunnerView(target, locale);
   if (!runner) return { title: t("runner.notFound") };
   return { title: runner.name, description: runner.bio ?? undefined };
 }
@@ -63,6 +90,18 @@ function identityLine(
   return null;
 }
 
+/** Races the runner has not entered, most popular first. */
+function recommendedFor(
+  runner: RunnerView,
+  events: RunningEvent[],
+): RunningEvent[] {
+  const entered = new Set(runner.upcoming.map((u) => u.eventSlug));
+  return events
+    .filter((e) => !entered.has(e.slug))
+    .sort((a, b) => b.popularity - a.popularity)
+    .slice(0, 3);
+}
+
 export default async function RunnerProfilePage(
   props: PageProps<"/[lang]/runners/[id]">,
 ) {
@@ -71,10 +110,22 @@ export default async function RunnerProfilePage(
   const t = await getT();
   const fmt = createFormatters(locale);
 
+  const viewerId = await getViewerId();
+
+  // `/runners/me` renders in place rather than bouncing to the id, so the nav
+  // can still tell which page it is on. `requireUser` only runs when there is
+  // no session to resolve it against, and redirects to login from there.
+  const targetId =
+    id === SELF_ID
+      ? (viewerId ?? (await requireUser(SELF_PROFILE_PATH)).id)
+      : id;
+
   // Null is "no such account" and "private profile" alike — a stranger gets
   // the same answer either way, which is what keeps a hidden profile hidden.
-  const runner = await getRunnerView(id, locale);
+  const runner = await getRunnerView(targetId, locale);
   if (!runner) notFound();
+
+  const isSelf = viewerId !== null && viewerId === runner.id;
 
   const next = runner.upcoming[0];
   const nextEvent = next ? getEventBySlug(next.eventSlug, locale) : undefined;
@@ -85,6 +136,11 @@ export default async function RunnerProfilePage(
     .filter((u): u is typeof u & { event: NonNullable<typeof u.event> } =>
       Boolean(u.event),
     );
+
+  // The saved and recommended panels belong to the runner alone, so nobody
+  // else pays for the event list behind them.
+  const events = isSelf ? getEvents(locale) : [];
+  const recommended = isSelf ? recommendedFor(runner, events) : [];
 
   // An account with no racing data behind it would otherwise render three
   // empty panels down the side. Drop the column and let the page run full
@@ -130,10 +186,29 @@ export default async function RunnerProfilePage(
                 {runner.bio}
               </p>
             ) : null}
+            {isSelf && nextEvent ? (
+              <p className="mt-5 text-[15px] text-fg-dim">
+                {t("runner.daysToStart", {
+                  days: fmt.number(daysUntil(nextEvent.date)),
+                  count: runner.upcoming.length,
+                })}
+              </p>
+            ) : null}
           </div>
 
           <div className="flex w-full flex-col gap-3 lg:w-56">
-            <FollowButton name={runner.name} block />
+            {isSelf ? (
+              <>
+                <Button href="/events" size="md" block>
+                  {t("runner.findRace")}
+                </Button>
+                <Button href="/settings" variant="outline" size="md" block>
+                  {t("runner.editProfile")}
+                </Button>
+              </>
+            ) : (
+              <FollowButton name={runner.name} block />
+            )}
             <ShareRow
               title={`${runner.name} on NEONS RUNNING`}
               path={`/runners/${runner.id}`}
@@ -338,6 +413,50 @@ export default async function RunnerProfilePage(
               />
             )}
           </section>
+
+          {/* Saved races — the runner's own ------------------------------ */}
+          {isSelf ? (
+            <section
+              id="saved"
+              className="scroll-mt-24 border-t-2 border-line px-4 py-10 sm:px-8 lg:px-10"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+                  {t("runner.savedEvents")}
+                </h2>
+                <Link
+                  href="/events"
+                  className="text-[13px] font-extrabold tracking-[0.12em] text-neon-lime uppercase hover:text-neon-yellow"
+                >
+                  {t("runner.findMore")} →
+                </Link>
+              </div>
+              <div className="mt-6">
+                <SavedEventsPanel events={events} />
+              </div>
+            </section>
+          ) : null}
+
+          {/* Recommended ------------------------------------------------- */}
+          {isSelf && recommended.length > 0 ? (
+            <section className="border-t-2 border-line px-4 py-10 sm:px-8 lg:px-10">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+                  {t("runner.recommended")}
+                </h2>
+                <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
+                  {runner.club
+                    ? t("runner.recommendedKicker", { club: runner.club })
+                    : t("runner.recommendedKickerAny")}
+                </span>
+              </div>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {recommended.map((event) => (
+                  <EventCardCompact key={event.id} event={event} />
+                ))}
+              </div>
+            </section>
+          ) : null}
         </main>
 
         {hasAside ? (
@@ -369,6 +488,10 @@ export default async function RunnerProfilePage(
                       </dd>
                     </div>
                     <div className="flex justify-between">
+                      <dt className="text-fg-dim">{t("runner.category")}</dt>
+                      <dd>{distanceLabel(t, next.category)}</dd>
+                    </div>
+                    <div className="flex justify-between">
                       <dt className="text-fg-dim">{t("runner.bib")}</dt>
                       <dd className="font-mono">#{next.bib}</dd>
                     </div>
@@ -389,20 +512,29 @@ export default async function RunnerProfilePage(
               <div className="border-b-2 border-line px-5 py-7 sm:px-7">
                 <Eyebrow>{t("runner.upcoming")}</Eyebrow>
                 <ul className="mt-4">
-                  {laterRaces.map(({ event }) => (
+                  {laterRaces.map((race) => (
                     <li
-                      key={event.slug}
-                      className="flex items-baseline justify-between gap-3 border-b-2 border-line py-3.5 last:border-b-0"
+                      key={race.event.slug}
+                      className="border-b-2 border-line py-3.5 last:border-b-0"
                     >
-                      <Link
-                        href={`/events/${event.slug}`}
-                        className="text-[15px] font-bold hover:text-neon-lime"
-                      >
-                        {event.name}
-                      </Link>
-                      <span className="shrink-0 font-mono text-xs text-fg-dim">
-                        {event.day} {event.month}
-                      </span>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <Link
+                          href={`/events/${race.event.slug}`}
+                          className="text-[15px] font-bold hover:text-neon-lime"
+                        >
+                          {race.event.name}
+                        </Link>
+                        <span className="shrink-0 font-mono text-xs text-fg-dim">
+                          {race.event.day} {race.event.month}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
+                        {t("runner.registrationMeta", {
+                          category: distanceLabel(t, race.category),
+                          wave: waveLabel(t, race.wave),
+                          bib: race.bib,
+                        })}
+                      </p>
                     </li>
                   ))}
                 </ul>

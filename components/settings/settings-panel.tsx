@@ -228,7 +228,7 @@ export function SettingsPanel({ profile }: { profile: Profile | null }) {
 /**
  * Switching on the organizer tools writes to the user record, so it goes
  * through a server action; the layout re-renders with the new account type
- * and this button is replaced by the dashboard link.
+ * and this button is replaced by the organizer dashboard link.
  */
 function BecomeOrganizerButton() {
   const t = useT();
