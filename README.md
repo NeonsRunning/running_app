@@ -52,10 +52,13 @@ components/
 lib/
   data.ts     typed in-memory fixtures + accessors
   types.ts    domain types
+  profile/    the profile tables: reads and server actions
+  pr-municipalities.ts  the 78 municipalities, the city vocabulary
   legal.ts    policy copy
   i18n/       locale rules, dictionary loading, formatters
   content/    per-locale copy layered over the fixtures
 dictionaries/ es.json (the key set) and en.json
+supabase/     SQL migrations
 middleware.ts locale routing and Supabase token refresh
 ```
 
@@ -156,9 +159,11 @@ lib/supabase/client.ts   browser client
 lib/supabase/server.ts   server components, actions, route handlers
 lib/supabase/proxy.ts    token refresh for middleware
 lib/auth/actions.ts      sign in / sign up / recover / sign out
-lib/auth/session.ts      getUser, requireUser, the Session the UI renders
+lib/auth/session.ts      getUser, requireAccount, the Session the UI renders
 lib/auth/routes.ts       which paths need a session
 lib/auth/errors.ts       Supabase error codes -> dictionary keys
+lib/profile/queries.ts   reading profiles
+lib/profile/actions.ts   editing a profile, switching on the organizer tools
 ```
 
 Two rules hold everywhere:
@@ -197,19 +202,69 @@ browser from the one that asked for the reset.
 | Flow | Path through the code |
 | --- | --- |
 | Sign in | `signInAction` → `signInWithPassword` → `?next=` or `/dashboard` |
-| Sign up | `signUpAction` → `/verify-email` (six-digit code or the emailed link) |
+| Sign up | `signUpAction` → `/verify-email` → the emailed link → `/auth/confirm` |
 | Recovery | `requestPasswordResetAction` → email → `/auth/confirm` → `/reset-password` → `updatePasswordAction` |
 | Google | `signInWithGoogleAction` → provider → `/auth/callback` |
 
-Sign-up puts `full_name` and `account_type` on the user's metadata, which is
-what `toSession()` projects onto the header and settings; settings can promote
-a runner to an organizer later.
+Sign-up puts `full_name` on the user's metadata, where the `handle_new_user`
+trigger reads it to seed the profile row that `toSession()` projects onto the
+header and settings. The account type is the trigger's to set — always
+`runner` — and settings can promote a runner to an organizer later.
 
 Neither the sign-up form nor the recovery form will tell a stranger whether an
 address is registered. Sign-up shows the same inbox screen either way (Supabase
 returns a decoy user, detectable only by an empty `identities` array), and
 recovery reports success on every failure except a rate limit — which describes
 the sender, not the account.
+
+## Database
+
+One table so far, in two halves.
+
+```
+supabase/migrations/  the schema, in order
+lib/supabase/database.types.ts  the schema as TypeScript sees it
+```
+
+`auth.users` belongs to Supabase: it takes no extra columns and is reachable
+only through the auth API. Everything the app renders about a person lives in
+`public.profiles` instead, keyed one-to-one on the user id — the name on a bib,
+the handle in a URL, the city, the club, the bio, and `account_type`, which is
+what every organizer-only screen reads.
+
+| Table | Holds | Who can read it |
+| --- | --- | --- |
+| `public.profiles` | handle, name, account type, avatar, bio, city, club, visibility | anyone, for public rows; always its owner |
+| `public.profile_private` | birth date, gender, shirt size, phone, emergency contact, email language | its owner, and no one else |
+
+**The split is a privacy boundary.** Row-level security filters rows, never
+columns, so a table a stranger may read cannot also hold a phone number: any
+policy wide enough to show a public profile would show the whole row.
+
+Two more things the database does rather than the app:
+
+- **Every user gets a profile.** `handle_new_user` fires on insert into
+  `auth.users` and writes both rows, deriving a unique handle from the name
+  (`Ana Muñoz` → `ana-munoz`, then `ana-munoz2`). Password sign-up and Google
+  both go through it, and it always writes `account_type = 'runner'`, so a
+  hand-crafted sign-up post cannot ask for the organizer tools.
+- **Writes are scoped to the owner.** The update policies match `auth.uid()`
+  against the row id, so the worst a forged server-action POST can do is edit
+  its own sender's profile.
+
+### Applying it
+
+With the Supabase CLI, against the linked project:
+
+```bash
+npx supabase link --project-ref <ref>
+npm run db:push     # supabase db push
+npm run db:types    # regenerate database.types.ts from the live schema
+```
+
+Or paste `supabase/migrations/20260824120000_profiles.sql` into the SQL editor
+in the dashboard. It is idempotent in the part that matters: accounts that
+existed before it ran are backfilled at the end.
 
 ## Accessibility
 
@@ -234,5 +289,7 @@ persistent bottom tab bar.
 - Data is in-memory; nothing persists across a reload, and no payment is taken.
 - Every screen ships in both languages; `npm run check:i18n` keeps them level.
 - Policy pages in `lib/legal.ts` are realistic drafts for a demo, not legal advice.
-- Accounts are real (Supabase); event, result and registration data is still the
-  in-memory fixture set in `lib/data.ts`.
+- Accounts and profiles are real (Supabase); event, result and registration data
+  is still the in-memory fixture set in `lib/data.ts`. The runner pages under
+  `/runners/[handle]` still render fixtures — `getProfileByHandle()` is the read
+  that replaces them once results have a table of their own.

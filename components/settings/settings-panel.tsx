@@ -1,17 +1,30 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox, Field, Input, Textarea } from "@/components/ui/field";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/layout/session";
 import { useT } from "@/components/i18n/provider";
-import { becomeOrganizerAction } from "@/lib/auth/actions";
+import {
+  becomeOrganizerAction,
+  setProfileVisibilityAction,
+  updateProfileAction,
+  type ProfileState,
+} from "@/lib/profile/actions";
+import type { Profile } from "@/lib/profile/queries";
+import { PR_MUNICIPALITIES } from "@/lib/pr-municipalities";
 import { cn } from "@/lib/cn";
 
-/** Labels are dictionary keys, resolved at render against the active locale. */
+/**
+ * Labels are dictionary keys, resolved at render against the active locale.
+ *
+ * Local state only: notification preferences have no table yet, so these
+ * toggles reset on reload. The profile form, the visibility switch and the
+ * organizer upgrade below are the three controls on this screen that write.
+ */
 const NOTIFICATION_PREFS = [
   { id: "reminders", on: true },
   { id: "results", on: true },
@@ -41,14 +54,13 @@ function Section({
   );
 }
 
-export function SettingsPanel() {
+export function SettingsPanel({ profile }: { profile: Profile | null }) {
   const session = useSession();
   const { toast } = useToast();
   const t = useT();
   const [prefs, setPrefs] = useState(
     Object.fromEntries(NOTIFICATION_PREFS.map((p) => [p.id, p.on])),
   );
-  const [publicProfile, setPublicProfile] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
@@ -64,37 +76,7 @@ export function SettingsPanel() {
         title={t("settings.profile")}
         description={t("settings.profileDescription")}
       >
-        <div className="grid gap-6 sm:grid-cols-2">
-          <Field label={t("settings.fullName")}>
-            {(p) => <Input {...p} defaultValue="Alex Rivera" />}
-          </Field>
-          <Field label={t("settings.email")}>
-            {(p) => (
-              <Input {...p} type="email" defaultValue="alex.rivera@email.com" />
-            )}
-          </Field>
-          <Field label={t("settings.city")}>
-            {(p) => <Input {...p} defaultValue="San Juan, Puerto Rico" />}
-          </Field>
-          <Field label={t("settings.club")} optional>
-            {(p) => <Input {...p} defaultValue="Neons Nocturnos" />}
-          </Field>
-          <Field label={t("settings.bio")} className="sm:col-span-2">
-            {(p) => (
-              <Textarea
-                {...p}
-                defaultValue="Night-race specialist. Chasing a sub-45 10K before the year ends."
-              />
-            )}
-          </Field>
-        </div>
-        <Button
-          size="lg"
-          className="mt-6"
-          onClick={() => toast({ title: t("settings.profileSaved") })}
-        >
-          {t("common.saveChanges")}
-        </Button>
+        <ProfileForm profile={profile} email={session.email} />
       </Section>
 
       <Section
@@ -183,20 +165,9 @@ export function SettingsPanel() {
 
       <Section title={t("settings.privacy")}>
         <div className="flex flex-col gap-5">
-          <Checkbox
-            checked={publicProfile}
-            onChange={(e) => setPublicProfile(e.target.checked)}
-            label={
-              <>
-                <span className="font-bold">
-                  {t("settings.publicProfile")}
-                </span>
-                <span className="mt-1 block text-[13px] text-fg-dim">
-                  {t("settings.publicProfileDetail")}
-                </span>
-              </>
-            }
-          />
+          <PublicProfileToggle isPublic={profile?.isPublic ?? true} />
+          {/* Not persisted yet — the directory listings it describes are
+              still fixture data. */}
           <Checkbox
             defaultChecked
             label={
@@ -284,5 +255,184 @@ function BecomeOrganizerButton() {
         {pending ? t("settings.enablingOrganizer") : t("settings.becomeOrganizer")}
       </Button>
     </form>
+  );
+}
+
+/**
+ * The public half of the profile.
+ *
+ * Uncontrolled inputs posting to a server action: the row is written by the
+ * session on the server, so nothing here has to hold a copy of it, and a
+ * submit works before this component has hydrated.
+ */
+function ProfileForm({
+  profile,
+  email,
+}: {
+  profile: Profile | null;
+  /** From the auth record, not the profile — changing it is an auth flow. */
+  email: string;
+}) {
+  const t = useT();
+  const { toast } = useToast();
+  const [state, action, pending] = useActionState(updateProfileAction, undefined);
+
+  useEffect(() => {
+    if (!state?.ok) return;
+    toast({ title: t("settings.profileSaved") });
+    // `toast` and `t` are stable for the life of the panel; re-running on
+    // their identity would fire the toast twice.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state?.ok]);
+
+  const fieldError = (field: string) => {
+    const key = state?.fieldErrors?.[field];
+    return key ? t(`settings.errors.${key}`) : undefined;
+  };
+
+  // A city saved before it was a menu — or by a runner who has since moved off
+  // the island — still has to be selectable, or saving the form would quietly
+  // discard it.
+  const municipalities: readonly string[] = PR_MUNICIPALITIES;
+  const cities =
+    profile?.city && !municipalities.includes(profile.city)
+      ? [profile.city, ...municipalities]
+      : municipalities;
+
+  return (
+    <form action={action} noValidate>
+      {state?.error ? (
+        <p
+          role="alert"
+          className="mb-6 flex items-start gap-2 border-2 border-danger bg-danger/8 px-4 py-3 text-[13px] font-semibold text-danger"
+        >
+          <span aria-hidden="true">▲</span>
+          {t(`settings.errors.${state.error}`)}
+        </p>
+      ) : null}
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field label={t("settings.fullName")} error={fieldError("name")}>
+          {(p) => (
+            <Input
+              {...p}
+              name="name"
+              autoComplete="name"
+              maxLength={80}
+              defaultValue={profile?.name ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field label={t("settings.email")} hint={t("settings.emailHint")}>
+          {(p) => (
+            <Input
+              {...p}
+              type="email"
+              readOnly
+              autoComplete="email"
+              spellCheck={false}
+              value={email}
+              className="text-fg-dim"
+            />
+          )}
+        </Field>
+
+        <Field label={t("settings.city")} error={fieldError("city")} optional>
+          {(p) => (
+            <Select {...p} name="city" defaultValue={profile?.city ?? ""}>
+              <option value="">{t("settings.cityPlaceholder")}</option>
+              {cities.map((city) => (
+                <option key={city} value={city}>
+                  {city}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+
+        <Field label={t("settings.club")} error={fieldError("club")} optional>
+          {(p) => (
+            <Input
+              {...p}
+              name="club"
+              maxLength={80}
+              defaultValue={profile?.club ?? ""}
+              placeholder={t("settings.clubPlaceholder")}
+            />
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.bio")}
+          error={fieldError("bio")}
+          hint={t("settings.bioHint")}
+          className="sm:col-span-2"
+          optional
+        >
+          {(p) => (
+            <Textarea
+              {...p}
+              name="bio"
+              maxLength={280}
+              defaultValue={profile?.bio ?? ""}
+            />
+          )}
+        </Field>
+      </div>
+
+      <Button
+        type="submit"
+        size="lg"
+        className="mt-6"
+        disabled={pending}
+        aria-busy={pending}
+      >
+        {pending ? t("common.saving") : t("common.saveChanges")}
+      </Button>
+    </form>
+  );
+}
+
+/**
+ * Hide the profile from other runners.
+ *
+ * The switch writes on change rather than waiting for a save button — a
+ * privacy control someone forgets to save is worse than no control. The box
+ * moves first and rolls back if the write fails, so the common case feels
+ * immediate and the rare one is honest about what happened.
+ */
+function PublicProfileToggle({ isPublic }: { isPublic: boolean }) {
+  const t = useT();
+  const { toast } = useToast();
+  const [checked, setChecked] = useState(isPublic);
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <Checkbox
+      checked={checked}
+      onChange={(event) => {
+        const next = event.target.checked;
+        const previous = checked;
+        setChecked(next);
+
+        startTransition(async () => {
+          const result: ProfileState = await setProfileVisibilityAction(next);
+          if (!result.error) return;
+
+          setChecked(previous);
+          toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
+        });
+      }}
+      aria-busy={pending}
+      label={
+        <>
+          <span className="font-bold">{t("settings.publicProfile")}</span>
+          <span className="mt-1 block text-[13px] text-fg-dim">
+            {t("settings.publicProfileDetail")}
+          </span>
+        </>
+      }
+    />
   );
 }

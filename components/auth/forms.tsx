@@ -1,18 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { Link } from "@/components/i18n/link";
 import { useLocale, useT } from "@/components/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
-import { cn } from "@/lib/cn";
 import {
   requestPasswordResetAction,
   resendVerificationAction,
   signInAction,
   signUpAction,
   updatePasswordAction,
-  verifyEmailAction,
   type AuthState,
 } from "@/lib/auth/actions";
 
@@ -114,7 +112,13 @@ export function LoginForm({
         </Link>
       </div>
 
-      <Button type="submit" block size="xl" disabled={pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        block
+        size="xl"
+        disabled={pending}
+        aria-busy={pending}
+      >
         {pending ? t("auth.login.signingIn") : t("auth.login.submit")}
       </Button>
     </form>
@@ -125,67 +129,21 @@ export function SignUpForm() {
   const t = useT();
   const [state, action, pending] = useActionState(signUpAction, undefined);
   const fieldError = useFieldError("auth.signup", state);
-  const [account, setAccount] = useState<"runner" | "organizer">("runner");
 
   return (
     <form action={action} className="flex flex-col gap-6" noValidate>
       <LocaleField />
-      <input type="hidden" name="accountType" value={account} />
 
       <AuthAlert error={state?.error} />
 
-      <fieldset>
-        <legend className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase">
-          {t("auth.signup.accountType")}
-        </legend>
-        <div className="mt-3 grid grid-cols-2 gap-3" role="radiogroup">
-          {(
-            [
-              {
-                v: "runner" as const,
-                title: t("auth.signup.runner"),
-                blurb: t("auth.signup.runnerBlurb"),
-              },
-              {
-                v: "organizer" as const,
-                title: t("auth.signup.organizer"),
-                blurb: t("auth.signup.organizerBlurb"),
-              },
-            ]
-          ).map((o) => (
-            <button
-              key={o.v}
-              type="button"
-              role="radio"
-              aria-checked={account === o.v}
-              onClick={() => setAccount(o.v)}
-              className={cn(
-                "border-2 px-4 py-4 text-left transition-colors",
-                account === o.v
-                  ? "border-neon-lime bg-neon-lime/8"
-                  : "border-line-strong hover:border-fg-dim",
-              )}
-            >
-              <span
-                className={cn(
-                  "block text-base font-extrabold uppercase",
-                  account === o.v && "text-neon-lime",
-                )}
-              >
-                {o.title}
-              </span>
-              <span className="mt-1 block text-xs text-fg-dim">{o.blurb}</span>
-            </button>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-fg-faint">
-          {t("auth.signup.accountNote")}
-        </p>
-      </fieldset>
-
       <Field label={t("auth.signup.fullName")} error={fieldError("name")}>
         {(p) => (
-          <Input {...p} name="name" autoComplete="name" placeholder="Alex Rivera" />
+          <Input
+            {...p}
+            name="name"
+            autoComplete="name"
+            placeholder="Alex Rivera"
+          />
         )}
       </Field>
 
@@ -218,7 +176,13 @@ export function SignUpForm() {
         )}
       </Field>
 
-      <Button type="submit" block size="xl" disabled={pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        block
+        size="xl"
+        disabled={pending}
+        aria-busy={pending}
+      >
         {pending ? t("auth.signup.creating") : t("auth.signup.submit")}
       </Button>
     </form>
@@ -269,7 +233,13 @@ export function ForgotPasswordForm() {
         )}
       </Field>
 
-      <Button type="submit" block size="xl" disabled={pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        block
+        size="xl"
+        disabled={pending}
+        aria-busy={pending}
+      >
         {pending ? t("auth.forgot.sending") : t("auth.forgot.submit")}
       </Button>
     </form>
@@ -282,7 +252,10 @@ export function ForgotPasswordForm() {
  */
 export function ResetPasswordForm() {
   const t = useT();
-  const [state, action, pending] = useActionState(updatePasswordAction, undefined);
+  const [state, action, pending] = useActionState(
+    updatePasswordAction,
+    undefined,
+  );
   const fieldError = useFieldError("auth.reset", state);
 
   return (
@@ -306,7 +279,10 @@ export function ResetPasswordForm() {
         )}
       </Field>
 
-      <Field label={t("auth.reset.confirmPassword")} error={fieldError("confirm")}>
+      <Field
+        label={t("auth.reset.confirmPassword")}
+        error={fieldError("confirm")}
+      >
         {(p) => (
           <Input
             {...p}
@@ -318,30 +294,49 @@ export function ResetPasswordForm() {
         )}
       </Field>
 
-      <Button type="submit" block size="xl" disabled={pending} aria-busy={pending}>
+      <Button
+        type="submit"
+        block
+        size="xl"
+        disabled={pending}
+        aria-busy={pending}
+      >
         {pending ? t("auth.reset.saving") : t("auth.reset.submit")}
       </Button>
     </form>
   );
 }
 
+/** How long the resend button stays disabled after a message goes out. */
+const RESEND_COOLDOWN_SECONDS = 60;
+
 /**
- * Confirmation by six-digit code, for runners who would rather type than
- * follow the link in the email. Both routes end at the same place — the link
- * is handled by `app/[lang]/auth/confirm`.
+ * The screen a runner lands on straight after signing up.
+ *
+ * The confirmation email carries a link, not a code — it is spent at
+ * `app/[lang]/auth/confirm`, in whichever browser opens the mail. So there is
+ * nothing to type here: this panel names the inbox to look in and sends the
+ * message again when it never arrived.
  */
 export function VerifyEmailPanel({ email }: { email?: string }) {
   const t = useT();
-  const [state, action, pending] = useActionState(verifyEmailAction, undefined);
   const [resent, resendAction, resending] = useActionState(
     resendVerificationAction,
     undefined,
   );
-  const [code, setCode] = useState("");
-  const fieldError = useFieldError("auth.verify", state);
+  // Supabase rate-limits repeat sends, and a refusal a runner cannot explain
+  // reads as a broken button. The countdown starts on the submit itself
+  // rather than on the reply, so the pause covers the round trip too.
+  const [cooldown, setCooldown] = useState(0);
 
-  // Without an address there is nothing to verify against: the runner opened
-  // this page directly rather than arriving from sign-up.
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const id = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  // Without an address there is nothing to resend to: the runner opened this
+  // page directly rather than arriving from sign-up.
   if (!email) {
     return (
       <div className="flex flex-col gap-5">
@@ -353,61 +348,57 @@ export function VerifyEmailPanel({ email }: { email?: string }) {
     );
   }
 
+  const waiting = cooldown > 0;
+
   return (
     <div className="flex flex-col gap-6">
-      <form action={action} className="flex flex-col gap-6" noValidate>
+      <div className="border-2 border-neon-lime bg-neon-lime/8 px-5 py-7">
+        <p className="font-display text-2xl font-black text-neon-lime uppercase">
+          {t("auth.verify.sentTitle")}
+        </p>
+        <p className="mt-3 text-sm leading-relaxed wrap-break-words text-fg-muted">
+          {t("auth.verify.sentBody", { email })}
+        </p>
+      </div>
+
+      <p className="text-[13px] leading-relaxed text-fg-dim">
+        {t("auth.verify.spam")}
+      </p>
+
+      <form
+        action={resendAction}
+        onSubmit={() => setCooldown(RESEND_COOLDOWN_SECONDS)}
+        className="flex flex-col gap-3"
+      >
         <LocaleField />
         <input type="hidden" name="email" value={email} />
-        <AuthAlert error={state?.error} />
-
-        <Field
-          label={t("auth.verify.codeLabel")}
-          hint={t("auth.verify.codeHint", { email })}
-          error={fieldError("token")}
-        >
-          {(p) => (
-            <Input
-              {...p}
-              name="token"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              placeholder="000000"
-              className="text-center font-mono text-3xl tracking-[0.4em]"
-            />
-          )}
-        </Field>
+        <AuthAlert error={resent?.error} />
 
         <Button
           type="submit"
           block
           size="xl"
-          disabled={code.length !== 6 || pending}
-          aria-busy={pending}
+          variant="outline"
+          disabled={resending || waiting}
+          aria-busy={resending}
         >
-          {pending ? t("auth.verify.verifying") : t("auth.verify.submit")}
+          {resending
+            ? t("auth.verify.resending")
+            : waiting
+              ? t("auth.verify.resendIn", { seconds: cooldown })
+              : t("auth.verify.resend")}
         </Button>
+
+        {/* Always mounted, so the confirmation is announced and not only seen:
+            a live region that appears with its text can go unread. */}
+        <p role="status" className="min-h-5 text-[13px] text-fg-dim">
+          {resent?.ok ? t("auth.verify.resentBody") : ""}
+        </p>
       </form>
 
-      <form action={resendAction}>
-        <LocaleField />
-        <input type="hidden" name="email" value={email} />
-        <button
-          type="submit"
-          disabled={resending}
-          className="text-[13px] font-bold text-neon-lime hover:underline disabled:opacity-40"
-        >
-          {resending ? t("auth.verify.resending") : t("auth.verify.resend")}
-        </button>
-        {resent?.ok ? (
-          <p role="status" className="mt-2 text-[13px] text-fg-dim">
-            {t("auth.verify.resentBody")}
-          </p>
-        ) : null}
-        <AuthAlert error={resent?.error} />
-      </form>
+      <Button href="/login" variant="ghost" size="md">
+        {t("auth.verify.backToLogin")}
+      </Button>
     </div>
   );
 }

@@ -30,6 +30,7 @@ const DYNAMIC_PREFIXES = [
   "auth.reset.",
   "auth.verify.",
   "labels.",
+  "settings.errors.",
   "settings.prefs.",
   "notifications.kind.",
   "leaderboard.",

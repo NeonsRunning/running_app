@@ -6,6 +6,7 @@ import { Eyebrow } from "@/components/ui/badge";
 import { useT } from "@/components/i18n/provider";
 import { useLocalizedRouter } from "@/components/i18n/link";
 import { distanceLabel } from "@/lib/i18n/labels";
+import { PR_MUNICIPALITIES } from "@/lib/pr-municipalities";
 import { cn } from "@/lib/cn";
 
 /**
@@ -26,15 +27,8 @@ const DISTANCES = [
   "Other",
 ];
 
-const LOCATIONS = [
-  "Puerto Rico",
-  "San Juan",
-  "Condado",
-  "Río Grande",
-  "Luquillo",
-  "Ponce",
-  "Vieques",
-];
+/** UI-only sentinel: search the whole island, i.e. send no `q` at all. */
+const ANY_LOCATION = "Any location";
 
 /**
  * The hero race finder. Submitting hands the criteria to /events as query
@@ -43,14 +37,14 @@ const LOCATIONS = [
 export function RaceSearch({ className }: { className?: string }) {
   const t = useT();
   const router = useLocalizedRouter();
-  const [location, setLocation] = useState("Puerto Rico");
+  const [location, setLocation] = useState(ANY_LOCATION);
   const [distance, setDistance] = useState(ANY_DISTANCE);
   const [date, setDate] = useState("");
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (location) params.set("q", location);
+    if (location !== ANY_LOCATION) params.set("q", location);
     if (distance !== ANY_DISTANCE) params.set("distance", distance);
     if (date) params.set("from", date);
     router.push(`/events?${params.toString()}`);
@@ -71,19 +65,21 @@ export function RaceSearch({ className }: { className?: string }) {
         <Eyebrow>
           <label htmlFor="search-location">{t("search.location")}</label>
         </Eyebrow>
-        <input
+        <select
           id="search-location"
-          list="search-location-options"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          placeholder={t("search.locationPlaceholder")}
-          className="mt-1.5 w-full border-0 bg-transparent p-0 text-base font-semibold text-fg placeholder:text-fg-faint focus:outline-none"
-        />
-        <datalist id="search-location-options">
-          {LOCATIONS.map((l) => (
-            <option key={l} value={l} />
+          className="mt-1.5 w-full cursor-pointer appearance-none border-0 bg-transparent p-0 text-base font-semibold text-fg focus:outline-none"
+        >
+          <option value={ANY_LOCATION} className="bg-charcoal">
+            {t("search.anyLocation")}
+          </option>
+          {PR_MUNICIPALITIES.map((m) => (
+            <option key={m} value={m} className="bg-charcoal">
+              {m}
+            </option>
           ))}
-        </datalist>
+        </select>
       </div>
 
       <div className={cellClass}>
