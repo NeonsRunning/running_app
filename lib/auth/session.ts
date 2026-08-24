@@ -27,7 +27,8 @@ export type Session = {
   isOrganizer: boolean;
   name: string;
   initials: string;
-  handle: string;
+  /** The auth user id — what `/runners/[id]` is keyed by. */
+  id: string;
   email: string;
   unreadNotifications: number;
 };
@@ -37,7 +38,7 @@ export const GUEST_SESSION: Session = {
   isOrganizer: false,
   name: "",
   initials: "",
-  handle: "",
+  id: "",
   email: "",
   unreadNotifications: 0,
 };
@@ -116,7 +117,7 @@ export function toSession(
     isOrganizer: isOrganizer(profile),
     name,
     initials: profile?.initials ?? initialsOf(name),
-    handle: profile?.handle ?? user.id,
+    id: user.id,
     email: user.email ?? "",
     unreadNotifications: extras.unreadNotifications ?? 0,
   };

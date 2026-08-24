@@ -596,7 +596,14 @@
     "bib": "Dorsal",
     "viewRegistration": "Ver inscripción",
     "upcoming": "Próximas",
-    "personalBestsPanel": "Marcas personales"
+    "personalBestsPanel": "Marcas personales",
+    "clubOnly": "Club {club}",
+    "memberSince": "Miembro desde {date}",
+    "noAchievementsTitle": "Sin logros todavía",
+    "noAchievementsBody": "Los logros aparecen aquí en cuanto {name} cruce su primera meta.",
+    "noResultsTitle": "Sin carreras todavía",
+    "noResultsBody": "El historial se llena solo: cada resultado publicado aparece aquí.",
+    "noResultsAction": "Ver carreras"
   },
   "auth": {
     "shell": {

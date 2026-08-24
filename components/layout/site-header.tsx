@@ -19,10 +19,10 @@ const NAV = [
   { href: "/about", key: "nav.about" },
 ] as const;
 
-/** The account menu, built per session: the profile link needs the handle. */
-function accountMenu(session: { handle: string; isOrganizer: boolean }) {
+/** The account menu, built per session: the profile link needs the user id. */
+function accountMenu(session: { id: string; isOrganizer: boolean }) {
   return [
-    { href: `/runners/${session.handle}`, key: "account.profile" },
+    { href: `/runners/${session.id}`, key: "account.profile" },
     { href: "/dashboard", key: "account.myEvents" },
     { href: "/dashboard#saved", key: "account.savedEvents" },
     { href: "/results", key: "account.results" },
@@ -60,7 +60,8 @@ export function SiteHeader() {
     // Close via the state setter directly — the helper above is a fresh
     // closure each render and would churn this subscription.
     const onDown = (e: MouseEvent) => {
-      if (!accountRef.current?.contains(e.target as Node)) setAccountOpenAt(null);
+      if (!accountRef.current?.contains(e.target as Node))
+        setAccountOpenAt(null);
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setAccountOpenAt(null);
@@ -106,7 +107,7 @@ export function SiteHeader() {
 
         <Link
           href="/events"
-          className="hidden items-center gap-2 font-mono text-[12px] tracking-[0.1em] text-fg-dim uppercase hover:text-fg md:flex"
+          className="hidden items-center gap-2 font-mono text-[12px] tracking-widest text-fg-dim uppercase hover:text-fg md:flex"
         >
           <SearchIcon size={16} /> {t("common.search")}
         </Link>
@@ -138,10 +139,10 @@ export function SiteHeader() {
                 aria-haspopup="menu"
                 className="flex items-center gap-2.5 border-2 border-line-strong py-1.5 pr-3 pl-1.5 transition-colors hover:border-fg-dim"
               >
-                <span className="flex h-7 w-7 items-center justify-center bg-gradient-to-br from-neon-lime to-neon-green text-[11px] font-black text-ink">
+                <span className="flex h-7 w-7 items-center justify-center bg-linear-to-br from-neon-lime to-neon-green text-[11px] font-black text-ink">
                   {session.initials}
                 </span>
-                <span className="text-xs font-bold tracking-[0.1em] uppercase">
+                <span className="text-xs font-bold tracking-widest uppercase">
                   {session.name.split(" ")[0]}
                 </span>
                 <span aria-hidden="true" className="text-[10px] text-fg-dim">
@@ -223,7 +224,7 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-[0.1em] uppercase hover:bg-graphite"
+                className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
               >
                 {t(item.key)}
               </Link>
@@ -232,13 +233,13 @@ export function SiteHeader() {
               <>
                 <Link
                   href="/dashboard"
-                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-[0.1em] uppercase hover:bg-graphite"
+                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                 >
                   {t("nav.dashboard")}
                 </Link>
                 <Link
                   href="/notifications"
-                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-[0.1em] uppercase hover:bg-graphite"
+                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                 >
                   {t("nav.notifications")}
                   {session.unreadNotifications > 0 ? (
@@ -250,12 +251,12 @@ export function SiteHeader() {
                 {session.isOrganizer ? (
                   <Link
                     href="/organizer"
-                    className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-[0.1em] uppercase hover:bg-graphite"
+                    className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                   >
                     {t("nav.organizerDashboard")}
                   </Link>
                 ) : null}
-                <SignOutButton className="border-b-2 border-line px-5 py-4 text-left text-base font-extrabold tracking-[0.1em] text-danger uppercase hover:bg-graphite">
+                <SignOutButton className="border-b-2 border-line px-5 py-4 text-left text-base font-extrabold tracking-widest text-danger uppercase hover:bg-graphite">
                   {t("nav.logOut")}
                 </SignOutButton>
               </>
@@ -263,13 +264,13 @@ export function SiteHeader() {
               <>
                 <Link
                   href="/login"
-                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-[0.1em] uppercase hover:bg-graphite"
+                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                 >
                   {t("nav.logIn")}
                 </Link>
                 <Link
                   href="/signup"
-                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-[0.1em] uppercase hover:bg-graphite"
+                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                 >
                   {t("nav.signUp")}
                 </Link>

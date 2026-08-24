@@ -16,10 +16,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const POPULAR = [
-  { handle: "alex-rivera", name: "Alex Rivera", initials: "AR", city: "San Juan", stat: "24:38 5K", followers: 418 },
-  { handle: "alex-rivera", name: "Keila Santana", initials: "KS", city: "Dorado", stat: "32:48 10K", followers: 1204 },
-  { handle: "alex-rivera", name: "Andrés Maldonado", initials: "AM", city: "Caguas", stat: "31:04 10K", followers: 2810 },
-  { handle: "alex-rivera", name: "María Colón", initials: "MC", city: "Bayamón", stat: "1:52:10 Half", followers: 306 },
+  { id: "alex-rivera", name: "Alex Rivera", initials: "AR", city: "San Juan", stat: "24:38 5K", followers: 418 },
+  { id: "alex-rivera", name: "Keila Santana", initials: "KS", city: "Dorado", stat: "32:48 10K", followers: 1204 },
+  { id: "alex-rivera", name: "Andrés Maldonado", initials: "AM", city: "Caguas", stat: "31:04 10K", followers: 2810 },
+  { id: "alex-rivera", name: "María Colón", initials: "MC", city: "Bayamón", stat: "1:52:10 Half", followers: 306 },
 ];
 
 export default async function CommunityPage() {
@@ -107,7 +107,7 @@ export default async function CommunityPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <Link
-                    href={`/runners/${p.handle}`}
+                    href={`/runners/${p.id}`}
                     className="text-base font-bold hover:text-neon-lime"
                   >
                     {p.name}
@@ -163,7 +163,7 @@ export default async function CommunityPage() {
               })}
             </p>
             <Button
-              href={`/runners/${runner.handle}`}
+              href={`/runners/${runner.id}`}
               variant="outline"
               size="md"
               className="mt-5"

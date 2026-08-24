@@ -596,7 +596,14 @@
     "bib": "Bib",
     "viewRegistration": "View registration",
     "upcoming": "Upcoming",
-    "personalBestsPanel": "Personal bests"
+    "personalBestsPanel": "Personal bests",
+    "clubOnly": "Club {club}",
+    "memberSince": "Member since {date}",
+    "noAchievementsTitle": "No achievements yet",
+    "noAchievementsBody": "Achievements show up here as soon as {name} crosses a finish line.",
+    "noResultsTitle": "No races yet",
+    "noResultsBody": "The history fills itself in: every published result lands here.",
+    "noResultsAction": "Browse races"
   },
   "auth": {
     "shell": {
