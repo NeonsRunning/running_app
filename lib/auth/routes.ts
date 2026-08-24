@@ -1,12 +1,27 @@
 /**
  * Which routes require a session, and which ones a signed-in runner should
- * never see. Paths here are locale-free (`/dashboard`, not `/en/dashboard`) —
+ * never see. Paths here are locale-free (`/settings`, not `/en/settings`) —
  * the proxy strips the prefix before asking.
  */
 
-/** Signed-out visitors are sent to the login screen. */
+/**
+ * The `[id]` segment that means "whoever is signed in".
+ *
+ * A runner's page is keyed by account id, but the nav, the login redirect and
+ * the links in a confirmation email all have to name it before any id is
+ * known. `/runners/me` is that name: the page resolves it against the session
+ * and renders the runner their own profile.
+ */
+export const SELF_ID = "me";
+export const SELF_PROFILE_PATH = `/runners/${SELF_ID}`;
+
+/**
+ * Signed-out visitors are sent to the login screen. `/runners/me` is the only
+ * entry that sits under an otherwise public route, and the match below is
+ * exact-or-slash-boundary, so `/runners/<id>` stays readable by anyone.
+ */
 const PROTECTED = [
-  "/dashboard",
+  SELF_PROFILE_PATH,
   "/settings",
   "/notifications",
   "/organizer",
@@ -14,7 +29,7 @@ const PROTECTED = [
 ] as const;
 
 /**
- * Signed-in runners are sent to their dashboard. `/reset-password` is
+ * Signed-in runners are sent to their own profile. `/reset-password` is
  * deliberately absent: the recovery link signs you in, so that page is only
  * ever reached *with* a session.
  */

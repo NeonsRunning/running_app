@@ -8,6 +8,7 @@ import type {
 } from "./types";
 import type { Locale } from "./i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "./i18n/format";
+import { SELF_PROFILE_PATH } from "./auth/routes";
 import { EVENT_COPY_ES } from "./content/events.es";
 import {
   ACHIEVEMENT_EARNED_ON_ES,
@@ -590,7 +591,7 @@ export const NOTIFICATIONS: AppNotification[] = [
     body: "You are officially registered for Neon Night 10K. Bib #1048, Wave A.",
     time: "12 Aug",
     unread: true,
-    href: "/dashboard",
+    href: SELF_PROFILE_PATH,
   },
   {
     id: "n4",

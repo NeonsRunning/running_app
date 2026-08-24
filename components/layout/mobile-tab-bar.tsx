@@ -3,13 +3,14 @@
 import { Link, useAppPathname } from "@/components/i18n/link";
 import { useT } from "@/components/i18n/provider";
 import { cn } from "@/lib/cn";
+import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 
 const TABS = [
   { href: "/", key: "tabs.home", icon: "▲" },
   { href: "/events", key: "tabs.events", icon: "◈" },
-  { href: "/dashboard", key: "tabs.myRaces", icon: "▣" },
+  { href: "/results", key: "tabs.results", icon: "▣" },
   { href: "/community", key: "tabs.community", icon: "◎" },
-  { href: "/runners/alex-rivera", key: "tabs.profile", icon: "●" },
+  { href: SELF_PROFILE_PATH, key: "tabs.profile", icon: "●" },
 ] as const;
 
 /**

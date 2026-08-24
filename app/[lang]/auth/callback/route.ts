@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { DEFAULT_LOCALE, isLocale, localizePath } from "@/lib/i18n/config";
-import { safeNextPath } from "@/lib/auth/routes";
+import { SELF_PROFILE_PATH, safeNextPath } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -50,6 +50,6 @@ export async function GET(
   const { error } = await supabase.auth.exchangeCodeForSession(code);
   if (error) return NextResponse.redirect(destination("/login", "?error=oauth"));
 
-  const next = safeNextPath(params.get("next")) ?? "/dashboard";
+  const next = safeNextPath(params.get("next")) ?? SELF_PROFILE_PATH;
   return NextResponse.redirect(destination(next));
 }

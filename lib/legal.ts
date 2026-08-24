@@ -131,14 +131,14 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "The standard window",
         paragraphs: [
-          "Cancel more than 14 days before race day and you are refunded in full, including the service fee, automatically from your dashboard. No email, no form, no organizer approval.",
+          "Cancel more than 14 days before race day and you are refunded in full, including the service fee, automatically from your profile. No email, no form, no organizer approval.",
           "Inside 14 days, the organizer's own policy applies. It is stated on every event page before you pay — most offer a 50% refund up to 72 hours out, and nothing after that, because shirts and medals have already been ordered against your entry.",
         ],
       },
       {
         heading: "How to cancel",
         paragraphs: [
-          "Open the registration in your dashboard and choose Cancel registration. You will see exactly what you get back before you confirm.",
+          "Open the registration on your profile and choose Cancel registration. You will see exactly what you get back before you confirm.",
         ],
       },
       {
@@ -178,7 +178,7 @@ export const LEGAL_DOCS: LegalDoc[] = [
       {
         heading: "If a race is postponed",
         paragraphs: [
-          "Your entry moves to the new date automatically and your bib number is preserved. If the new date does not suit you, you have 14 days from the announcement to request a full refund from your dashboard.",
+          "Your entry moves to the new date automatically and your bib number is preserved. If the new date does not suit you, you have 14 days from the announcement to request a full refund from your profile.",
         ],
       },
       {

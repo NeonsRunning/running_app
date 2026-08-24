@@ -2,6 +2,7 @@ import { NeonsEmblem, NeonsWordmark } from "@/components/brand/logo";
 import { Link } from "@/components/i18n/link";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { getT } from "@/lib/i18n/server";
+import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 
 /** Titles and labels are dictionary keys, resolved against the active locale. */
 const COLUMNS = [
@@ -9,7 +10,7 @@ const COLUMNS = [
     title: "footer.runners.title",
     links: [
       { href: "/events", key: "footer.runners.findRaces" },
-      { href: "/dashboard", key: "footer.runners.myRegistrations" },
+      { href: SELF_PROFILE_PATH, key: "footer.runners.myRegistrations" },
       { href: "/results", key: "footer.runners.results" },
       { href: "/community", key: "footer.runners.clubs" },
     ],

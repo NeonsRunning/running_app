@@ -22,8 +22,7 @@ another so the app reads as a working product rather than a set of mockups.
 | Event discovery (filters, sort, list/map) | `/events` |
 | Event details | `/events/[slug]` |
 | Registration flow (5 steps + confirmation) | `/events/[slug]/register` |
-| Runner dashboard | `/dashboard` |
-| Runner profile | `/runners/[id]` |
+| Runner profile — public, and your own races when it is yours | `/runners/[id]`, `/runners/me` |
 | Publish event wizard (7 steps) | `/publish` |
 | Organizer dashboard (with charts) | `/organizer` |
 | Participant management | `/organizer/participants` |
@@ -202,7 +201,7 @@ browser from the one that asked for the reset.
 
 | Flow | Path through the code |
 | --- | --- |
-| Sign in | `signInAction` → `signInWithPassword` → `?next=` or `/dashboard` |
+| Sign in | `signInAction` → `signInWithPassword` → `?next=` or `/runners/me` |
 | Sign up | `signUpAction` → `/verify-email` → the emailed link → `/auth/confirm` |
 | Recovery | `requestPasswordResetAction` → email → `/auth/confirm` → `/reset-password` → `updatePasswordAction` |
 | Google | `signInWithGoogleAction` → provider → `/auth/callback` |
@@ -296,3 +295,10 @@ persistent bottom tab bar.
   falls back to a fixture, so the demo links keep working. A real account has no
   races behind it yet, so its stats read zero and the achievement, history and
   sidebar panels show empty states rather than borrowing fixture numbers.
+- `/runners/me` is the same page under the one address that can be linked to
+  before an id is known — the nav, the login redirect and the confirmation
+  emails all need it. It resolves against the session and renders in place, so
+  a signed-out visitor is sent to login rather than to a 404. Ownership adds to
+  the page rather than replacing it: saved races and recommendations appear
+  only for the runner themselves, and everything above them reads the same to
+  everyone.

@@ -11,6 +11,7 @@ import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
 import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
+import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import type { RunningEvent } from "@/lib/types";
 
 /**
@@ -913,10 +914,10 @@ function Confirmation({
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Button href="/dashboard" size="lg">
+            <Button href={SELF_PROFILE_PATH} size="lg">
               {t("register.confirmation.viewRegistration")}
             </Button>
-            <Button href="/dashboard" variant="outline" size="lg">
+            <Button href={SELF_PROFILE_PATH} variant="outline" size="lg">
               {t("register.confirmation.addToCalendar")}
             </Button>
             <Button href={`/events/${event.slug}`} variant="ghost" size="lg">

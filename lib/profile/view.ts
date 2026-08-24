@@ -8,9 +8,9 @@ import { getProfile, type Profile } from "./queries";
  * The view model behind `/runners/[id]`.
  *
  * Two sources feed one page. An id belonging to a real account resolves out of
- * `profiles`; the demo ids that the community and dashboard screens still link
- * to resolve out of the fixtures in `lib/data.ts`. The page renders one shape
- * either way and never asks which source it came from.
+ * `profiles`; the demo ids that the community screens still link to resolve out
+ * of the fixtures in `lib/data.ts`. The page renders one shape either way and
+ * never asks which source it came from.
  *
  * The identity half — name, city, club, bio — exists in both. The racing half
  * — stats, achievements, results, upcoming — has no table behind it yet, so a

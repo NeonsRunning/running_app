@@ -132,14 +132,14 @@ export const LEGAL_COPY_ES: Record<string, LegalDocCopy> = {
       "The standard window": {
         heading: "El plazo estándar",
         paragraphs: [
-          "Cancela con más de 14 días de antelación y se te reembolsa por completo, incluido el cargo por servicio, de forma automática desde tu panel. Sin correos, sin formularios, sin aprobación del organizador.",
+          "Cancela con más de 14 días de antelación y se te reembolsa por completo, incluido el cargo por servicio, de forma automática desde tu perfil. Sin correos, sin formularios, sin aprobación del organizador.",
           "Dentro de los 14 días aplica la política propia del organizador. Se indica en cada página de evento antes de pagar — la mayoría ofrece un 50 % de reembolso hasta 72 horas antes, y nada después, porque las camisetas y medallas ya se pidieron contando con tu inscripción.",
         ],
       },
       "How to cancel": {
         heading: "Cómo cancelar",
         paragraphs: [
-          "Abre la inscripción en tu panel y elige Cancelar inscripción. Verás exactamente cuánto recuperas antes de confirmar.",
+          "Abre la inscripción en tu perfil y elige Cancelar inscripción. Verás exactamente cuánto recuperas antes de confirmar.",
         ],
       },
       "When the money arrives": {
@@ -179,7 +179,7 @@ export const LEGAL_COPY_ES: Record<string, LegalDocCopy> = {
       "If a race is postponed": {
         heading: "Si se aplaza una carrera",
         paragraphs: [
-          "Tu inscripción pasa automáticamente a la nueva fecha y se conserva tu número de dorsal. Si la nueva fecha no te sirve, tienes 14 días desde el anuncio para pedir un reembolso completo desde tu panel.",
+          "Tu inscripción pasa automáticamente a la nueva fecha y se conserva tu número de dorsal. Si la nueva fecha no te sirve, tienes 14 días desde el anuncio para pedir un reembolso completo desde tu perfil.",
         ],
       },
       "Weather and safety": {

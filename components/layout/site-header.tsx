@@ -7,6 +7,7 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { BrandLock } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { BellIcon, SearchIcon } from "@/components/ui/icons";
 import { useSession } from "./session";
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -19,12 +20,15 @@ const NAV = [
   { href: "/about", key: "nav.about" },
 ] as const;
 
-/** The account menu, built per session: the profile link needs the user id. */
+/**
+ * The account menu, built per session: the profile link needs the user id.
+ * Registrations and saved races live on the profile too, so the saved entry
+ * is the same page under an anchor.
+ */
 function accountMenu(session: { id: string; isOrganizer: boolean }) {
   return [
     { href: `/runners/${session.id}`, key: "account.profile" },
-    { href: "/dashboard", key: "account.myEvents" },
-    { href: "/dashboard#saved", key: "account.savedEvents" },
+    { href: `/runners/${session.id}#saved`, key: "account.savedEvents" },
     { href: "/results", key: "account.results" },
     { href: "/settings", key: "account.settings" },
     // Only organizers have a dashboard to open.
@@ -232,10 +236,10 @@ export function SiteHeader() {
             {session.signedIn ? (
               <>
                 <Link
-                  href="/dashboard"
+                  href={SELF_PROFILE_PATH}
                   className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                 >
-                  {t("nav.dashboard")}
+                  {t("account.profile")}
                 </Link>
                 <Link
                   href="/notifications"

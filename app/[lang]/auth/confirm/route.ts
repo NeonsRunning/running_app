@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { DEFAULT_LOCALE, isLocale, localizePath } from "@/lib/i18n/config";
-import { safeNextPath } from "@/lib/auth/routes";
+import { SELF_PROFILE_PATH, safeNextPath } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/server";
 
 /** The link types the app sends: address confirmation and password recovery. */
@@ -18,7 +18,7 @@ function isOtpType(value: string | null): value is EmailOtpType {
  * Confirmation and password-reset emails are spent here for a session, so the
  * runner arrives already signed in — a recovery link lands on
  * `/reset-password` with the rights to change the password, and a sign-up
- * link lands on the dashboard.
+ * link lands on the runner's own profile.
  *
  * TWO LINK SHAPES ARRIVE HERE, because what Supabase sends depends on how the
  * project's email templates are written:
@@ -82,7 +82,7 @@ export async function GET(
     return NextResponse.redirect(failed);
   }
 
-  const fallback = type === "recovery" ? "/reset-password" : "/dashboard";
+  const fallback = type === "recovery" ? "/reset-password" : SELF_PROFILE_PATH;
   const next = safeNextPath(params.get("next")) ?? fallback;
   return NextResponse.redirect(destination(next));
 }
