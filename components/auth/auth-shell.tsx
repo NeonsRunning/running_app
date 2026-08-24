@@ -134,7 +134,7 @@ export function SocialAuth({ next }: { next?: string }) {
       {next ? <input type="hidden" name="next" value={next} /> : null}
       <button
         type="submit"
-        className="flex min-h-13 w-full items-center justify-center gap-3 border-2 border-line-strong px-4 py-3.5 text-sm font-bold transition-colors hover:border-fg-dim"
+        className="flex min-h-13 w-full cursor-pointer items-center justify-center gap-3 border-2 border-line-strong px-4 py-3.5 text-sm font-bold transition-colors hover:border-fg-dim"
       >
         <span aria-hidden="true" className="text-base">
           G

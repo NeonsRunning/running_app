@@ -12,8 +12,10 @@ export type ButtonVariant =
 
 export type ButtonSize = "sm" | "md" | "lg" | "xl";
 
+// `cursor-pointer` is explicit: a <button> takes the arrow from the UA, and
+// this component renders one as often as it renders a link.
 const BASE =
-  "relative inline-flex select-none items-center justify-center gap-2 border-2 font-black uppercase tracking-[0.12em] transition-[background-color,color,border-color,transform] duration-150 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-40";
+  "relative inline-flex cursor-pointer select-none items-center justify-center gap-2 border-2 font-black uppercase tracking-[0.12em] transition-[background-color,color,border-color,transform] duration-150 ease-out active:translate-y-px disabled:pointer-events-none disabled:opacity-40";
 
 const VARIANTS: Record<ButtonVariant, string> = {
   // The single loudest action on a screen. Neon yellow on black.
@@ -109,7 +111,7 @@ export function IconButton({
       aria-label={label}
       title={label}
       className={cn(
-        "inline-flex h-11 w-11 shrink-0 items-center justify-center border-2 transition-colors duration-150",
+        "inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center border-2 transition-colors duration-150 disabled:pointer-events-none disabled:opacity-40",
         active
           ? "border-neon-yellow bg-neon-yellow/10 text-neon-yellow"
           : "border-line-strong text-fg-dim hover:border-fg-dim hover:text-fg",

@@ -15,8 +15,8 @@ export default async function VerifyEmailPage(
   const t = await getT();
   const params = await props.searchParams;
 
-  // Sign-up puts the address in the URL: the code has to be verified against
-  // it, and there is no session yet to read it from.
+  // Sign-up puts the address in the URL: confirming leaves no session to read
+  // it from, and the panel needs it both to name the inbox and to resend.
   const raw = params.email;
   const email = Array.isArray(raw) ? raw[0] : raw;
 

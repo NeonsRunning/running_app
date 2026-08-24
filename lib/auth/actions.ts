@@ -122,8 +122,6 @@ export async function signUpAction(
   const name = readText(formData, "name");
   const email = readText(formData, "email");
   const password = String(formData.get("password") ?? "");
-  const accountType =
-    readText(formData, "accountType") === "organizer" ? "organizer" : "runner";
 
   const fieldErrors: Record<string, string> = {};
   if (!name) fieldErrors.name = "nameRequired";
@@ -137,8 +135,12 @@ export async function signUpAction(
     email,
     password,
     options: {
-      // Lands on the user record as `user_metadata`, which `toSession` reads.
-      data: { full_name: name, account_type: accountType },
+      // Lands on the user record as `user_metadata`, where the database
+      // trigger reads it to seed the profile row — the name and the handle
+      // derived from it. Everyone signs up as a runner: `account_type` is the
+      // trigger's to set, never the form's, so a hand-crafted post cannot ask
+      // for the organizer tools.
+      data: { full_name: name },
       emailRedirectTo: await emailLink("/auth/confirm", locale, "/dashboard"),
     },
   });
@@ -164,34 +166,16 @@ export async function signUpAction(
 }
 
 /* -------------------------------------------------------------------------- */
-/* Email confirmation by six-digit code                                       */
+/* Email confirmation                                                         */
 /* -------------------------------------------------------------------------- */
 
-export async function verifyEmailAction(
-  _prev: AuthState | undefined,
-  formData: FormData,
-): Promise<AuthState> {
-  const locale = readLocale(formData);
-  const email = readText(formData, "email");
-  const token = readText(formData, "token");
-
-  if (!email) return { error: "missingEmail" };
-  if (token.length !== 6) return { fieldErrors: { token: "codeInvalid" } };
-
-  const supabase = await createClient();
-  // "signup" matches the email `signUp` sent, and the type `resend` below
-  // asks for — the code and the link in that message are interchangeable.
-  const { error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "signup",
-  });
-  if (error) return { error: authErrorKey(error) };
-
-  revalidatePath("/", "layout");
-  redirect(localizePath("/dashboard", locale));
-}
-
+/**
+ * Send the confirmation email again.
+ *
+ * There is no code to check on our side: the message carries a link that is
+ * spent at `/auth/confirm`, so the only thing the verify screen can do for a
+ * runner whose mail never arrived is ask Supabase to send another.
+ */
 export async function resendVerificationAction(
   _prev: AuthState | undefined,
   formData: FormData,
@@ -267,7 +251,7 @@ export async function updatePasswordAction(
 }
 
 /* -------------------------------------------------------------------------- */
-/* OAuth, sign-out, account type                                              */
+/* OAuth and sign-out                                                         */
 /* -------------------------------------------------------------------------- */
 
 export async function signInWithGoogleAction(formData: FormData): Promise<void> {
@@ -295,24 +279,4 @@ export async function signOutAction(formData: FormData): Promise<void> {
 
   revalidatePath("/", "layout");
   redirect(localizePath("/", locale));
-}
-
-/** Switch a runner's account on to the organizer tools. */
-export async function becomeOrganizerAction(
-  _prev: AuthState | undefined,
-  formData: FormData,
-): Promise<AuthState> {
-  void formData;
-
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { error: "sessionExpired" };
-
-  const { error } = await supabase.auth.updateUser({
-    data: { ...userData.user.user_metadata, account_type: "organizer" },
-  });
-  if (error) return { error: authErrorKey(error) };
-
-  revalidatePath("/", "layout");
-  return { ok: true };
 }

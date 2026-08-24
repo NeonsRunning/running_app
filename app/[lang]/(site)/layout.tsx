@@ -3,7 +3,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { SessionProvider } from "@/components/layout/session";
 import { SavedEventsProvider } from "@/components/events/saved-events";
-import { getUser, toSession } from "@/lib/auth/session";
+import { getAccount, toSession } from "@/lib/auth/session";
 import { getNotifications } from "@/lib/data";
 import { getLocale } from "@/lib/i18n/server";
 
@@ -18,16 +18,16 @@ import { getLocale } from "@/lib/i18n/server";
  */
 export default async function SiteLayout({ children }: LayoutProps<"/[lang]">) {
   const locale = await getLocale();
-  const user = await getUser();
+  const account = await getAccount();
 
   // Notifications are still fixture data pending a table of their own; only
   // the badge count crosses into the session.
-  const unreadNotifications = user
+  const unreadNotifications = account
     ? getNotifications(locale).filter((n) => n.unread).length
     : 0;
 
   return (
-    <SessionProvider value={toSession(user, { unreadNotifications })}>
+    <SessionProvider value={toSession(account, { unreadNotifications })}>
       <SavedEventsProvider>
         <div className="flex min-h-dvh flex-col">
           <SiteHeader />

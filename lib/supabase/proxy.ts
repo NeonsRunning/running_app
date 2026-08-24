@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest, NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
+import type { Database } from "./database.types";
 import { hasSupabaseEnv, supabaseEnv } from "./env";
 
 type PendingCookie = {
@@ -42,7 +43,7 @@ export async function refreshSession(
   const pending: PendingCookie[] = [];
   const headers: Record<string, string> = {};
 
-  const supabase = createServerClient(url, anonKey, {
+  const supabase = createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (cookiesToSet, responseHeaders) => {

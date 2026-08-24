@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/misc";
 import { getClubs, getCommunityFeed, getEvents } from "@/lib/data";
+import { getAccount, isOrganizer } from "@/lib/auth/session";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 
@@ -13,6 +14,11 @@ export default async function LandingPage() {
   const locale = await getLocale();
   const t = await getT();
   const fmt = createFormatters(locale);
+
+  // The publish CTA is organizer-only, so the viewer has to be resolved here
+  // rather than read from the client session context.
+  const account = await getAccount();
+  const showOrganizerCta = isOrganizer(account?.profile ?? null);
 
   const events = getEvents(locale);
   const clubs = getClubs(locale);
@@ -213,31 +219,34 @@ export default async function LandingPage() {
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      {/* Organizer CTA — the one place the accent runs as a full field.    */}
+      {/* Organizer CTA — the one place the accent runs as a full field,     */}
+      {/* shown only to accounts that publish races.                         */}
       {/* ---------------------------------------------------------------- */}
-      <section className="bg-neon-lime text-ink">
-        <div className="mx-auto flex max-w-[1600px] flex-col gap-8 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:px-10 lg:py-16">
-          <div className="flex-1">
-            <p className="font-mono text-[12px] tracking-[0.2em] uppercase">
-              {t("home.organizerKicker")}
-            </p>
-            <h2 className="mt-4 font-display text-4xl leading-[0.92] font-black tracking-[-0.035em] uppercase sm:text-5xl lg:text-6xl">
-              {t("home.organizerTitleLine1")}
-              <br />
-              {t("home.organizerTitleLine2")}
-            </h2>
-            <p className="mt-5 max-w-lg text-sm leading-relaxed text-ink/75">
-              {t("home.organizerBody")}
-            </p>
+      {showOrganizerCta && (
+        <section className="bg-neon-lime text-ink">
+          <div className="mx-auto flex max-w-[1600px] flex-col gap-8 px-4 py-14 sm:px-6 lg:flex-row lg:items-center lg:px-10 lg:py-16">
+            <div className="flex-1">
+              <p className="font-mono text-[12px] tracking-[0.2em] uppercase">
+                {t("home.organizerKicker")}
+              </p>
+              <h2 className="mt-4 font-display text-4xl leading-[0.92] font-black tracking-[-0.035em] uppercase sm:text-5xl lg:text-6xl">
+                {t("home.organizerTitleLine1")}
+                <br />
+                {t("home.organizerTitleLine2")}
+              </h2>
+              <p className="mt-5 max-w-lg text-sm leading-relaxed text-ink/75">
+                {t("home.organizerBody")}
+              </p>
+            </div>
+            <Link
+              href="/publish"
+              className="inline-flex shrink-0 items-center justify-center bg-ink px-9 py-6 text-sm font-black tracking-[0.12em] text-neon-lime uppercase transition-colors hover:bg-charcoal"
+            >
+              {t("nav.publishEvent")}
+            </Link>
           </div>
-          <Link
-            href="/publish"
-            className="inline-flex shrink-0 items-center justify-center bg-ink px-9 py-6 text-sm font-black tracking-[0.12em] text-neon-lime uppercase transition-colors hover:bg-charcoal"
-          >
-            {t("nav.publishEvent")}
-          </Link>
-        </div>
-      </section>
+        </section>
+      )}
     </>
   );
 }

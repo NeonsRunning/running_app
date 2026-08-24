@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { getT } from "@/lib/i18n/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireAccount } from "@/lib/auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SettingsPage() {
-  await requireUser("/settings");
+  const { profile } = await requireAccount("/settings");
 
-  return <SettingsPanel />;
+  return <SettingsPanel profile={profile} />;
 }
