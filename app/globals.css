@@ -1,0 +1,302 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   NEONS RUNNING — design tokens
+   Dark foundation, neon used strategically (CTAs, active states, key stats).
+   ========================================================================== */
+
+@theme {
+  /* --- surfaces (near-black foundation) --- */
+  --color-ink: #050505;
+  --color-carbon: #0d0d0d;
+  --color-charcoal: #111111;
+  --color-graphite: #1a1a1a;
+  --color-slate-deep: #242424;
+
+  /* --- hairlines --- */
+  --color-line: #1f1f1f;
+  --color-line-strong: #2a2a2a;
+  --color-line-bright: #3a3a3a;
+
+  /* --- neon accents --- */
+  --color-neon-yellow: #fff200;
+  --color-neon-lime: #9cff00;
+  --color-neon-green: #49ff18;
+
+  /* --- semantic --- */
+  --color-danger: #ff4d3d;
+  --color-danger-soft: rgba(255, 77, 61, 0.14);
+  --color-success: #49ff18;
+  --color-warn: #ffb020;
+
+  /* --- foreground ramp --- */
+  --color-fg: #ffffff;
+  --color-fg-muted: #c9c9c9;
+  --color-fg-dim: #8a8a8a;
+  --color-fg-faint: #6c6c6c;
+
+  /* --- type --- */
+  --font-display: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --font-sans: var(--font-archivo), "Archivo", system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+
+  /* --- motion --- */
+  --ease-out-fast: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+
+  html {
+    background: var(--color-ink);
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-ink);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Athletic headline treatment — tight, heavy, uppercase-friendly. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 0.95;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /* Visible, on-brand focus ring everywhere — never the browser default. */
+  :focus-visible {
+    outline: 2px solid var(--color-neon-yellow);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: var(--color-neon-lime);
+    color: var(--color-ink);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-slate-deep);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-line-bright);
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink);
+  }
+
+  /* Inputs inherit the app's type rather than the UA's. */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* iOS zooms any field under 16px on focus. */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px;
+    }
+  }
+}
+
+/* ==========================================================================
+   Brand utilities
+   ========================================================================== */
+
+@utility text-gradient-neon {
+  background: linear-gradient(
+    100deg,
+    var(--color-neon-yellow) 0%,
+    var(--color-neon-lime) 55%,
+    var(--color-neon-green) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Road-marking dashes — used behind heroes and section headers. */
+@utility bg-road-lines {
+  background-image: repeating-linear-gradient(
+    100deg,
+    rgba(255, 242, 0, 0.09) 0 2px,
+    transparent 2px 44px
+  );
+}
+
+/* Running-track lanes — tighter rhythm, used on cards and covers. */
+@utility bg-track-lanes {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 242, 0, 0.12) 0 2px,
+    transparent 2px 22px
+  );
+}
+
+/* Map / GPS grid. */
+@utility bg-grid-map {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 56px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 56px);
+}
+
+/* Finish-line checker, for success and race-day moments. */
+@utility bg-finish-line {
+  background-image:
+    repeating-conic-gradient(
+      var(--color-fg) 0% 25%,
+      transparent 0% 50%
+    );
+  background-size: 16px 16px;
+}
+
+/* The standard event-cover wash: black into deep green into lime. */
+@utility bg-cover-wash {
+  background-image: linear-gradient(
+    135deg,
+    #050505 0%,
+    #0c1c00 42%,
+    #2c6600 88%,
+    #64bb00 130%
+  );
+}
+
+/* Hide scrollbars on horizontal card rails while keeping them scrollable. */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Motion — every animation must honour the user's OS preference.
+   ========================================================================== */
+
+@keyframes neon-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility animate-pulse-neon {
+  animation: neon-pulse 2s var(--ease-out-fast) infinite;
+}
+@utility animate-rise-in {
+  animation: rise-in 0.4s var(--ease-out-fast) both;
+}
+@utility animate-pop-in {
+  animation: pop-in 0.45s var(--ease-out-fast) both;
+}
+@utility animate-toast-in {
+  animation: toast-in 0.28s var(--ease-out-fast) both;
+}
+
+/* Skeleton shimmer — used instead of spinners for content loading. */
+@utility skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-graphite);
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .skeleton::after {
+    animation: none;
+  }
+}
