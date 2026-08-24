@@ -43,13 +43,23 @@ export function NeonsMark({
   );
 }
 
-/** The winged N cut from the badge — stays crisp at header sizes. */
+/**
+ * The emblem's own proportions, straight off `public/brand/neons-mark.png`.
+ * The N carries wings, so the mark is a wide one — a square box would render it
+ * as a sliver a third the height of anything set beside it.
+ */
+const EMBLEM_RATIO = 512 / 191;
+
+/**
+ * The winged N cut from the badge — stays crisp at header sizes. Sized by
+ * height, like the type it sits next to; the width follows from the artwork.
+ */
 export function NeonsEmblem({
-  size = 36,
+  height = 26,
   className,
   title,
 }: {
-  size?: number;
+  height?: number;
   className?: string;
   title?: string;
 }) {
@@ -57,8 +67,8 @@ export function NeonsEmblem({
     <Image
       src="/brand/neons-mark.png"
       alt={title ?? ""}
-      width={size}
-      height={size}
+      width={Math.round(height * EMBLEM_RATIO)}
+      height={height}
       loading="eager"
       className={cn("block shrink-0", className)}
     />
@@ -74,9 +84,20 @@ export function NeonsWordmark({
 }) {
   return (
     <span className={cn("flex flex-col leading-none", className)}>
+      {/*
+        The padding is what keeps the S whole. Archivo ships no italic face, so
+        this is a synthesized oblique: the browser skews the upright glyphs and
+        leaves their advance widths alone, which puts the top-right of the last
+        letter outside the element's box — and `text-gradient-neon` paints with
+        `background-clip: text`, so anything outside that box simply is not
+        painted. The negative tracking pulls the right edge in further still.
+        The matching negative margin hands the space back, so the lockup keeps
+        its measurements and only the paintable box grows.
+      */}
       <span
         className={cn(
           "text-gradient-neon font-display font-black tracking-[-0.04em] italic",
+          "pr-[0.25em] -mr-[0.25em]",
           compact ? "text-lg" : "text-xl",
         )}
       >
@@ -94,14 +115,18 @@ export function NeonsWordmark({
   );
 }
 
-/** Emblem + wordmark, linked home. The header and footer both use this. */
+/**
+ * Emblem + wordmark, linked home. The header and footer both use this.
+ *
+ * The emblem is set to the height of the two wordmark lines beside it — 18 + 8
+ * compact, 20 + 9 otherwise, all at `leading-none` — so the lockup reads as one
+ * block. That leaves nothing to size from outside, hence no `size` prop.
+ */
 export function BrandLock({
   className,
-  size = 40,
   compact = false,
 }: {
   className?: string;
-  size?: number;
   compact?: boolean;
 }) {
   const t = useT();
@@ -112,7 +137,7 @@ export function BrandLock({
       className={cn("flex shrink-0 items-center gap-3", className)}
       aria-label={t("common.brandHome")}
     >
-      <NeonsEmblem size={size} />
+      <NeonsEmblem height={compact ? 26 : 29} />
       <NeonsWordmark compact={compact} />
     </Link>
   );

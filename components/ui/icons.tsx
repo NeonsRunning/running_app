@@ -127,3 +127,42 @@ export function PhotoIcon(props: IconProps) {
     </Icon>
   );
 }
+
+/** Runner profile. */
+export function UserIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+    </Icon>
+  );
+}
+
+/** Account settings. */
+export function SettingsIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2.5v3M12 18.5v3M21.5 12h-3M5.5 12h-3M18.7 5.3l-2.1 2.1M7.4 16.6l-2.1 2.1M18.7 18.7l-2.1-2.1M7.4 7.4 5.3 5.3" />
+    </Icon>
+  );
+}
+
+/** Organizer dashboard. */
+export function DashboardIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M4 4h7v7H4ZM13 4h7v4h-7ZM13 10h7v10h-7ZM4 13h7v7H4Z" />
+    </Icon>
+  );
+}
+
+/** Sign out of the account. */
+export function SignOutIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M14.5 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8.5" />
+      <path d="M18.5 12H10M15.5 8.5 19 12l-3.5 3.5" />
+    </Icon>
+  );
+}

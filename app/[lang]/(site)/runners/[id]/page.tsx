@@ -198,14 +198,9 @@ export default async function RunnerProfilePage(
 
           <div className="flex w-full flex-col gap-3 lg:w-56">
             {isSelf ? (
-              <>
-                <Button href="/events" size="md" block>
-                  {t("runner.findRace")}
-                </Button>
-                <Button href="/settings" variant="outline" size="md" block>
-                  {t("runner.editProfile")}
-                </Button>
-              </>
+              <Button href="/events" size="md" block>
+                {t("runner.findRace")}
+              </Button>
             ) : (
               <FollowButton name={runner.name} block />
             )}

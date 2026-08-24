@@ -52,7 +52,6 @@
   },
   "account": {
     "profile": "Mi perfil",
-    "savedEvents": "Carreras guardadas",
     "results": "Resultados",
     "settings": "Ajustes",
     "organizerDashboard": "Panel de organizador"
@@ -563,7 +562,6 @@
     "noResultsBody": "El historial se llena solo: cada resultado publicado aparece aquí.",
     "noResultsAction": "Ver carreras",
     "findRace": "Buscar carrera",
-    "editProfile": "Editar perfil",
     "daysToStart": "{days} días para tu próxima línea de salida · {count} carreras en tu calendario esta temporada.",
     "category": "Categoría",
     "registrationMeta": "{category} · {wave} · dorsal {bib}",
