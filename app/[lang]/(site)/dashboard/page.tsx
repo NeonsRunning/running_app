@@ -69,7 +69,7 @@ export default async function DashboardPage() {
           <Button href="/events" variant="outline" size="md">
             {t("dashboard.findRace")}
           </Button>
-          <Button href={`/runners/${runner.handle}`} size="md">
+          <Button href={`/runners/${runner.id}`} size="md">
             {t("dashboard.myProfile")}
           </Button>
         </div>
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
         <SectionHeading
           title={t("dashboard.recentResults")}
           kicker={t("dashboard.recentResultsKicker")}
-          href={`/runners/${runner.handle}`}
+          href={`/runners/${runner.id}`}
           hrefLabel={t("dashboard.fullRaceHistory")}
         />
         <ul className="mt-6 border-t-2 border-line">

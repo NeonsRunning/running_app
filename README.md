@@ -23,7 +23,7 @@ another so the app reads as a working product rather than a set of mockups.
 | Event details | `/events/[slug]` |
 | Registration flow (5 steps + confirmation) | `/events/[slug]/register` |
 | Runner dashboard | `/dashboard` |
-| Runner profile | `/runners/[handle]` |
+| Runner profile | `/runners/[id]` |
 | Publish event wizard (7 steps) | `/publish` |
 | Organizer dashboard (with charts) | `/organizer` |
 | Participant management | `/organizer/participants` |
@@ -164,6 +164,7 @@ lib/auth/routes.ts       which paths need a session
 lib/auth/errors.ts       Supabase error codes -> dictionary keys
 lib/profile/queries.ts   reading profiles
 lib/profile/actions.ts   editing a profile, switching on the organizer tools
+lib/profile/view.ts      one runner page shape, from a profile or a fixture
 ```
 
 Two rules hold everywhere:
@@ -229,8 +230,8 @@ lib/supabase/database.types.ts  the schema as TypeScript sees it
 `auth.users` belongs to Supabase: it takes no extra columns and is reachable
 only through the auth API. Everything the app renders about a person lives in
 `public.profiles` instead, keyed one-to-one on the user id — the name on a bib,
-the handle in a URL, the city, the club, the bio, and `account_type`, which is
-what every organizer-only screen reads.
+the handle a runner picks, the city, the club, the bio, and `account_type`,
+which is what every organizer-only screen reads.
 
 | Table | Holds | Who can read it |
 | --- | --- | --- |
@@ -290,6 +291,8 @@ persistent bottom tab bar.
 - Every screen ships in both languages; `npm run check:i18n` keeps them level.
 - Policy pages in `lib/legal.ts` are realistic drafts for a demo, not legal advice.
 - Accounts and profiles are real (Supabase); event, result and registration data
-  is still the in-memory fixture set in `lib/data.ts`. The runner pages under
-  `/runners/[handle]` still render fixtures — `getProfileByHandle()` is the read
-  that replaces them once results have a table of their own.
+  is still the in-memory fixture set in `lib/data.ts`.
+- `/runners/[id]` resolves both: a uuid reads `public.profiles`, anything else
+  falls back to a fixture, so the demo links keep working. A real account has no
+  races behind it yet, so its stats read zero and the achievement, history and
+  sidebar panels show empty states rather than borrowing fixture numbers.

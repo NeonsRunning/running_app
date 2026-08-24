@@ -107,7 +107,13 @@ export async function getProfile(userId: string): Promise<Profile | null> {
   return error || !data ? null : toProfile(data);
 }
 
-/** The profile behind a `/runners/[handle]` URL, or null if it is private. */
+/**
+ * One profile by its handle, or null if it is private.
+ *
+ * Nothing calls this today — `/runners/[id]` is keyed by account id — but the
+ * handle stays unique in the database, so this is what a vanity-URL redirect
+ * or a "handle already taken" check would be built on.
+ */
 export async function getProfileByHandle(
   handle: string,
 ): Promise<Profile | null> {

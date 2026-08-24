@@ -721,8 +721,8 @@ function localizeRunner(runner: Runner, locale: Locale): Runner {
   };
 }
 
-export function getRunner(handle: string, locale: Locale): Runner | undefined {
-  const runner = RUNNERS.find((r) => r.handle === handle);
+export function getRunnerById(id: string, locale: Locale): Runner | undefined {
+  const runner = RUNNERS.find((r) => r.id === id);
   return runner && localizeRunner(runner, locale);
 }
 
