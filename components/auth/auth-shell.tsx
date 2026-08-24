@@ -44,7 +44,7 @@ export function AuthShell({
         />
 
         <div className="relative flex h-full flex-col justify-between px-5 py-6 sm:px-8 lg:px-12 lg:py-14">
-          <BrandLock size={40} />
+          <BrandLock />
 
           <div className="hidden lg:block">
             <BrandTagline />

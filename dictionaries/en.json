@@ -52,7 +52,6 @@
   },
   "account": {
     "profile": "My Profile",
-    "savedEvents": "Saved Events",
     "results": "Results",
     "settings": "Settings",
     "organizerDashboard": "Organizer Dashboard"
@@ -563,7 +562,6 @@
     "noResultsBody": "The history fills itself in: every published result lands here.",
     "noResultsAction": "Browse races",
     "findRace": "Find a race",
-    "editProfile": "Edit profile",
     "daysToStart": "{days} days to your next start line · {count} races on your calendar this season.",
     "category": "Category",
     "registrationMeta": "{category} · {wave} · bib {bib}",

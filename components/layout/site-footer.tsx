@@ -52,7 +52,7 @@ export async function SiteFooter() {
         <div className="grid gap-10 border-b-2 border-line py-12 md:grid-cols-2 lg:grid-cols-[1.6fr_repeat(4,1fr)] lg:gap-8">
           <div className="max-w-xs">
             <div className="flex items-center gap-3">
-              <NeonsEmblem size={48} />
+              <NeonsEmblem height={29} />
               <NeonsWordmark />
             </div>
             <p className="mt-5 text-[13px] leading-relaxed text-fg-dim">

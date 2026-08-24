@@ -141,7 +141,7 @@ export function PublishWizard() {
       {/* Header ---------------------------------------------------------- */}
       <header className="sticky top-0 z-60 border-b-2 border-line bg-ink">
         <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-10">
-          <BrandLock size={32} compact />
+          <BrandLock compact />
           <div className="hidden min-w-0 border-l-2 border-line pl-4 sm:block">
             <Eyebrow>{t("publish.createEvent")}</Eyebrow>
             <p className="mt-0.5 truncate text-[15px] font-extrabold uppercase">

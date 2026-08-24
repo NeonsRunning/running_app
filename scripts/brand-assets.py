@@ -12,9 +12,14 @@ composites cleanly onto ink, carbon or any other surface in the ramp.
 
 Outputs:
     public/brand/neons-running.png   full badge, 512px square
-    public/brand/neons-mark.png      winged N emblem, 256px square
-    app/icon.png                     the emblem, 512px, transparent
+    public/brand/neons-mark.png      winged N emblem, 512px at its own ~2.7:1
+    app/icon.png                     the emblem, 512px square, transparent
     app/apple-icon.png               the emblem, 180px, on ink (iOS flattens)
+
+The emblem is a wide mark — the N plus its wings run about 2.7:1. Icons have to
+be square, so those get it centred on a transparent square; the web cut keeps
+the mark's own proportions instead, so laying it out is a matter of picking a
+height and letting the width follow.
 
 Requires: pillow, numpy.
 """
@@ -46,8 +51,23 @@ def build_master() -> Image.Image:
         np.dstack([unpremultiplied, alpha]).astype(np.uint8), "RGBA"
     )
 
-    opaque = cut.getchannel("A").point(lambda v: 255 if v > 8 else 0)
-    return square(cut.crop(opaque.getbbox()))
+    return square(trim(cut))
+
+
+def trim(img: Image.Image) -> Image.Image:
+    """Drop the transparent margin around the glow."""
+    opaque = img.getchannel("A").point(lambda v: 255 if v > 8 else 0)
+    return img.crop(opaque.getbbox())
+
+
+def pad(img: Image.Image, scale: float) -> Image.Image:
+    """Centre `img` on a transparent canvas `scale` times its size."""
+    width, height = img.size
+    canvas = Image.new(
+        "RGBA", (int(width * scale), int(height * scale)), (0, 0, 0, 0)
+    )
+    canvas.paste(img, ((canvas.width - width) // 2, (canvas.height - height) // 2))
+    return canvas
 
 
 def square(img: Image.Image, scale: float = 1.0) -> Image.Image:
@@ -59,10 +79,15 @@ def square(img: Image.Image, scale: float = 1.0) -> Image.Image:
     return canvas
 
 
-def write(img: Image.Image, size: int, path: Path) -> None:
+def write(img: Image.Image, width: int, path: Path) -> None:
+    """Save `img` scaled to `width`, keeping its aspect ratio."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    img.resize((size, size), Image.LANCZOS).save(path, optimize=True)
-    print(f"{path.relative_to(ROOT).as_posix()}  {size}px  {path.stat().st_size:,} B")
+    height = round(img.height * width / img.width)
+    img.resize((width, height), Image.LANCZOS).save(path, optimize=True)
+    print(
+        f"{path.relative_to(ROOT).as_posix()}  {width}x{height}  "
+        f"{path.stat().st_size:,} B"
+    )
 
 
 def main() -> None:
@@ -71,17 +96,20 @@ def main() -> None:
     # EMBLEM_BOX is expressed against the 512px master, so scale it to whatever
     # resolution the source happens to be.
     k = master.size[0] / 512.0
-    emblem = square(
-        master.crop(tuple(int(round(v * k)) for v in EMBLEM_BOX)), EMBLEM_PADDING
-    )
+    emblem = trim(master.crop(tuple(int(round(v * k)) for v in EMBLEM_BOX)))
+
+    # Two cuts of the same emblem: the web one keeps the mark's proportions,
+    # the icon one is squared up because that is the shape an icon must be.
+    web = pad(emblem, EMBLEM_PADDING)
+    icon = square(emblem, EMBLEM_PADDING)
 
     write(master, 512, ROOT / "public" / "brand" / "neons-running.png")
-    write(emblem, 256, ROOT / "public" / "brand" / "neons-mark.png")
-    write(emblem, 512, ROOT / "app" / "icon.png")
+    write(web, 512, ROOT / "public" / "brand" / "neons-mark.png")
+    write(icon, 512, ROOT / "app" / "icon.png")
 
     # iOS composites the icon onto white, so this one ships its own ground.
     apple = Image.new("RGBA", (180, 180), (*INK, 255))
-    inset = emblem.resize((160, 160), Image.LANCZOS)
+    inset = icon.resize((160, 160), Image.LANCZOS)
     apple.paste(inset, (10, 10), inset)
     path = ROOT / "app" / "apple-icon.png"
     apple.convert("RGB").save(path, optimize=True)

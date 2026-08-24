@@ -89,11 +89,13 @@ surfaces without a black plate behind them:
   Used standalone on the about header and the 404.
 - `NeonsEmblem` — the winged N alone (`public/brand/neons-mark.png`), which
   stays legible small. It is the mark in `BrandLock` (header, auth, publish) and
-  in the footer lockup, paired with the text `NeonsWordmark`.
+  in the footer lockup, paired with the text `NeonsWordmark`. The wings make it
+  a wide mark, roughly 2.7:1, and the file is cut to that ratio rather than to a
+  square, so it takes a `height` and works its width out from there.
 
-`app/icon.png` and `app/apple-icon.png` are the same emblem, so the browser tab
-matches the header. Regenerate any of them from the source artwork with
-`scripts/brand-assets.py`.
+`app/icon.png` and `app/apple-icon.png` are the same emblem centred on a square
+— which is what an icon has to be — so the browser tab matches the header.
+Regenerate any of them from the source artwork with `scripts/brand-assets.py`.
 
 ### Chart colours
 

@@ -8,7 +8,15 @@ import { BrandLock } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
-import { BellIcon, SearchIcon } from "@/components/ui/icons";
+import {
+  BellIcon,
+  DashboardIcon,
+  MedalIcon,
+  SearchIcon,
+  SettingsIcon,
+  SignOutIcon,
+  UserIcon,
+} from "@/components/ui/icons";
 import { useSession } from "./session";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
@@ -22,18 +30,23 @@ const NAV = [
 
 /**
  * The account menu, built per session: the profile link needs the user id.
- * Registrations and saved races live on the profile too, so the saved entry
- * is the same page under an anchor.
+ * Icons are decorative — the label beside them carries the meaning, and
+ * `Icon` marks them `aria-hidden`.
  */
 function accountMenu(session: { id: string; isOrganizer: boolean }) {
   return [
-    { href: `/runners/${session.id}`, key: "account.profile" },
-    { href: `/runners/${session.id}#saved`, key: "account.savedEvents" },
-    { href: "/results", key: "account.results" },
-    { href: "/settings", key: "account.settings" },
+    { href: `/runners/${session.id}`, key: "account.profile", Icon: UserIcon },
+    { href: "/results", key: "account.results", Icon: MedalIcon },
+    { href: "/settings", key: "account.settings", Icon: SettingsIcon },
     // Only organizers have a dashboard to open.
     ...(session.isOrganizer
-      ? [{ href: "/organizer", key: "account.organizerDashboard" }]
+      ? [
+          {
+            href: "/organizer",
+            key: "account.organizerDashboard",
+            Icon: DashboardIcon,
+          },
+        ]
       : []),
   ];
 }
@@ -84,7 +97,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-70 border-b-2 border-line bg-ink/95 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-4 px-4 sm:px-6 lg:h-20 lg:gap-8 lg:px-10">
-        <BrandLock size={36} compact />
+        <BrandLock compact />
 
         <nav aria-label={t("nav.main")} className="hidden lg:block">
           <ul className="flex items-center gap-7">
@@ -141,7 +154,7 @@ export function SiteHeader() {
                 onClick={() => setAccountOpen(!accountOpen)}
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
-                className="flex items-center gap-2.5 border-2 border-line-strong py-1.5 pr-3 pl-1.5 transition-colors hover:border-fg-dim"
+                className="flex cursor-pointer items-center gap-2.5 border-2 border-line-strong py-1.5 pr-3 pl-1.5 transition-colors hover:border-fg-dim"
               >
                 <span className="flex h-7 w-7 items-center justify-center bg-linear-to-br from-neon-lime to-neon-green text-[11px] font-black text-ink">
                   {session.initials}
@@ -159,22 +172,30 @@ export function SiteHeader() {
                   role="menu"
                   className="animate-rise-in absolute right-0 mt-2 w-60 border-2 border-line-strong bg-charcoal py-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
                 >
-                  {accountMenu(session).map((item) => (
+                  {accountMenu(session).map(({ href, key, Icon }) => (
                     <Link
-                      key={item.key}
-                      href={item.href}
+                      key={key}
+                      href={href}
                       role="menuitem"
-                      className="block px-4 py-2.5 text-sm text-fg-muted hover:bg-graphite hover:text-fg"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-fg-muted hover:bg-graphite hover:text-fg"
                     >
-                      {t(item.key)}
+                      <Icon size={16} className="shrink-0 text-fg-dim" />
+                      {t(key)}
                     </Link>
                   ))}
                   <div className="my-2 h-0.5 bg-line" />
+                  {/*
+                    No onClick to close the menu: this button submits a form,
+                    and closing here would unmount that form during the click,
+                    before the browser ran the submission. The sign-out action
+                    redirects, which changes `pathname` and closes the menu on
+                    its own.
+                  */}
                   <SignOutButton
                     role="menuitem"
-                    onClick={() => setAccountOpen(false)}
-                    className="block w-full px-4 py-2.5 text-left text-sm text-danger hover:bg-graphite"
+                    className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-danger hover:bg-graphite"
                   >
+                    <SignOutIcon size={16} className="shrink-0" />
                     {t("nav.logOut")}
                   </SignOutButton>
                 </div>
