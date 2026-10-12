@@ -112,37 +112,3 @@ export async function setProfileVisibilityAction(
   revalidatePath("/", "layout");
   return { ok: true };
 }
-
-/* -------------------------------------------------------------------------- */
-/* Account type                                                               */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Switch a runner's account on to the organizer tools.
- *
- * The upgrade is self-serve and reversible in principle, but it is a write to
- * the profile row, not to the user's metadata: `account_type` is what every
- * organizer-only screen reads, and only the owner's own row is writable.
- */
-export async function becomeOrganizerAction(
-  _prev: ProfileState | undefined,
-  formData: FormData,
-): Promise<ProfileState> {
-  void formData;
-
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { error: "sessionExpired" };
-
-  const { data, error } = await supabase
-    .from("profiles")
-    .update({ account_type: "organizer" })
-    .eq("id", userData.user.id)
-    .select("id")
-    .maybeSingle();
-
-  if (error || !data) return { error: "saveFailed" };
-
-  revalidatePath("/", "layout");
-  return { ok: true };
-}

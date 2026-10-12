@@ -9,7 +9,6 @@ import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/layout/session";
 import { useT } from "@/components/i18n/provider";
 import {
-  becomeOrganizerAction,
   setProfileVisibilityAction,
   updateProfileAction,
   type ProfileState,
@@ -22,8 +21,8 @@ import { cn } from "@/lib/cn";
  * Labels are dictionary keys, resolved at render against the active locale.
  *
  * Local state only: notification preferences have no table yet, so these
- * toggles reset on reload. The profile form, the visibility switch and the
- * organizer upgrade below are the three controls on this screen that write.
+ * toggles reset on reload. The profile form and the visibility switch below
+ * are the two controls on this screen that write.
  */
 const NOTIFICATION_PREFS = [
   { id: "reminders", on: true },
@@ -158,7 +157,10 @@ export function SettingsPanel({ profile }: { profile: Profile | null }) {
               {t("settings.organizerDashboard")}
             </Button>
           ) : (
-            <BecomeOrganizerButton />
+            // Organizer access is granted by the team, in the database.
+            <Button href="/contact" variant="outline" size="md">
+              {t("settings.requestOrganizer")}
+            </Button>
           )}
         </div>
       </Section>
@@ -222,39 +224,6 @@ export function SettingsPanel({ profile }: { profile: Profile | null }) {
         destructive
       />
     </div>
-  );
-}
-
-/**
- * Switching on the organizer tools writes to the user record, so it goes
- * through a server action; the layout re-renders with the new account type
- * and this button is replaced by the organizer dashboard link.
- */
-function BecomeOrganizerButton() {
-  const t = useT();
-  const { toast } = useToast();
-  const [state, action, pending] = useActionState(
-    becomeOrganizerAction,
-    undefined,
-  );
-
-  useEffect(() => {
-    if (!state?.ok) return;
-    toast({
-      title: t("settings.organizerEnabledTitle"),
-      body: t("settings.organizerEnabledBody"),
-    });
-    // `toast` and `t` are stable for the life of the panel; re-running on
-    // their identity would fire the toast twice.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.ok]);
-
-  return (
-    <form action={action}>
-      <Button type="submit" size="md" disabled={pending} aria-busy={pending}>
-        {pending ? t("settings.enablingOrganizer") : t("settings.becomeOrganizer")}
-      </Button>
-    </form>
   );
 }
 

@@ -7,12 +7,8 @@ import { Progress } from "@/components/ui/misc";
 import { EventDetailTabs } from "@/components/events/event-detail-tabs";
 import { SaveButton } from "@/components/events/saved-events";
 import { ShareRow } from "@/components/events/share-row";
-import {
-  daysUntil,
-  getEventBySlug,
-  getEventSlugs,
-  getOrganizer,
-} from "@/lib/data";
+import { daysUntil, getEventSlugs } from "@/lib/data";
+import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 import { distanceLabel, eventTypeLabel } from "@/lib/i18n/labels";
@@ -28,12 +24,12 @@ export async function generateMetadata(
   const locale = await getLocale();
   const t = await getT();
 
-  const event = getEventBySlug(slug, locale);
-  if (!event) return { title: t("events.detail.notFound") };
+  const found = await findEvent(slug, locale);
+  if (!found) return { title: t("events.detail.notFound") };
 
   return {
-    title: event.name,
-    description: event.tagline,
+    title: found.event.name,
+    description: found.event.tagline,
   };
 }
 
@@ -45,15 +41,29 @@ export default async function EventDetailPage(
   const t = await getT();
   const fmt = createFormatters(locale);
 
-  const event = getEventBySlug(slug, locale);
-  if (!event) notFound();
+  const found = await findEvent(slug, locale);
+  if (!found) notFound();
 
-  const organizer = getOrganizer(event.organizerId, locale);
+  const { event, organizer } = found;
   const days = daysUntil(event.date);
   const spotsLeft = event.capacity - event.registered;
   const featured =
     event.categories.find((c) => c.name === event.featuredDistance) ??
     event.categories[0];
+
+  // Before registration opens or after it closes there is nothing to sign up
+  // for, so the button gives way to a notice saying why.
+  const canRegister =
+    event.registrationStatus !== "opening-soon" &&
+    event.registrationStatus !== "closed";
+  const unavailable =
+    event.registrationStatus === "closed"
+      ? t("events.detail.registrationClosed")
+      : event.registrationOpens
+        ? t("events.detail.registrationOpensOn", {
+            date: event.registrationOpens,
+          })
+        : t("events.detail.registrationOpensSoon");
 
   return (
     <article className="pb-24 lg:pb-0">
@@ -164,14 +174,20 @@ export default async function EventDetailPage(
                 })}
               </p>
 
-              <Button
-                href={`/events/${event.slug}/register`}
-                block
-                size="xl"
-                className="mt-6"
-              >
-                {t("events.detail.registerNow")}
-              </Button>
+              {canRegister ? (
+                <Button
+                  href={`/events/${event.slug}/register`}
+                  block
+                  size="xl"
+                  className="mt-6"
+                >
+                  {t("events.detail.registerNow")}
+                </Button>
+              ) : (
+                <p className="mt-6 flex min-h-16 items-center justify-center border-2 border-line px-4 text-center font-display text-[15px] font-black tracking-[0.12em] text-fg-muted uppercase">
+                  {unavailable}
+                </p>
+              )}
 
               <SaveButton
                 slug={event.slug}
@@ -260,13 +276,19 @@ export default async function EventDetailPage(
             {fmt.moneyWhole(featured.price)}
           </span>
         </div>
-        <Button
-          href={`/events/${event.slug}/register`}
-          size="lg"
-          className="h-full min-h-14 rounded-none"
-        >
-          {t("events.detail.registerNow")}
-        </Button>
+        {canRegister ? (
+          <Button
+            href={`/events/${event.slug}/register`}
+            size="lg"
+            className="h-full min-h-14 rounded-none"
+          >
+            {t("events.detail.registerNow")}
+          </Button>
+        ) : (
+          <p className="flex h-full min-h-14 items-center justify-center px-4 text-center font-display text-[13px] font-black tracking-[0.12em] text-fg-muted uppercase">
+            {unavailable}
+          </p>
+        )}
       </div>
     </article>
   );

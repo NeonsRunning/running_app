@@ -98,7 +98,6 @@ export const EVENTS: RunningEvent[] = [
     region: "Puerto Rico",
     venue: "Paseo de la Princesa",
     address: "Paseo de la Princesa, Old San Juan, PR 00901",
-    map: { x: 34, y: 38 },
     date: "2026-09-12",
     dow: "SAT",
     day: "12",
@@ -158,7 +157,6 @@ export const EVENTS: RunningEvent[] = [
     region: "Puerto Rico",
     venue: "Ventana al Mar",
     address: "Av. Ashford, Condado, San Juan, PR 00907",
-    map: { x: 52, y: 30 },
     date: "2026-09-27",
     dow: "SUN",
     day: "27",
@@ -214,7 +212,6 @@ export const EVENTS: RunningEvent[] = [
     region: "Puerto Rico",
     venue: "El Portal Visitor Center",
     address: "PR-191 km 4.3, Río Grande, PR 00745",
-    map: { x: 70, y: 52 },
     date: "2026-10-10",
     dow: "SAT",
     day: "10",
@@ -277,7 +274,6 @@ export const EVENTS: RunningEvent[] = [
     region: "Puerto Rico",
     venue: "Malecón de Esperanza",
     address: "Calle Flamboyán, Esperanza, Vieques, PR 00765",
-    map: { x: 84, y: 66 },
     date: "2026-11-08",
     dow: "SUN",
     day: "08",
@@ -335,7 +331,6 @@ export const EVENTS: RunningEvent[] = [
     region: "Puerto Rico",
     venue: "Balneario Monserrate",
     address: "PR-3 km 35.4, Luquillo, PR 00773",
-    map: { x: 64, y: 42 },
     date: "2026-11-21",
     dow: "SAT",
     day: "21",
@@ -392,7 +387,6 @@ export const EVENTS: RunningEvent[] = [
     region: "Puerto Rico",
     venue: "Estadio Francisco Montaner",
     address: "Av. Las Américas, Ponce, PR 00716",
-    map: { x: 30, y: 74 },
     date: "2026-10-24",
     dow: "SAT",
     day: "24",
@@ -768,46 +762,3 @@ export function daysUntil(isoDate: string, from: Date = TODAY): number {
   const target = new Date(`${isoDate}T00:00:00`);
   return Math.max(0, Math.ceil((target.getTime() - from.getTime()) / 86_400_000));
 }
-
-/* ------------------------------------------------------------------ */
-/* Organizer analytics                                                 */
-/* ------------------------------------------------------------------ */
-
-export const REGISTRATIONS_SERIES = [
-  { label: "W23", value: 38 },
-  { label: "W24", value: 52 },
-  { label: "W25", value: 47 },
-  { label: "W26", value: 71 },
-  { label: "W27", value: 88 },
-  { label: "W28", value: 76 },
-  { label: "W29", value: 104 },
-  { label: "W30", value: 129 },
-  { label: "W31", value: 118 },
-  { label: "W32", value: 156 },
-  { label: "W33", value: 181 },
-  { label: "W34", value: 224 },
-];
-
-export const REVENUE_SERIES = [
-  { label: "Mar", value: 4120 },
-  { label: "Apr", value: 5380 },
-  { label: "May", value: 4960 },
-  { label: "Jun", value: 6740 },
-  { label: "Jul", value: 8210 },
-  { label: "Aug", value: 9010 },
-];
-
-export const DEMOGRAPHICS_SERIES = [
-  { label: "Under 20", women: 34, men: 41 },
-  { label: "20–29", women: 148, men: 162 },
-  { label: "30–39", women: 194, men: 211 },
-  { label: "40–49", women: 121, men: 138 },
-  { label: "50+", women: 62, men: 73 },
-];
-
-export const ORGANIZER_EVENTS = [
-  { slug: "neon-night-10k", registered: 342, capacity: 500, revenue: 15420, status: "Live" as const },
-  { slug: "ponce-track-night-5k", registered: 64, capacity: 180, revenue: 1280, status: "Draft" as const },
-  { slug: "vieques-sunrise-marathon", registered: 96, capacity: 200, revenue: 8640, status: "Live" as const },
-  { slug: "condado-coastal-10k", registered: 518, capacity: 530, revenue: 13080, status: "Closing" as const },
-];

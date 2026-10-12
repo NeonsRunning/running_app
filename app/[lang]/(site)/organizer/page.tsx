@@ -9,15 +9,14 @@ import {
   RegistrationsChart,
   RevenueChart,
 } from "@/components/organizer/charts";
-import {
-  DEMOGRAPHICS_SERIES,
-  ORGANIZER_EVENTS,
-  REGISTRATIONS_SERIES,
-  REVENUE_SERIES,
-  getEventBySlug,
-} from "@/lib/data";
+import { DeleteEventButton } from "@/components/organizer/delete-event-button";
+import { OrganizerOnly } from "@/components/organizer/organizer-only";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireOrganizer } from "@/lib/auth/session";
+import {
+  getOrganizerDashboard,
+  type DashboardStatus,
+} from "@/lib/events/organizer";
 import { createFormatters } from "@/lib/i18n/format";
 import { domainLabel } from "@/lib/i18n/labels";
 
@@ -29,41 +28,32 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const STATUS_TONE = {
+const STATUS_TONE: Record<DashboardStatus, "lime" | "outline" | "yellow" | "neutral"> = {
   Live: "lime",
   Draft: "outline",
   Closing: "yellow",
-} as const;
+  Finished: "neutral",
+};
+
+/** Card actions share one shape so the row stays a single map. */
+const ACTION_CLASS =
+  "border-2 border-line-strong px-3 py-2 text-[11px] font-bold tracking-wider text-fg-muted uppercase transition-colors hover:border-neon-lime hover:text-neon-lime";
 
 export default async function OrganizerDashboardPage() {
-  await requireUser("/organizer");
+  const account = await requireOrganizer("/organizer");
+  if (!account) return <OrganizerOnly />;
 
   const locale = await getLocale();
   const t = await getT();
   const fmt = createFormatters(locale);
-
-  const events = ORGANIZER_EVENTS.map((oe) => ({
-    ...oe,
-    event: getEventBySlug(oe.slug, locale),
-  })).filter((oe): oe is typeof oe & { event: NonNullable<typeof oe.event> } =>
-    Boolean(oe.event),
-  );
-
-  /** Card actions share one shape so the row stays a single map. */
-  const actions = (slug: string) => [
-    { key: "organizer.actions.manage", href: `/events/${slug}` },
-    { key: "organizer.actions.participants", href: "/organizer/participants" },
-    { key: "organizer.actions.edit", href: "/publish" },
-    { key: "organizer.actions.duplicate", href: "/publish" },
-    { key: "organizer.actions.results", href: `/events/${slug}/results` },
-    { key: "organizer.actions.share", href: `/events/${slug}` },
-  ];
+  const dashboard = await getOrganizerDashboard(account.user.id);
+  const { totals, events } = dashboard;
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
       <header className="flex flex-wrap items-end justify-between gap-6 border-b-2 border-line pb-8">
         <div>
-          <Eyebrow>{t("organizer.eyebrow")}</Eyebrow>
+          <Eyebrow>{account.profile?.name ?? t("organizer.eyebrow")}</Eyebrow>
           <h1 className="mt-3 font-display text-4xl font-black uppercase sm:text-5xl">
             {t("organizer.title")}
           </h1>
@@ -84,25 +74,25 @@ export default async function OrganizerDashboardPage() {
         className="grid grid-cols-2 gap-0.5 border-b-2 border-line bg-line lg:grid-cols-4"
       >
         <StatCard
-          value={fmt.number(1284)}
+          value={fmt.number(totals.registrations)}
           label={t("organizer.registrations")}
           accent="lime"
           className="bg-ink"
         />
         <StatCard
-          value={fmt.moneyWhole(38420)}
+          value={fmt.moneyWhole(totals.revenue)}
           label={t("organizer.revenue")}
           accent="yellow"
           className="bg-ink"
         />
         <StatCard
-          value={fmt.number(4)}
+          value={fmt.number(totals.activeEvents)}
           label={t("organizer.activeEvents")}
           className="bg-ink"
         />
         <StatCard
-          value={fmt.number(8420)}
-          label={t("organizer.profileViews")}
+          value={fmt.number(totals.drafts)}
+          label={t("organizer.drafts")}
           className="bg-ink"
         />
       </section>
@@ -113,13 +103,19 @@ export default async function OrganizerDashboardPage() {
           title={t("organizer.analytics")}
           kicker={t("organizer.analyticsKicker")}
         />
-        <div className="mt-8 grid gap-5 xl:grid-cols-2">
-          <div className="xl:col-span-2">
-            <RegistrationsChart data={REGISTRATIONS_SERIES} />
+        {totals.registrations > 0 ? (
+          <div className="mt-8 grid gap-5 xl:grid-cols-2">
+            <div className="xl:col-span-2">
+              <RegistrationsChart data={dashboard.registrationsSeries} />
+            </div>
+            <RevenueChart data={dashboard.revenueSeries} />
+            <DemographicsChart data={dashboard.demographics} />
           </div>
-          <RevenueChart data={REVENUE_SERIES} />
-          <DemographicsChart data={DEMOGRAPHICS_SERIES} />
-        </div>
+        ) : (
+          <p className="mt-8 border-2 border-dashed border-line px-6 py-12 text-center text-[15px] text-fg-dim">
+            {t("organizer.noRegistrations")}
+          </p>
+        )}
       </section>
 
       {/* My events ------------------------------------------------------- */}
@@ -131,64 +127,98 @@ export default async function OrganizerDashboardPage() {
           hrefLabel={t("organizer.createEvent")}
         />
 
-        <ul className="mt-8 grid gap-5 lg:grid-cols-2">
-          {events.map(({ event, registered, capacity, revenue, status }) => (
-            <li key={event.slug} className="border-2 border-line bg-carbon">
-              <div className="flex items-start justify-between gap-4 border-b-2 border-line px-5 py-5">
-                <div>
-                  <h3 className="font-display text-2xl font-black uppercase">
-                    <Link
-                      href={`/events/${event.slug}`}
-                      className="hover:text-neon-lime"
-                    >
-                      {event.name}
-                    </Link>
-                  </h3>
-                  <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                    {event.month} {event.day}, {event.year} · {event.city}
-                  </p>
+        {events.length === 0 ? (
+          <div className="mt-8 border-2 border-dashed border-line px-6 py-14 text-center">
+            <p className="font-display text-2xl font-black uppercase">
+              {t("organizer.noEventsTitle")}
+            </p>
+            <p className="mx-auto mt-3 max-w-md text-[15px] text-fg-dim">
+              {t("organizer.noEventsBody")}
+            </p>
+            <Button href="/publish" size="lg" className="mt-7">
+              {t("organizer.createEvent")}
+            </Button>
+          </div>
+        ) : (
+          <ul className="mt-8 grid gap-5 lg:grid-cols-2">
+            {events.map((event) => (
+              <li key={event.id} className="border-2 border-line bg-carbon">
+                <div className="flex items-start justify-between gap-4 border-b-2 border-line px-5 py-5">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-2xl font-black wrap-break-word uppercase">
+                      <Link
+                        href={`/organizer/events/${event.id}/edit`}
+                        className="hover:text-neon-lime"
+                      >
+                        {event.name}
+                      </Link>
+                    </h3>
+                    <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
+                      {[
+                        event.date ? fmt.mediumDate(event.date) : t("organizer.noDate"),
+                        event.city,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+                  <Badge tone={STATUS_TONE[event.status]}>
+                    {domainLabel(t, "eventStatus", event.status)}
+                  </Badge>
                 </div>
-                <Badge tone={STATUS_TONE[status]}>
-                  {domainLabel(t, "eventStatus", status)}
-                </Badge>
-              </div>
 
-              <div className="px-5 py-5">
-                <Progress
-                  value={registered}
-                  max={capacity}
-                  label={t("organizer.runners")}
-                  tone={registered / capacity > 0.9 ? "yellow" : "lime"}
-                />
-                <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-[13px]">
-                  <span className="text-fg-dim">
-                    {t("organizer.capacityPercent", {
-                      percent: Math.round((registered / capacity) * 100),
-                    })}
-                  </span>
-                  <span className="text-fg-dim">
-                    {t("organizer.revenueInline")}{" "}
-                    <b className="font-bold text-fg">
-                      {fmt.moneyWhole(revenue)}
-                    </b>
-                  </span>
+                <div className="px-5 py-5">
+                  {event.capacity > 0 ? (
+                    <Progress
+                      value={event.registered}
+                      max={event.capacity}
+                      label={t("organizer.runners")}
+                      tone={event.registered / event.capacity > 0.9 ? "yellow" : "lime"}
+                    />
+                  ) : null}
+                  <div className="mt-4 flex flex-wrap gap-x-8 gap-y-2 text-[13px]">
+                    <span className="text-fg-dim">
+                      {t("organizer.registeredOf", {
+                        registered: fmt.number(event.registered),
+                        capacity: fmt.number(event.capacity),
+                      })}
+                    </span>
+                    <span className="text-fg-dim">
+                      {t("organizer.revenueInline")}{" "}
+                      <b className="font-bold text-fg">
+                        {fmt.moneyWhole(event.revenue)}
+                      </b>
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex flex-wrap gap-2 border-t-2 border-line px-5 py-4">
-                {actions(event.slug).map((a) => (
+                <div className="flex flex-wrap gap-2 border-t-2 border-line px-5 py-4">
                   <Link
-                    key={a.key}
-                    href={a.href}
-                    className="border-2 border-line-strong px-3 py-2 text-[11px] font-bold tracking-wider text-fg-muted uppercase transition-colors hover:border-neon-lime hover:text-neon-lime"
+                    href={`/organizer/events/${event.id}/edit`}
+                    className={ACTION_CLASS}
                   >
-                    {t(a.key)}
+                    {t("organizer.actions.edit")}
                   </Link>
-                ))}
-              </div>
-            </li>
-          ))}
-        </ul>
+                  {event.status !== "Draft" ? (
+                    <Link href={`/events/${event.slug}`} className={ACTION_CLASS}>
+                      {t("organizer.actions.view")}
+                    </Link>
+                  ) : null}
+                  {/* Registrations hold an event in place; no point offering
+                      a delete the database will refuse. */}
+                  {event.registered === 0 ? (
+                    <DeleteEventButton
+                      id={event.id}
+                      name={event.name}
+                      live={event.status !== "Draft"}
+                      className={ACTION_CLASS}
+                    />
+                  ) : null}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

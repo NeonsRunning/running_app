@@ -302,9 +302,11 @@ export function SiteHeader() {
               </>
             )}
             <div className="flex flex-col gap-4 p-5">
-              <Button href="/publish" block size="lg">
-                {t("nav.publishEvent")}
-              </Button>
+              {session.isOrganizer ? (
+                <Button href="/publish" block size="lg">
+                  {t("nav.publishEvent")}
+                </Button>
+              ) : null}
               <LanguageSwitcher className="justify-center" />
             </div>
           </nav>

@@ -1,0 +1,562 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { getEventSlugs } from "@/lib/data";
+import { getProfile } from "@/lib/profile/queries";
+import { createClient } from "@/lib/supabase/server";
+import { PHOTO_PRICE, SHIRT_PRICE } from "./pricing";
+import type { Json, Tables } from "@/lib/supabase/database.types";
+import type { AidStation, ScheduleItem } from "@/lib/types";
+import {
+  COUNTRIES,
+  DIFFICULTIES,
+  DISTANCES,
+  EVENT_TYPES,
+  SHIRT_SIZES,
+  isOneOf,
+} from "./vocabulary";
+
+/**
+ * Saving, publishing and deleting events.
+ *
+ * Same conventions as the profile actions: errors come back as keys under
+ * `publish.errors`, and the session decides who the event belongs to — the
+ * form never names an organizer.
+ *
+ * The organizer checks here are for the error message. The guarantee is the
+ * row-level security on `events`, which refuses any write unless the caller's
+ * own profile says organizer and the row is theirs, whatever this file does.
+ */
+
+export type EventFormState = {
+  /** Field name to a key under `publish.errors`. */
+  fieldErrors?: Record<string, string>;
+  /** A key under `publish.errors`. */
+  error?: string;
+  /** Set on success: the row as it now stands. */
+  saved?: {
+    id: string;
+    slug: string;
+    status: "draft" | "published";
+    /** Stored category id by distance. */
+    categoryIds: Record<string, string>;
+  };
+};
+
+const LIMITS = {
+  name: 120,
+  description: 4000,
+  venue: 120,
+  address: 200,
+  city: 80,
+  region: 80,
+  postalCode: 12,
+  terrain: 80,
+  cutoff: 20,
+  notes: 1000,
+  donationRecipient: 120,
+  categories: 7,
+} as const;
+
+/** Postgres error codes this file tells apart. */
+const UNIQUE_VIOLATION = "23505";
+const FOREIGN_KEY_VIOLATION = "23503";
+/** `raise exception` in our own functions; the message is an error key. */
+const RAISED = "P0001";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Keys `save_event()` raises that belong beside the categories. */
+const CATEGORY_ERRORS = new Set(["categoriesRequired", "capacityBelowRegistered"]);
+
+function readText(formData: FormData, name: string): string {
+  const value = formData.get(name);
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function readAll(formData: FormData, name: string): string[] {
+  return formData
+    .getAll(name)
+    .map((v) => (typeof v === "string" ? v.trim() : ""));
+}
+
+/** A whole number in range, `null` for an empty input, `NaN` for garbage. */
+function readInt(value: string, min: number, max: number): number | null {
+  if (value === "") return null;
+  if (!/^\d+$/.test(value)) return NaN;
+  const n = Number(value);
+  return n >= min && n <= max ? n : NaN;
+}
+
+/** Accepts "45", "45.50" and the Spanish "45,50". */
+function readDecimal(value: string): number {
+  const normalized = value.replace(",", ".");
+  return /^\d+(\.\d{1,2})?$/.test(normalized) ? Number(normalized) : NaN;
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_24 = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function isDate(value: string): boolean {
+  return ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T12:00:00Z`));
+}
+
+/** "18:00" → "6:00 PM", the clock format the fixtures and `formatClock` use. */
+function to12h(hour: number, minute: string): string {
+  return `${hour % 12 || 12}:${minute} ${hour >= 12 ? "PM" : "AM"}`;
+}
+
+/** A time typed by hand: "18:00", "6:00 PM", "6:00pm". */
+function parseClock(value: string): string | null {
+  const match = /^(\d{1,2}):([0-5]\d)\s*(am|pm|a\.\s?m\.|p\.\s?m\.)?$/i.exec(
+    value.trim(),
+  );
+  if (!match) return null;
+  const [, h, minute, marker] = match;
+  let hour = Number(h);
+  if (marker) {
+    if (hour < 1 || hour > 12) return null;
+    const pm = marker.toLowerCase().startsWith("p");
+    hour = (hour % 12) + (pm ? 12 : 0);
+  } else if (hour > 23) {
+    return null;
+  }
+  return to12h(hour, minute);
+}
+
+/** Lines are "left — right"; an em dash, en dash or spaced hyphen all work. */
+const LINE_SPLIT = /\s*(?:—|–|\s-\s)\s*/;
+
+function lines(value: string): string[] {
+  return value
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+/** "3 — Water, electrolyte" per line. Null if any line does not parse. */
+function parseAidStations(value: string): Omit<AidStation, "label">[] | null {
+  const out: Omit<AidStation, "label">[] = [];
+  for (const line of lines(value)) {
+    const [left, ...rest] = line.split(LINE_SPLIT);
+    const km = readDecimal(left.replace(/\s*km$/i, ""));
+    const offers = rest
+      .join(" ")
+      .split(",")
+      .map((o) => o.trim())
+      .filter(Boolean);
+    if (Number.isNaN(km) || km <= 0 || offers.length === 0) return null;
+    out.push({ km, offers });
+  }
+  return out.sort((a, b) => a.km - b.km);
+}
+
+/** "4:00 PM — Check-in opens" per line. Null if any line does not parse. */
+function parseSchedule(value: string): ScheduleItem[] | null {
+  const out: ScheduleItem[] = [];
+  for (const line of lines(value)) {
+    const [left, ...rest] = line.split(LINE_SPLIT);
+    const time = parseClock(left);
+    const label = rest.join(" — ").trim();
+    if (!time || !label) return null;
+    out.push({ time, label });
+  }
+  return out;
+}
+
+/**
+ * Turn an event name into a URL slug: ASCII, lowercase, hyphenated. The same
+ * NFD trick as `slugify_handle` in the profiles migration, so "Carrera del
+ * Niño" becomes `carrera-del-nino`.
+ */
+function slugify(name: string): string {
+  const slug = name
+    .normalize("NFD")
+    .replace(/[^\u0000-\u007f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/, "");
+  return slug.length >= 3 ? slug : `${slug || "race"}-run`;
+}
+
+type Category = {
+  id: string | null;
+  distance: (typeof DISTANCES)[number];
+  distance_km: number;
+  price: number;
+  capacity: number;
+  start_time: string;
+};
+
+/**
+ * The category rows, in display order.
+ *
+ * A draft may carry rows the organizer has not priced yet: a new row with
+ * neither price nor cap filled in is left out of a draft rather than failing
+ * it. Anything partly filled in still has to be complete.
+ */
+function readCategories(
+  formData: FormData,
+  publishing: boolean,
+): { categories: Category[] } | { error: string } {
+  const ids = readAll(formData, "category_id");
+  const distances = readAll(formData, "category_distance");
+  const kms = readAll(formData, "category_km");
+  const prices = readAll(formData, "category_price");
+  const capacities = readAll(formData, "category_capacity");
+  const starts = readAll(formData, "category_start");
+
+  if (distances.length > LIMITS.categories) return { error: "categoriesTooMany" };
+
+  const categories: Category[] = [];
+  for (let i = 0; i < distances.length; i++) {
+    const id = ids[i] ?? "";
+    const untouched = !id && !prices[i] && !capacities[i];
+    if (!publishing && untouched) continue;
+
+    const distance = distances[i];
+    const km = readDecimal(kms[i] ?? "");
+    const price = readDecimal(prices[i] ?? "");
+    const capacity = readInt(capacities[i] ?? "", 1, 100000);
+    const start = starts[i] ?? "";
+
+    if (
+      (id && !UUID.test(id)) ||
+      !isOneOf(DISTANCES, distance) ||
+      Number.isNaN(km) ||
+      km <= 0 ||
+      km > 500 ||
+      Number.isNaN(price) ||
+      price > 100000 ||
+      capacity === null ||
+      Number.isNaN(capacity) ||
+      !TIME_24.test(start)
+    ) {
+      return { error: "categoryIncomplete" };
+    }
+    categories.push({
+      id: id || null,
+      distance,
+      distance_km: km,
+      price,
+      capacity,
+      start_time: start,
+    });
+  }
+
+  if (publishing && categories.length === 0) return { error: "categoriesRequired" };
+
+  const unique = new Set(categories.map((c) => c.distance));
+  if (unique.size !== categories.length) return { error: "categoryDuplicate" };
+
+  return { categories };
+}
+
+/**
+ * The signed-in organizer's client and id, or the error to show instead.
+ * Every action re-reads the user rather than trusting anything the form sent.
+ */
+async function organizerSession() {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) return { error: "sessionExpired" } as const;
+
+  const profile = await getProfile(data.user.id);
+  if (!profile?.isOrganizer) return { error: "notOrganizer" } as const;
+
+  return { supabase, userId: data.user.id } as const;
+}
+
+type EventColumns = Omit<
+  Tables<"events">,
+  "id" | "organizer_id" | "slug" | "published_at" | "created_at" | "updated_at"
+>;
+
+/**
+ * Save the wizard: create or update, as a draft or published.
+ *
+ * `intent` is "draft" or "publish". A draft only needs a name; publishing
+ * needs everything a runner reads before signing up. An event that is already
+ * published stays published, so every save of one is held to the publishing
+ * rules.
+ */
+export async function saveEventAction(
+  _prev: EventFormState | undefined,
+  formData: FormData,
+): Promise<EventFormState> {
+  const id = readText(formData, "id") || null;
+  if (id && !UUID.test(id)) return { error: "eventNotFound" };
+
+  const session = await organizerSession();
+  if ("error" in session) return { error: session.error };
+  const { supabase, userId } = session;
+
+  let existing: Pick<Tables<"events">, "status" | "slug" | "event_date"> | null =
+    null;
+  if (id) {
+    const { data } = await supabase
+      .from("events")
+      .select("status, slug, event_date")
+      .eq("id", id)
+      .eq("organizer_id", userId)
+      .maybeSingle();
+    if (!data) return { error: "eventNotFound" };
+    existing = data;
+  }
+
+  const publishing =
+    readText(formData, "intent") === "publish" ||
+    existing?.status === "published";
+
+  const fieldErrors: Record<string, string> = {};
+  /** A missing value only counts against a listing that is going live. */
+  const requireFor = (field: string, present: boolean, key: string) => {
+    if (publishing && !present) fieldErrors[field] = key;
+  };
+
+  /* Basic info ------------------------------------------------------------ */
+  const name = readText(formData, "name");
+  const description = readText(formData, "description");
+  const type = readText(formData, "type");
+  const eventDate = readText(formData, "event_date");
+  const startTime = readText(formData, "start_time");
+  const opens = readText(formData, "registration_opens");
+  const closes = readText(formData, "registration_closes");
+
+  if (name.length < 3) fieldErrors.name = "nameRequired";
+  else if (name.length > LIMITS.name) fieldErrors.name = "nameTooLong";
+  if (description.length > LIMITS.description)
+    fieldErrors.description = "descriptionTooLong";
+  if (!isOneOf(EVENT_TYPES, type)) fieldErrors.type = "typeRequired";
+
+  // Compared as ISO strings, which sort as dates. "Today" is UTC's, which is
+  // at most a few hours off the island's — close enough for a lower bound.
+  // A race that already happened can still be edited, as long as its date is
+  // left alone.
+  const today = new Date().toISOString().slice(0, 10);
+  if (eventDate && !isDate(eventDate)) fieldErrors.event_date = "dateInvalid";
+  else if (eventDate && eventDate < today && eventDate !== existing?.event_date)
+    fieldErrors.event_date = "dateInPast";
+  else requireFor("event_date", Boolean(eventDate), "dateRequired");
+
+  if (startTime && !TIME_24.test(startTime)) fieldErrors.start_time = "timeRequired";
+  else requireFor("start_time", Boolean(startTime), "timeRequired");
+
+  if (closes && !isDate(closes)) fieldErrors.registration_closes = "dateInvalid";
+  else if (closes && isDate(eventDate) && closes > eventDate)
+    fieldErrors.registration_closes = "closesAfterEvent";
+  else requireFor("registration_closes", Boolean(closes), "dateRequired");
+
+  if (opens && !isDate(opens)) fieldErrors.registration_opens = "dateInvalid";
+  else if (opens && isDate(closes) && opens > closes)
+    fieldErrors.registration_opens = "opensAfterCloses";
+
+  /* Location -------------------------------------------------------------- */
+  const venue = readText(formData, "venue");
+  const address = readText(formData, "address");
+  const city = readText(formData, "city");
+  const region = readText(formData, "region");
+  const postalCode = readText(formData, "postal_code");
+  const country = readText(formData, "country");
+
+  if (venue.length > LIMITS.venue) fieldErrors.venue = "tooLong";
+  else requireFor("venue", Boolean(venue), "venueRequired");
+  if (address.length > LIMITS.address) fieldErrors.address = "tooLong";
+  if (city.length > LIMITS.city) fieldErrors.city = "tooLong";
+  else requireFor("city", Boolean(city), "cityRequired");
+  if (region.length > LIMITS.region) fieldErrors.region = "tooLong";
+  if (postalCode.length > LIMITS.postalCode) fieldErrors.postal_code = "tooLong";
+  if (!isOneOf(COUNTRIES, country)) fieldErrors.country = "countryRequired";
+
+  /* Categories ------------------------------------------------------------ */
+  const parsedCategories = readCategories(formData, publishing);
+  if ("error" in parsedCategories) fieldErrors.categories = parsedCategories.error;
+
+  /* Registration ---------------------------------------------------------- */
+  const capacity = readInt(readText(formData, "capacity"), 1, 1000000);
+  const minimumAge = readInt(readText(formData, "minimum_age"), 0, 99);
+  const maximumAge = readInt(readText(formData, "maximum_age"), 1, 120);
+  const shirtSizes = readAll(formData, "shirt_sizes").filter((s) =>
+    isOneOf(SHIRT_SIZES, s),
+  ) as (typeof SHIRT_SIZES)[number][];
+
+  /* Extras ---------------------------------------------------------------- */
+  // A switched-off extra still saves its price, so it comes back when the
+  // organizer turns it on again; only a price that is on offer must be valid.
+  const offersShirt = formData.get("offers_shirt") === "on";
+  const offersPhotos = formData.get("offers_photos") === "on";
+  const acceptsDonations = formData.get("accepts_donations") === "on";
+  const donationRecipient = readText(formData, "donation_recipient");
+  const shirtPrice = readDecimal(readText(formData, "shirt_price"));
+  const photoPrice = readDecimal(readText(formData, "photo_price"));
+  const validPrice = (n: number) => !Number.isNaN(n) && n <= 1000;
+
+  if (offersShirt && !validPrice(shirtPrice)) fieldErrors.shirt_price = "priceInvalid";
+  if (offersShirt && shirtSizes.length === 0)
+    fieldErrors.shirt_sizes = "shirtSizesRequired";
+  if (offersPhotos && !validPrice(photoPrice)) fieldErrors.photo_price = "priceInvalid";
+  if (donationRecipient.length > LIMITS.donationRecipient)
+    fieldErrors.donation_recipient = "tooLong";
+  else if (acceptsDonations && !donationRecipient)
+    fieldErrors.donation_recipient = "donationRecipientRequired";
+
+  if (Number.isNaN(capacity)) fieldErrors.capacity = "numberInvalid";
+  if (Number.isNaN(minimumAge)) fieldErrors.minimum_age = "numberInvalid";
+  if (Number.isNaN(maximumAge)) fieldErrors.maximum_age = "numberInvalid";
+  else if (
+    maximumAge !== null &&
+    minimumAge !== null &&
+    !Number.isNaN(minimumAge) &&
+    maximumAge < minimumAge
+  )
+    fieldErrors.maximum_age = "maxBelowMin";
+
+  /* Details --------------------------------------------------------------- */
+  const terrain = readText(formData, "terrain");
+  const difficulty = readText(formData, "difficulty");
+  const elevation = readInt(readText(formData, "elevation_gain"), 0, 20000);
+  const cutoff = readText(formData, "cutoff");
+  const aidStations = parseAidStations(readText(formData, "aid_stations"));
+  const schedule = parseSchedule(readText(formData, "schedule"));
+  const parking = readText(formData, "parking");
+  const directions = readText(formData, "directions");
+
+  if (terrain.length > LIMITS.terrain) fieldErrors.terrain = "tooLong";
+  if (!isOneOf(DIFFICULTIES, difficulty)) fieldErrors.difficulty = "difficultyRequired";
+  if (Number.isNaN(elevation)) fieldErrors.elevation_gain = "numberInvalid";
+  if (cutoff.length > LIMITS.cutoff) fieldErrors.cutoff = "tooLong";
+  if (!aidStations) fieldErrors.aid_stations = "aidStationsFormat";
+  if (!schedule) fieldErrors.schedule = "scheduleFormat";
+  if (parking.length > LIMITS.notes) fieldErrors.parking = "tooLong";
+  if (directions.length > LIMITS.notes) fieldErrors.directions = "tooLong";
+
+  if (Object.keys(fieldErrors).length || "error" in parsedCategories) {
+    return { fieldErrors };
+  }
+
+  /* Write ----------------------------------------------------------------- */
+  // Every column, every time: `save_event` writes the whole row, and a key
+  // left out would land as null.
+  const event: EventColumns = {
+    status: publishing ? "published" : "draft",
+    name,
+    description,
+    type: type as (typeof EVENT_TYPES)[number],
+    event_date: eventDate || null,
+    start_time: startTime || null,
+    registration_opens: opens || null,
+    registration_closes: closes || null,
+    venue: venue || null,
+    address,
+    city: city || null,
+    region: region || "Puerto Rico",
+    postal_code: postalCode || null,
+    country,
+    difficulty: difficulty as (typeof DIFFICULTIES)[number],
+    terrain,
+    elevation_gain: elevation ?? 0,
+    cutoff,
+    capacity,
+    minimum_age: minimumAge ?? 0,
+    maximum_age: maximumAge,
+    shirt_sizes: shirtSizes,
+    offers_shirt: offersShirt,
+    shirt_price: validPrice(shirtPrice) ? shirtPrice : SHIRT_PRICE,
+    offers_photos: offersPhotos,
+    photo_price: validPrice(photoPrice) ? photoPrice : PHOTO_PRICE,
+    accepts_donations: acceptsDonations,
+    donation_recipient: donationRecipient,
+    aid_stations: aidStations ?? [],
+    schedule: schedule ?? [],
+    parking,
+    directions,
+  };
+
+  // A slug is chosen once, from the first saved name, and kept: links to a
+  // published race must not break when it is renamed. Fixture slugs are taken
+  // too, since `/events/[slug]` resolves those first.
+  const reserved = new Set(getEventSlugs());
+  const base = existing?.slug ?? slugify(name);
+
+  for (let n = 1; n <= 20; n++) {
+    const slug = existing || n === 1 ? base : `${base}-${n}`;
+    if (!existing && reserved.has(slug)) continue;
+
+    const { data, error } = await supabase.rpc("save_event", {
+      p_id: id,
+      p_slug: slug,
+      p_event: event as unknown as Json,
+      p_categories: parsedCategories.categories as unknown as Json,
+    });
+
+    if (data) {
+      // Hand back the category ids so the wizard's next save updates these
+      // rows rather than replacing them. Distance is unique per event.
+      const { data: rows } = await supabase
+        .from("event_categories")
+        .select("id, distance")
+        .eq("event_id", data.id);
+
+      revalidatePath("/", "layout");
+      return {
+        saved: {
+          id: data.id,
+          slug: data.slug,
+          status: data.status,
+          categoryIds: Object.fromEntries(
+            (rows ?? []).map((r) => [r.distance, r.id]),
+          ),
+        },
+      };
+    }
+
+    // Someone else's race has this slug: try the next suffix. Anything else
+    // will not change on retry.
+    if (
+      !existing &&
+      error?.code === UNIQUE_VIOLATION &&
+      error.message.includes("events_slug_key")
+    )
+      continue;
+    // A removed category still has runners in it.
+    if (error?.code === FOREIGN_KEY_VIOLATION)
+      return { fieldErrors: { categories: "categoryHasRegistrations" } };
+    if (error?.code === RAISED && CATEGORY_ERRORS.has(error.message))
+      return { fieldErrors: { categories: error.message } };
+    if (error?.code === RAISED && error.message === "eventNotFound")
+      return { error: "eventNotFound" };
+    return { error: "saveFailed" };
+  }
+
+  return { error: "saveFailed" };
+}
+
+/**
+ * Delete one of the caller's events. Refused once runners have signed up:
+ * their registrations hold the event in place by foreign key.
+ */
+export async function deleteEventAction(
+  id: string,
+): Promise<{ ok?: true; error?: string }> {
+  if (!UUID.test(id)) return { error: "eventNotFound" };
+
+  const session = await organizerSession();
+  if ("error" in session) return { error: session.error };
+
+  const { data, error } = await session.supabase
+    .from("events")
+    .delete()
+    .eq("id", id)
+    .eq("organizer_id", session.userId)
+    .select("id");
+
+  if (error?.code === FOREIGN_KEY_VIOLATION)
+    return { error: "eventHasRegistrations" };
+  if (error) return { error: "deleteFailed" };
+  if (!data?.length) return { error: "eventNotFound" };
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}

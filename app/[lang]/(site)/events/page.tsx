@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { EventDiscovery } from "@/components/events/discovery";
-import { getEvents } from "@/lib/data";
+import { listPublishedEvents } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,7 +19,7 @@ export default async function EventsPage(props: PageProps<"/[lang]/events">) {
 
   return (
     <EventDiscovery
-      events={getEvents(locale)}
+      events={await listPublishedEvents(locale)}
       initialQuery={first(params.q) ?? ""}
       initialDistance={first(params.distance)}
     />

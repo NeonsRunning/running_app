@@ -11,7 +11,7 @@ the glow fades out softly instead of ending at a keyed edge — so the badge
 composites cleanly onto ink, carbon or any other surface in the ramp.
 
 Outputs:
-    public/brand/neons-running.png   full badge, 512px square
+    public/brand/neons-running.png   full badge, 1024px square (hero-sized on 2x)
     public/brand/neons-mark.png      winged N emblem, 512px at its own ~2.7:1
     app/icon.png                     the emblem, 512px square, transparent
     app/apple-icon.png               the emblem, 180px, on ink (iOS flattens)
@@ -103,7 +103,7 @@ def main() -> None:
     web = pad(emblem, EMBLEM_PADDING)
     icon = square(emblem, EMBLEM_PADDING)
 
-    write(master, 512, ROOT / "public" / "brand" / "neons-running.png")
+    write(master, 1024, ROOT / "public" / "brand" / "neons-running.png")
     write(web, 512, ROOT / "public" / "brand" / "neons-mark.png")
     write(icon, 512, ROOT / "app" / "icon.png")
 

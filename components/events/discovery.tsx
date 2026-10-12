@@ -14,7 +14,8 @@ import {
   eventTypeLabel,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
-import { TODAY } from "@/lib/data";
+import { municipalityOf, PR_MAP } from "@/lib/pr-map";
+import type { Municipality } from "@/lib/pr-municipalities";
 import type {
   Difficulty,
   Distance,
@@ -27,8 +28,8 @@ import { EventCardCompact, EventRow } from "./event-card";
 /**
  * Event discovery: search, filters, sort, and the list/map views.
  *
- * Filtering and sorting run on the client over the whole fixture set, which is
- * small enough that one pass per keystroke beats a round-trip. Every control
+ * Filtering and sorting run on the client over every upcoming published race,
+ * which is small enough that one pass per keystroke beats a round-trip. Every control
  * that narrows the set also resets to page 1, so results never open on a page
  * the narrowed set no longer has.
  */
@@ -64,14 +65,21 @@ const STATUSES: { value: RegistrationStatus; key: string }[] = [
 ];
 
 const SORTS = [
-  { value: "recommended", key: "events.discovery.sortRecommended" },
   { value: "soonest", key: "events.discovery.sortSoonest" },
+  { value: "recommended", key: "events.discovery.sortRecommended" },
   { value: "popular", key: "events.discovery.sortPopular" },
   { value: "distance", key: "events.discovery.sortDistance" },
   { value: "price", key: "events.discovery.sortPrice" },
 ] as const;
 
 type Sort = (typeof SORTS)[number]["value"];
+
+/** Minutes past midnight for a "7:30 AM"-style start time, for same-day ties. */
+function minutesOf(time: string): number {
+  const [, h, m, meridiem] = time.match(/(\d+):(\d+)\s*(AM|PM)/i) ?? [];
+  if (!h) return 0;
+  return ((Number(h) % 12) + (meridiem.toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m);
+}
 
 const DATE_WINDOWS = [
   { value: "any", key: "events.discovery.dateAny" },
@@ -112,13 +120,15 @@ export function EventDiscovery({
   // 95 is the slider ceiling: at the top of the range the price filter is off,
   // which is also how `activeFilterCount` decides not to count it.
   const [maxPrice, setMaxPrice] = useState(95);
-  const [sort, setSort] = useState<Sort>("recommended");
+  const [sort, setSort] = useState<Sort>("soonest");
   const [view, setView] = useState<"list" | "map">("list");
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     const filtered = events.filter((e) => {
       if (q) {
@@ -137,11 +147,11 @@ export function EventDiscovery({
         return false;
       if (statuses.length && !statuses.includes(e.registrationStatus))
         return false;
-      if (e.fromPrice > maxPrice) return false;
+      if (maxPrice < 95 && e.fromPrice > maxPrice) return false;
       if (dateWindow !== "any") {
         const days = Number(dateWindow);
         const delta =
-          (new Date(`${e.date}T00:00:00`).getTime() - TODAY.getTime()) /
+          (new Date(`${e.date}T00:00:00`).getTime() - today.getTime()) /
           86_400_000;
         if (delta > days) return false;
       }
@@ -151,7 +161,11 @@ export function EventDiscovery({
     const sorted = [...filtered];
     switch (sort) {
       case "soonest":
-        sorted.sort((a, b) => a.date.localeCompare(b.date));
+        sorted.sort(
+          (a, b) =>
+            a.date.localeCompare(b.date) ||
+            minutesOf(a.startTime) - minutesOf(b.startTime),
+        );
         break;
       case "popular":
         sorted.sort((a, b) => b.registered - a.registered);
@@ -502,50 +516,100 @@ export function EventDiscovery({
   );
 }
 
-/** Schematic map view. Markers are positioned from each event's map coords. */
+/**
+ * Map view: Puerto Rico's municipalities, with a marker on each race's
+ * municipality. Races in the same municipality stack beneath one another;
+ * races whose city isn't a known municipality stay in the list only.
+ */
 function MapView({ events }: { events: RunningEvent[] }) {
   const t = useT();
   const fmt = useFormat();
   const [active, setActive] = useState(events[0]?.id ?? "");
 
+  const markers = useMemo(() => {
+    const stacks = new Map<Municipality, number>();
+    return events.flatMap((event) => {
+      const municipality = municipalityOf(event.city);
+      if (!municipality) return [];
+      const stack = stacks.get(municipality) ?? 0;
+      stacks.set(municipality, stack + 1);
+      return [{ event, municipality, stack }];
+    });
+  }, [events]);
+
+  const hosting = new Set(markers.map((m) => m.municipality));
+  const activeMunicipality = markers.find(
+    (m) => m.event.id === active,
+  )?.municipality;
+  const shapes = Object.entries(PR_MAP.municipalities) as [
+    Municipality,
+    (typeof PR_MAP.municipalities)[Municipality],
+  ][];
+
   return (
     <div className="grid lg:grid-cols-[1fr_400px]">
-      <div className="bg-grid-map relative h-[26rem] overflow-hidden bg-carbon lg:h-[46rem]">
-        {/* Coastline and highway hints. */}
+      <div className="bg-grid-map relative flex items-center overflow-hidden bg-carbon px-4 pt-10 pb-16 sm:px-8 lg:min-h-[46rem]">
         <div
-          aria-hidden="true"
-          className="absolute top-[22%] left-[4%] h-0.5 w-[90%] rotate-[5deg] bg-neon-lime/25"
-        />
-        <div
-          aria-hidden="true"
-          className="absolute top-[62%] left-[10%] h-0.5 w-[74%] -rotate-[8deg] bg-neon-yellow/20"
-        />
+          className="relative w-full"
+          style={{ aspectRatio: `${PR_MAP.width} / ${PR_MAP.height}` }}
+        >
+          <svg
+            viewBox={`0 0 ${PR_MAP.width} ${PR_MAP.height}`}
+            className="absolute inset-0 size-full"
+            aria-hidden="true"
+          >
+            {shapes.map(([name, shape]) => (
+              <path
+                key={name}
+                d={shape.path}
+                vectorEffect="non-scaling-stroke"
+                strokeLinejoin="round"
+                className={cn(
+                  "transition-colors",
+                  name === activeMunicipality
+                    ? "fill-neon-yellow/20 stroke-neon-yellow"
+                    : hosting.has(name)
+                      ? "fill-neon-lime/15 stroke-neon-lime/60"
+                      : "fill-neon-lime/[0.04] stroke-neon-lime/25",
+                )}
+              >
+                <title>{name}</title>
+              </path>
+            ))}
+          </svg>
 
-        {events.map((e) => {
-          const isActive = e.id === active;
-          return (
-            <button
-              key={e.id}
-              type="button"
-              onClick={() => setActive(e.id)}
-              aria-pressed={isActive}
-              style={{ left: `${e.map.x}%`, top: `${e.map.y}%` }}
-              className={cn(
-                "absolute -translate-x-1/2 -translate-y-1/2 border-2 px-2.5 py-1.5 text-[11px] font-black whitespace-nowrap transition-colors",
-                isActive
-                  ? "z-10 border-neon-yellow bg-neon-yellow text-ink"
-                  : "border-neon-lime bg-ink text-neon-lime hover:bg-neon-lime hover:text-ink",
-              )}
-            >
-              {distanceLabel(t, e.featuredDistance)} ·{" "}
-              {fmt.moneyWhole(e.fromPrice)}
-            </button>
-          );
-        })}
+          {markers.map(({ event: e, municipality, stack }) => {
+            const isActive = e.id === active;
+            const { x, y } = PR_MAP.municipalities[municipality];
+            return (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => setActive(e.id)}
+                aria-pressed={isActive}
+                aria-label={`${e.name} · ${e.city}`}
+                style={{
+                  left: `${(x / PR_MAP.width) * 100}%`,
+                  top: `${(y / PR_MAP.height) * 100}%`,
+                  transform: `translate(-50%, calc(-50% + ${stack * 115}%))`,
+                }}
+                className={cn(
+                  "absolute border-2 px-2 py-1 text-[10px] font-black whitespace-nowrap transition-colors sm:px-2.5 sm:py-1.5 sm:text-[11px]",
+                  isActive
+                    ? "z-10 border-neon-yellow bg-neon-yellow text-ink"
+                    : "border-neon-lime bg-ink text-neon-lime hover:bg-neon-lime hover:text-ink",
+                )}
+              >
+                {distanceLabel(t, e.featuredDistance)} ·{" "}
+                {fmt.moneyWhole(e.fromPrice)}
+              </button>
+            );
+          })}
+        </div>
 
         <p className="absolute bottom-5 left-5 font-mono text-[11px] tracking-[0.16em] text-fg-faint uppercase">
           {t("events.discovery.markers", {
-            count: fmt.number(events.length),
+            count: fmt.number(markers.length),
           })}
         </p>
       </div>

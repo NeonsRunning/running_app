@@ -1,11 +1,12 @@
-import { BrandTagline } from "@/components/brand/logo";
+import { BrandTagline, NeonsMark } from "@/components/brand/logo";
 import { Link } from "@/components/i18n/link";
 import { EventCardCompact, EventRow } from "@/components/events/event-card";
 import { RaceSearch } from "@/components/events/race-search";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/misc";
-import { getClubs, getCommunityFeed, getEvents } from "@/lib/data";
+import { getClubs, getCommunityFeed } from "@/lib/data";
+import { getPlatformStats, listPublishedEvents } from "@/lib/events/queries";
 import { getAccount, isOrganizer } from "@/lib/auth/session";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
@@ -20,10 +21,18 @@ export default async function LandingPage() {
   const account = await getAccount();
   const showOrganizerCta = isOrganizer(account?.profile ?? null);
 
-  const events = getEvents(locale);
+  // Only races organizers have published; no sample fixtures here.
+  const [events, stats] = await Promise.all([
+    listPublishedEvents(locale),
+    getPlatformStats(),
+  ]);
   const clubs = getClubs(locale);
   const communityFeed = getCommunityFeed(locale);
   const featured = events.slice(0, 3);
+  // The months the listed races span; events arrive soonest first.
+  const upcomingKicker = featured.length
+    ? fmt.monthRange(featured[0].date, featured[featured.length - 1].date)
+    : undefined;
 
   return (
     <>
@@ -46,27 +55,37 @@ export default async function LandingPage() {
           className="absolute right-10 -bottom-10 h-88 w-88 rounded-full border-2 border-neon-yellow/20"
         />
 
-        <div className="relative mx-auto max-w-[1600px] px-4 pt-16 pb-14 sm:px-6 sm:pt-20 lg:px-10 lg:pt-24 lg:pb-20">
-          <BrandTagline />
+        <div className="relative mx-auto max-w-[1600px] px-4 pt-16 pb-14 sm:px-6 sm:pt-20 lg:px-10 lg:pt-24 lg:pb-20 xl:grid xl:grid-cols-[1fr_auto] xl:items-center xl:gap-10">
+          <div>
+            <BrandTagline />
 
-          <h1 className="mt-6 max-w-4xl font-display text-[3.25rem] leading-[0.88] font-black tracking-[-0.04em] uppercase sm:text-7xl lg:text-[7rem]">
-            {t("home.heroTitleLine1")}
-            <br />
-            <span className="text-neon-yellow">{t("home.heroTitleLine2")}</span>
-          </h1>
+            <h1 className="mt-6 max-w-4xl font-display text-[3.25rem] leading-[0.88] font-black tracking-[-0.04em] uppercase sm:text-7xl lg:text-[7rem]">
+              {t("home.heroTitleLine1")}
+              <br />
+              <span className="text-neon-yellow">{t("home.heroTitleLine2")}</span>
+            </h1>
 
-          <p className="mt-7 max-w-xl text-base leading-relaxed text-fg-muted sm:text-lg">
-            {t("home.heroBody")}
-          </p>
+            <p className="mt-7 max-w-xl text-base leading-relaxed text-fg-muted sm:text-lg">
+              {t("home.heroBody")}
+            </p>
 
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <Button href="/events" size="xl">
-              {t("home.exploreEvents")}
-            </Button>
-            <Button href="/results" variant="outline" size="xl">
-              {t("home.viewResults")}
-            </Button>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:gap-4">
+              <Button href="/events" size="xl">
+                {t("home.exploreEvents")}
+              </Button>
+              <Button href="/results" variant="outline" size="xl">
+                {t("home.viewResults")}
+              </Button>
+            </div>
           </div>
+
+          {/* The full badge, wide screens only — below xl the headline already
+              spans the screen and the header carries the emblem. */}
+          <NeonsMark
+            size={460}
+            title="Neons Running"
+            className="hidden h-auto xl:block xl:w-100 2xl:w-115"
+          />
         </div>
 
         {/* Race search sits on the hero's lower edge, the way a search bar
@@ -84,22 +103,22 @@ export default async function LandingPage() {
         className="mx-auto grid max-w-[1600px] grid-cols-2 border-b-2 border-line lg:grid-cols-4"
       >
         <StatCard
-          value={fmt.number(184)}
+          value={fmt.number(stats.races)}
           label={t("home.statsRaces")}
           accent="yellow"
           className="border-r-2 border-b-2 border-line lg:border-b-0"
         />
         <StatCard
-          value={fmt.number(26410)}
+          value={fmt.number(stats.runners)}
           label={t("home.statsRunners")}
           className="border-b-2 border-line lg:border-r-2 lg:border-b-0"
         />
         <StatCard
-          value={fmt.number(62)}
+          value={fmt.number(stats.organizers)}
           label={t("home.statsOrganizers")}
           className="border-r-2 border-line"
         />
-        <StatCard value={fmt.number(31)} label={t("home.statsClubs")} />
+        <StatCard value={fmt.number(stats.clubs)} label={t("home.statsClubs")} />
       </section>
 
       {/* ---------------------------------------------------------------- */}
@@ -108,10 +127,16 @@ export default async function LandingPage() {
       <section className="mx-auto max-w-[1600px] px-4 py-14 sm:px-6 lg:px-10 lg:py-20">
         <SectionHeading
           title={t("home.upcomingTitle")}
-          kicker={t("home.upcomingKicker")}
+          kicker={upcomingKicker}
           href="/events"
           hrefLabel={t("home.upcomingHrefLabel")}
         />
+
+        {events.length === 0 && (
+          <p className="mt-8 border-2 border-line px-6 py-10 text-center text-sm text-fg-muted">
+            {t("home.upcomingEmpty")}
+          </p>
+        )}
 
         {/* Desktop and tablet: full-width horizontal rows. */}
         <div className="hidden border-b-2 border-line sm:block">
@@ -130,9 +155,11 @@ export default async function LandingPage() {
             />
           ))}
         </div>
-        <p className="mt-3 font-mono text-[10px] tracking-[0.14em] text-fg-faint uppercase sm:hidden">
-          {t("home.swipeForMore")}
-        </p>
+        {events.length > 1 && (
+          <p className="mt-3 font-mono text-[10px] tracking-[0.14em] text-fg-faint uppercase sm:hidden">
+            {t("home.swipeForMore")}
+          </p>
+        )}
       </section>
 
       {/* ---------------------------------------------------------------- */}

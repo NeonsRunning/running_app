@@ -46,6 +46,33 @@ export function formatMonthShort(isoDate: string, locale: Locale): string {
     .toUpperCase();
 }
 
+/**
+ * The months a set of dates spans: "September — November 2026",
+ * "diciembre de 2026 — enero de 2027", or a single "January 2027". The year
+ * is written once when both ends share it.
+ */
+export function formatMonthRange(
+  startIso: string,
+  endIso: string,
+  locale: Locale,
+): string {
+  const tag = LOCALE_TAGS[locale];
+  const start = atNoon(startIso);
+  const end = atNoon(endIso);
+  const monthYear = (d: Date) =>
+    d.toLocaleDateString(tag, { month: "long", year: "numeric" });
+  const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+  if (startIso.slice(0, 7) === endIso.slice(0, 7)) {
+    return capitalize(monthYear(start));
+  }
+  const from =
+    start.getFullYear() === end.getFullYear()
+      ? start.toLocaleDateString(tag, { month: "long" })
+      : monthYear(start);
+  return `${capitalize(from)} — ${monthYear(end)}`;
+}
+
 /** Day-period markers, written out rather than taken from `Intl`. */
 const DAY_PERIODS: Record<Locale, { am: string; pm: string }> = {
   es: { am: "a. m.", pm: "p. m." },
@@ -107,6 +134,8 @@ export function createFormatters(locale: Locale) {
     mediumDate: (iso: string) => formatMediumDate(iso, locale),
     weekdayShort: (iso: string) => formatWeekdayShort(iso, locale),
     monthShort: (iso: string) => formatMonthShort(iso, locale),
+    monthRange: (startIso: string, endIso: string) =>
+      formatMonthRange(startIso, endIso, locale),
     clock: (time: string) => formatClock(time, locale),
     money: (amount: number) => formatMoney(amount, locale),
     moneyWhole: (amount: number) => formatMoneyWhole(amount, locale),
