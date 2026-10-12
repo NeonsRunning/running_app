@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { ParticipantTable } from "@/components/organizer/participant-table";
 import { getParticipants } from "@/lib/data";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireOrganizer } from "@/lib/auth/session";
+import { OrganizerOnly } from "@/components/organizer/organizer-only";
 import { createFormatters } from "@/lib/i18n/format";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ParticipantsPage() {
-  await requireUser("/organizer/participants");
+  if (!(await requireOrganizer("/organizer/participants"))) return <OrganizerOnly />;
 
   const locale = await getLocale();
   const t = await getT();

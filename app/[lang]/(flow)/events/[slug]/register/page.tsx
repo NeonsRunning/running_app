@@ -1,12 +1,17 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { RegistrationFlow } from "@/components/register/registration-flow";
-import { getEventBySlug, getEventSlugs } from "@/lib/data";
+import { notFound, redirect } from "next/navigation";
+import {
+  RegistrationFlow,
+  type Runner,
+} from "@/components/register/registration-flow";
+import { requireAccount } from "@/lib/auth/session";
+import { findEvent, getOwnRegistration } from "@/lib/events/queries";
+import { localizePath } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { getProfileDetails } from "@/lib/profile/queries";
 
-export function generateStaticParams() {
-  return getEventSlugs().map((slug) => ({ slug }));
-}
+// No `generateStaticParams`: events published from /publish are read with the
+// visitor's session client, which a statically generated route cannot use.
 
 export async function generateMetadata(
   props: PageProps<"/[lang]/events/[slug]/register">,
@@ -15,13 +20,15 @@ export async function generateMetadata(
   const locale = await getLocale();
   const t = await getT();
 
-  const event = getEventBySlug(slug, locale);
+  const found = await findEvent(slug, locale);
   return {
-    title: event
-      ? t("register.metaTitle", { event: event.name })
+    title: found
+      ? t("register.metaTitle", { event: found.event.name })
       : t("register.metaTitleFallback"),
   };
 }
+
+const GENDER = { f: "female", m: "male", x: "other" } as const;
 
 export default async function RegisterPage(
   props: PageProps<"/[lang]/events/[slug]/register">,
@@ -29,7 +36,40 @@ export default async function RegisterPage(
   const { slug } = await props.params;
   const locale = await getLocale();
 
-  const event = getEventBySlug(slug, locale);
-  if (!event) notFound();
-  return <RegistrationFlow event={event} />;
+  const found = await findEvent(slug, locale);
+  if (!found) notFound();
+  const { event } = found;
+
+  // Nobody can sign up before registration opens; send a typed-in URL back to
+  // the race page, which says when it does.
+  if (event.registrationStatus === "opening-soon")
+    redirect(localizePath(`/events/${slug}`, locale));
+
+  // Fixture races keep the demo flow, open to anyone.
+  if (!event.bookable) return <RegistrationFlow event={event} />;
+
+  // A real sign-up belongs to an account.
+  const { user, profile } = await requireAccount(`/events/${slug}/register`);
+  const [details, existing] = await Promise.all([
+    getProfileDetails(user.id),
+    getOwnRegistration(user.id, event.id),
+  ]);
+
+  // Open with what the runner already told us; they can change any of it.
+  const [firstName = "", ...rest] = (profile?.name ?? "").split(/\s+/);
+  const runner: Runner = {
+    firstName,
+    lastName: rest.join(" "),
+    email: user.email ?? "",
+    phone: details?.phone ?? "",
+    dob: details?.birthDate ?? "",
+    gender: details?.gender ? GENDER[details.gender] : "undisclosed",
+    emergencyName: details?.emergencyContactName ?? "",
+    emergencyPhone: details?.emergencyContactPhone ?? "",
+    club: profile?.club ?? "",
+  };
+
+  return (
+    <RegistrationFlow event={event} initialRunner={runner} existing={existing} />
+  );
 }

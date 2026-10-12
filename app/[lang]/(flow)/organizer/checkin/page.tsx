@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { CheckInStation } from "@/components/organizer/checkin";
 import { getParticipants } from "@/lib/data";
 import { getLocale, getT } from "@/lib/i18n/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireOrganizer } from "@/lib/auth/session";
+import { OrganizerOnly } from "@/components/organizer/organizer-only";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -13,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CheckInPage() {
-  await requireUser("/organizer/checkin");
+  if (!(await requireOrganizer("/organizer/checkin"))) return <OrganizerOnly />;
 
   const locale = await getLocale();
   return <CheckInStation initial={getParticipants(locale)} />;

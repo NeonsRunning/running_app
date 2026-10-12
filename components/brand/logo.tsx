@@ -97,7 +97,7 @@ export function NeonsWordmark({
       <span
         className={cn(
           "text-gradient-neon font-display font-black tracking-[-0.04em] italic",
-          "pr-[0.25em] -mr-[0.25em]",
+          "pr-[0.25em] mr-[-0.25em]",
           compact ? "text-lg" : "text-xl",
         )}
       >

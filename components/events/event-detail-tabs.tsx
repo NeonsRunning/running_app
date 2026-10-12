@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpecCell } from "@/components/ui/card";
-import { AvatarStack } from "@/components/ui/misc";
 import { Tabs, TabPanel } from "@/components/ui/tabs";
 import {
   BibIcon,
@@ -105,44 +104,39 @@ export function EventDetailTabs({
           ))}
         </section>
 
-        <section className="border-b-2 border-line px-5 py-9 sm:px-8 lg:px-10">
-          <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
-            {t("events.tabs.included")}
-          </h2>
-          <ul className="mt-6 grid gap-0.5 bg-line sm:grid-cols-2 lg:grid-cols-3">
-            {event.included.map((item) => (
-              <li key={item.label} className="bg-carbon p-5">
-                <IncludedIconMark kind={item.icon} />
-                <p className="mt-3.5 text-base font-bold">{item.label}</p>
-                <p className="mt-1 text-[13px] text-fg-dim">{item.detail}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
+        {/* Listings published from /publish do not describe the kit yet. */}
+        {event.included.length > 0 ? (
+          <section className="border-b-2 border-line px-5 py-9 sm:px-8 lg:px-10">
+            <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+              {t("events.tabs.included")}
+            </h2>
+            <ul className="mt-6 grid gap-0.5 bg-line sm:grid-cols-2 lg:grid-cols-3">
+              {event.included.map((item) => (
+                <li key={item.label} className="bg-carbon p-5">
+                  <IncludedIconMark kind={item.icon} />
+                  <p className="mt-3.5 text-base font-bold">{item.label}</p>
+                  <p className="mt-1 text-[13px] text-fg-dim">{item.detail}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <section className="px-5 py-9 sm:px-8 lg:px-10">
           <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
             {t("events.tabs.participants")}
           </h2>
-          <div className="mt-6 flex flex-wrap items-center gap-6">
-            <AvatarStack
-              people={[
-                { initials: "AR", accent: "lime" },
-                { initials: "MC", accent: "yellow" },
-                { initials: "JT", accent: "green" },
-                { initials: "LD" },
-              ]}
-              extra={event.registered - 4}
-            />
-            <Button
-              href={`/events/${event.slug}/register`}
-              variant="success"
-              size="lg"
-            >
-              {t("events.tabs.joinRunners", {
-                count: fmt.number(event.registered),
-              })}
-            </Button>
+          {/* Only the count: who registered is private to runner and
+              organizer, so there are no faces to show here. */}
+          <div className="mt-6">
+            <p className="font-display text-4xl font-black text-neon-lime">
+              {fmt.number(event.registered)}
+            </p>
+            <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
+              {event.registered > 0
+                ? t("events.tabs.runnersRegistered")
+                : t("events.tabs.noRunnersYet")}
+            </p>
           </div>
         </section>
       </TabPanel>
@@ -351,46 +345,55 @@ export function EventDetailTabs({
               <p className="mt-3 max-w-[60ch] text-[15px] leading-relaxed text-fg-dim">
                 {organizer.blurb}
               </p>
-              <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
-                <div>
-                  <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                    {t("events.tabs.eventsHosted")}
-                  </dt>
-                  <dd className="mt-1 font-display text-lg font-black">
-                    {organizer.eventsHosted}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                    {t("events.tabs.finishers")}
-                  </dt>
-                  <dd className="mt-1 font-display text-lg font-black">
-                    {fmt.number(organizer.finishers)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                    {t("events.tabs.runnerRating")}
-                  </dt>
-                  <dd className="mt-1 font-display text-lg font-black text-neon-lime">
-                    {fmt.number(organizer.rating)}
-                  </dd>
-                </div>
-              </dl>
+              {/* A new organizer has no track record to show yet. */}
+              {organizer.eventsHosted > 0 ? (
+                <dl className="mt-5 flex flex-wrap gap-x-8 gap-y-3">
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                      {t("events.tabs.eventsHosted")}
+                    </dt>
+                    <dd className="mt-1 font-display text-lg font-black">
+                      {organizer.eventsHosted}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                      {t("events.tabs.finishers")}
+                    </dt>
+                    <dd className="mt-1 font-display text-lg font-black">
+                      {fmt.number(organizer.finishers)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                      {t("events.tabs.runnerRating")}
+                    </dt>
+                    <dd className="mt-1 font-display text-lg font-black text-neon-lime">
+                      {fmt.number(organizer.rating)}
+                    </dd>
+                  </div>
+                </dl>
+              ) : null}
               <div className="mt-6 flex flex-wrap gap-3">
+                {/* Organizers publishing from /publish keep their email in
+                    `profile_private`, so runners reach them through us. */}
                 <Button
-                  href={`mailto:${organizer.email}`}
+                  href={organizer.email ? `mailto:${organizer.email}` : "/contact"}
                   variant="outline"
                   size="md"
                 >
                   {t("events.tabs.contactOrganizer")}
                 </Button>
-                <Button href="/contact" variant="ghost" size="md">
-                  {organizer.website}
-                </Button>
-                <Button href="/community" variant="ghost" size="md">
-                  {organizer.instagram}
-                </Button>
+                {organizer.website ? (
+                  <Button href="/contact" variant="ghost" size="md">
+                    {organizer.website}
+                  </Button>
+                ) : null}
+                {organizer.instagram ? (
+                  <Button href="/community" variant="ghost" size="md">
+                    {organizer.instagram}
+                  </Button>
+                ) : null}
               </div>
             </div>
           </div>

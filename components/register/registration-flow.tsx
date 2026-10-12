@@ -12,15 +12,28 @@ import type { Formatters } from "@/lib/i18n/format";
 import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
 import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
+import {
+  DONATIONS,
+  FIXTURE_EXTRAS,
+  MAX_DONATION,
+  SERVICE_FEE,
+  parseDonation,
+  registrationTotal,
+} from "@/lib/events/pricing";
+import { registerForEventAction } from "@/lib/events/registrations";
 import type { RunningEvent } from "@/lib/types";
 
 /**
  * Five-step registration: race → runner → extras → payment → confirmation.
  *
- * The whole flow is one client component holding its own state. Nothing is
- * persisted and no card is charged, so step 4 stands in for the gateway
- * round-trip with a timer. The runner fields open pre-filled with the demo
- * account, so the flow can be walked end to end without typing.
+ * The whole flow is one client component holding its own state. For a race
+ * published from /publish (`event.bookable`), completing step 4 writes the
+ * registration and the confirmation shows the bib the database assigned; the
+ * runner fields open pre-filled from their profile. For the fixture races
+ * nothing is persisted, step 4 stands in for the round-trip with a timer, and
+ * the fields open with the demo account.
+ *
+ * No card is charged either way: there is no payment provider yet.
  */
 const STEPS = [
   { n: 1, key: "register.steps.race" },
@@ -30,13 +43,30 @@ const STEPS = [
   { n: 5, key: "register.steps.done" },
 ] as const;
 
-const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
-const DONATIONS = [0, 5, 10, 25] as const;
-const SERVICE_FEE = 2.9;
-const SHIRT_PRICE = 22;
-const PHOTO_PRICE = 12;
+const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
 
-type Runner = {
+/** The demo account the fixture races open with. */
+const DEMO_RUNNER: Runner = {
+  firstName: "Alex",
+  lastName: "Rivera",
+  email: "alex.rivera@email.com",
+  phone: "+1 787 555 0148",
+  dob: "1994-03-18",
+  gender: "male",
+  emergencyName: "Marisol Rivera",
+  emergencyPhone: "+1 787 555 0902",
+  club: "Neons Nocturnos",
+};
+
+/** A registration already on file: what the confirmation screen shows. */
+export type ConfirmedRegistration = {
+  categoryId: string;
+  bib: number;
+  amount: number;
+  email: string;
+};
+
+export type Runner = {
   firstName: string;
   lastName: string;
   email: string;
@@ -69,50 +99,78 @@ function validateRunner(r: Runner, t: Translate): Errors {
   return e;
 }
 
-export function RegistrationFlow({ event }: { event: RunningEvent }) {
+export function RegistrationFlow({
+  event,
+  initialRunner = DEMO_RUNNER,
+  existing = null,
+}: {
+  event: RunningEvent;
+  initialRunner?: Runner;
+  /** Set when the runner has already signed up: opens on the confirmation. */
+  existing?: ConfirmedRegistration | null;
+}) {
   const { toast } = useToast();
   const t = useT();
   const fmt = useFormat();
 
-  const [step, setStep] = useState(1);
+  // A bookable race offers the extras and sizes its organizer picked,
+  // possibly none.
+  const shirtSizes = event.bookable ? (event.shirtSizes ?? []) : SHIRT_SIZES;
+  const extras = event.bookable ? (event.extras ?? FIXTURE_EXTRAS) : FIXTURE_EXTRAS;
+  const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
+  const photoPrice = extras.photoPrice;
+  const hasExtras =
+    shirtPrice !== null || photoPrice !== null || extras.donationRecipient !== null;
+
+  const [confirmed, setConfirmed] = useState(existing);
+  const [step, setStep] = useState(existing ? 5 : 1);
   const [categoryId, setCategoryId] = useState(
-    event.categories.find((c) => c.name === event.featuredDistance)?.id ??
+    existing?.categoryId ??
+      event.categories.find((c) => c.name === event.featuredDistance)?.id ??
       event.categories[0].id,
   );
   const [waiver, setWaiver] = useState(false);
   const [waiverError, setWaiverError] = useState(false);
-  const [runner, setRunner] = useState<Runner>({
-    firstName: "Alex",
-    lastName: "Rivera",
-    email: "alex.rivera@email.com",
-    phone: "+1 787 555 0148",
-    dob: "1994-03-18",
-    gender: "male",
-    emergencyName: "Marisol Rivera",
-    emergencyPhone: "+1 787 555 0902",
-    club: "Neons Nocturnos",
-  });
+  const [runner, setRunner] = useState<Runner>(initialRunner);
   const [errors, setErrors] = useState<Errors>(EMPTY_ERRORS);
-  const [wantsShirt, setWantsShirt] = useState(true);
-  const [shirtSize, setShirtSize] = useState<string>("M");
+  const [wantsShirt, setWantsShirt] = useState(false);
+  const [shirtSize, setShirtSize] = useState<string>(
+    shirtSizes.includes("M") ? "M" : (shirtSizes[0] ?? "M"),
+  );
   const [wantsPhotos, setWantsPhotos] = useState(false);
-  const [donation, setDonation] = useState<number>(5);
+  const [presetDonation, setPresetDonation] = useState<number>(0);
+  // What the runner typed in "Other amount"; while it holds anything it wins
+  // over the preset buttons.
+  const [customDonation, setCustomDonation] = useState("");
+  const [donationError, setDonationError] = useState(false);
+  const typedDonation = parseDonation(customDonation);
+  const donation = customDonation.trim()
+    ? (typedDonation ?? 0)
+    : presetDonation;
   const [submitting, setSubmitting] = useState(false);
 
   const category =
     event.categories.find((c) => c.id === categoryId) ?? event.categories[0];
 
-  const total = useMemo(() => {
-    return (
-      category.price +
-      (wantsShirt ? SHIRT_PRICE : 0) +
-      (wantsPhotos ? PHOTO_PRICE : 0) +
-      donation +
-      SERVICE_FEE
-    );
-  }, [category.price, wantsShirt, wantsPhotos, donation]);
+  const total = useMemo(
+    () =>
+      registrationTotal({
+        price: category.price,
+        extras,
+        shirt: wantsShirt,
+        photos: wantsPhotos,
+        donation,
+      }),
+    [category.price, extras, wantsShirt, wantsPhotos, donation],
+  );
 
   const done = step === 5;
+
+  /** "+$22", or "Free" for an extra the organizer includes at no cost. */
+  const extraPrice = (price: number) =>
+    price === 0
+      ? t("register.step3.free")
+      : `+${Number.isInteger(price) ? fmt.moneyWhole(price) : fmt.money(price)}`;
 
   function goNext() {
     if (step === 1) {
@@ -133,6 +191,50 @@ export function RegistrationFlow({ event }: { event: RunningEvent }) {
         });
         return;
       }
+    }
+    if (step === 3 && typedDonation === null) {
+      setDonationError(true);
+      return;
+    }
+    if (step === 4 && event.bookable) {
+      setSubmitting(true);
+      registerForEventAction({
+        ...runner,
+        categoryId: category.id,
+        shirtSize: wantsShirt ? shirtSize : null,
+        wantsPhotos,
+        donation,
+      })
+        .then((result) => {
+          if (!result.ok) {
+            toast({
+              title: t("register.errors.saveTitle"),
+              body: t(`register.errors.${result.error}`),
+              tone: "danger",
+            });
+            return;
+          }
+          setConfirmed({
+            categoryId: category.id,
+            bib: result.bib,
+            amount: result.amount,
+            email: result.email,
+          });
+          setStep(5);
+          toast({
+            title: t("register.confirmToastTitle"),
+            body: t("register.confirmToastBody", { event: event.name }),
+          });
+        })
+        .catch(() =>
+          toast({
+            title: t("register.errors.saveTitle"),
+            body: t("register.errors.registrationFailed"),
+            tone: "danger",
+          }),
+        )
+        .finally(() => setSubmitting(false));
+      return;
     }
     if (step === 4) {
       setSubmitting(true);
@@ -155,7 +257,9 @@ export function RegistrationFlow({ event }: { event: RunningEvent }) {
       <Confirmation
         event={event}
         category={category.name}
-        total={total}
+        total={confirmed?.amount ?? total}
+        bib={confirmed?.bib ?? 1048}
+        email={confirmed?.email ?? runner.email}
         t={t}
         fmt={fmt}
       />
@@ -185,13 +289,6 @@ export function RegistrationFlow({ event }: { event: RunningEvent }) {
               {event.name}
             </p>
           </div>
-          <div className="flex-1" />
-          <Link
-            href={`/events/${event.slug}`}
-            className="hidden font-mono text-[12px] tracking-[0.14em] text-fg-dim uppercase hover:text-fg sm:block"
-          >
-            {t("register.saveExit")}
-          </Link>
         </div>
 
         {/* Mobile progress bars */}
@@ -510,114 +607,172 @@ export function RegistrationFlow({ event }: { event: RunningEvent }) {
               </p>
 
               <div className="mt-8 border-2 border-line">
-                <div className="p-5 sm:p-7">
-                  <div className="flex items-start justify-between gap-5">
+                {/* An organizer may switch any extra off, or all of them. */}
+                {!hasExtras ? (
+                  <p className="p-5 text-[15px] text-fg-dim sm:p-7">
+                    {t("register.step3.none")}
+                  </p>
+                ) : null}
+                {shirtPrice !== null ? (
+                  <div className="p-5 sm:p-7">
+                    <div className="flex items-start justify-between gap-5">
+                      <div>
+                        <h2 className="font-display text-xl font-black uppercase">
+                          {t("register.step3.shirt")}
+                        </h2>
+                        <p className="mt-1.5 text-sm text-fg-dim">
+                          {t("register.step3.shirtDetail")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-display text-xl font-black text-neon-yellow">
+                          {extraPrice(shirtPrice)}
+                        </span>
+                        <Checkbox
+                          checked={wantsShirt}
+                          onChange={(e) => setWantsShirt(e.target.checked)}
+                          label={
+                            <span className="sr-only">
+                              {t("register.step3.addShirt")}
+                            </span>
+                          }
+                        />
+                      </div>
+                    </div>
+                    {wantsShirt ? (
+                      <div
+                        role="radiogroup"
+                        aria-label={t("register.step3.shirtSize")}
+                        className="mt-5 flex flex-wrap gap-2"
+                      >
+                        {shirtSizes.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            role="radio"
+                            aria-checked={shirtSize === s}
+                            onClick={() => setShirtSize(s)}
+                            className={cn(
+                              "min-w-14 border-2 px-3 py-3 text-[13px] font-bold",
+                              shirtSize === s
+                                ? "border-neon-lime bg-neon-lime text-ink"
+                                : "border-line-strong text-fg-muted hover:border-fg-dim",
+                            )}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {photoPrice !== null ? (
+                  <div className="flex items-center justify-between gap-5 border-t-2 border-line p-5 first:border-t-0 sm:p-7">
                     <div>
                       <h2 className="font-display text-xl font-black uppercase">
-                        {t("register.step3.shirt")}
+                        {t("register.step3.photos")}
                       </h2>
                       <p className="mt-1.5 text-sm text-fg-dim">
-                        {t("register.step3.shirtDetail")}
+                        {t("register.step3.photosDetail")}
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="font-display text-xl font-black text-neon-yellow">
-                        +{fmt.moneyWhole(SHIRT_PRICE)}
+                        {extraPrice(photoPrice)}
                       </span>
                       <Checkbox
-                        checked={wantsShirt}
-                        onChange={(e) => setWantsShirt(e.target.checked)}
+                        checked={wantsPhotos}
+                        onChange={(e) => setWantsPhotos(e.target.checked)}
                         label={
                           <span className="sr-only">
-                            {t("register.step3.addShirt")}
+                            {t("register.step3.addPhotos")}
                           </span>
                         }
                       />
                     </div>
                   </div>
-                  {wantsShirt ? (
+                ) : null}
+
+                {extras.donationRecipient !== null ? (
+                  <div className="border-t-2 border-line p-5 first:border-t-0 sm:p-7">
+                    <h2 className="font-display text-xl font-black uppercase">
+                      {t("register.step3.donate", {
+                        recipient: extras.donationRecipient,
+                      })}
+                    </h2>
+                    <p className="mt-1.5 text-sm text-fg-dim">
+                      {t("register.step3.donateDetail")}
+                    </p>
                     <div
                       role="radiogroup"
-                      aria-label={t("register.step3.shirtSize")}
+                      aria-label={t("register.step3.donationAmount")}
                       className="mt-5 flex flex-wrap gap-2"
                     >
-                      {SHIRT_SIZES.map((s) => (
+                      {DONATIONS.map((d) => (
                         <button
-                          key={s}
+                          key={d}
                           type="button"
                           role="radio"
-                          aria-checked={shirtSize === s}
-                          onClick={() => setShirtSize(s)}
+                          aria-checked={!customDonation.trim() && donation === d}
+                          onClick={() => {
+                            setPresetDonation(d);
+                            setCustomDonation("");
+                            setDonationError(false);
+                          }}
                           className={cn(
-                            "min-w-14 border-2 px-3 py-3 text-[13px] font-bold",
-                            shirtSize === s
+                            "min-w-16 border-2 px-4 py-3 text-sm font-bold",
+                            !customDonation.trim() && donation === d
                               ? "border-neon-lime bg-neon-lime text-ink"
                               : "border-line-strong text-fg-muted hover:border-fg-dim",
                           )}
                         >
-                          {s}
+                          {fmt.moneyWhole(d)}
                         </button>
                       ))}
                     </div>
-                  ) : null}
-                </div>
-
-                <div className="flex items-center justify-between gap-5 border-t-2 border-line p-5 sm:p-7">
-                  <div>
-                    <h2 className="font-display text-xl font-black uppercase">
-                      {t("register.step3.photos")}
-                    </h2>
-                    <p className="mt-1.5 text-sm text-fg-dim">
-                      {t("register.step3.photosDetail")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="font-display text-xl font-black text-neon-yellow">
-                      +{fmt.moneyWhole(PHOTO_PRICE)}
-                    </span>
-                    <Checkbox
-                      checked={wantsPhotos}
-                      onChange={(e) => setWantsPhotos(e.target.checked)}
-                      label={
-                        <span className="sr-only">
-                          {t("register.step3.addPhotos")}
-                        </span>
+                    <Field
+                      label={t("register.step3.customDonation")}
+                      error={
+                        donationError
+                          ? t("register.step3.customDonationInvalid", {
+                              max: fmt.moneyWhole(MAX_DONATION),
+                            })
+                          : undefined
                       }
-                    />
+                      className="mt-5 max-w-56"
+                    >
+                      {(p) => (
+                        <div className="relative">
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-fg-dim"
+                          >
+                            $
+                          </span>
+                          <Input
+                            {...p}
+                            inputMode="decimal"
+                            autoComplete="off"
+                            placeholder="0.00"
+                            value={customDonation}
+                            onChange={(e) => {
+                              setCustomDonation(e.target.value);
+                              if (donationError)
+                                setDonationError(
+                                  parseDonation(e.target.value) === null,
+                                );
+                            }}
+                            onBlur={() =>
+                              setDonationError(typedDonation === null)
+                            }
+                            className="pl-8"
+                          />
+                        </div>
+                      )}
+                    </Field>
                   </div>
-                </div>
-
-                <div className="border-t-2 border-line p-5 sm:p-7">
-                  <h2 className="font-display text-xl font-black uppercase">
-                    {t("register.step3.donate")}
-                  </h2>
-                  <p className="mt-1.5 text-sm text-fg-dim">
-                    {t("register.step3.donateDetail")}
-                  </p>
-                  <div
-                    role="radiogroup"
-                    aria-label={t("register.step3.donationAmount")}
-                    className="mt-5 flex flex-wrap gap-2"
-                  >
-                    {DONATIONS.map((d) => (
-                      <button
-                        key={d}
-                        type="button"
-                        role="radio"
-                        aria-checked={donation === d}
-                        onClick={() => setDonation(d)}
-                        className={cn(
-                          "min-w-16 border-2 px-4 py-3 text-sm font-bold",
-                          donation === d
-                            ? "border-neon-lime bg-neon-lime text-ink"
-                            : "border-line-strong text-fg-muted hover:border-fg-dim",
-                        )}
-                      >
-                        {fmt.moneyWhole(d)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -728,13 +883,13 @@ export function RegistrationFlow({ event }: { event: RunningEvent }) {
                 {wantsShirt ? (
                   <SummaryRow
                     label={t("register.summary.shirt", { size: shirtSize })}
-                    value={fmt.money(SHIRT_PRICE)}
+                    value={fmt.money(shirtPrice ?? 0)}
                   />
                 ) : null}
                 {wantsPhotos ? (
                   <SummaryRow
                     label={t("register.summary.photos")}
-                    value={fmt.money(PHOTO_PRICE)}
+                    value={fmt.money(photoPrice ?? 0)}
                   />
                 ) : null}
                 {donation > 0 ? (
@@ -874,12 +1029,16 @@ function Confirmation({
   event,
   category,
   total,
+  bib,
+  email,
   t,
   fmt,
 }: {
   event: RunningEvent;
   category: string;
   total: number;
+  bib: number;
+  email: string;
   t: Translate;
   fmt: Formatters;
 }) {
@@ -943,7 +1102,7 @@ function Confirmation({
               {t("register.confirmation.bibNumber")}
             </Eyebrow>
             <p className="mt-2 font-display text-7xl leading-none font-black tracking-[-0.04em] sm:text-8xl">
-              1048
+              {bib}
             </p>
             <p className="mt-3 font-mono text-[12px] tracking-[0.16em] text-neon-yellow uppercase">
               {t("register.confirmation.bibMeta", {
@@ -985,9 +1144,16 @@ function Confirmation({
 
         <div className="mt-5 border-2 border-line px-5 py-5">
           <Eyebrow>{t("register.confirmation.receiptSentTo")}</Eyebrow>
-          <p className="mt-2 text-[15px]">alex.rivera@email.com</p>
+          <p className="mt-2 text-[15px]">{email}</p>
           <p className="mt-3 flex items-center justify-between text-[13px] text-fg-dim">
-            <span>{t("register.confirmation.totalCharged")}</span>
+            {/* Nothing is charged for a bookable race until payments exist. */}
+            <span>
+              {t(
+                event.bookable
+                  ? "register.confirmation.totalDue"
+                  : "register.confirmation.totalCharged",
+              )}
+            </span>
             <span className="font-bold text-fg">{fmt.money(total)}</span>
           </p>
         </div>
@@ -996,9 +1162,15 @@ function Confirmation({
           <Badge tone="green">
             {t("register.confirmation.registrationConfirmed")}
           </Badge>
-          <Badge tone="green">
-            {t("register.confirmation.paymentReceived")}
-          </Badge>
+          {event.bookable ? (
+            <Badge tone="yellow">
+              {t("register.confirmation.paymentPending")}
+            </Badge>
+          ) : (
+            <Badge tone="green">
+              {t("register.confirmation.paymentReceived")}
+            </Badge>
+          )}
         </div>
       </aside>
     </div>

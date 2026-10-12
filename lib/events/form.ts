@@ -1,0 +1,106 @@
+import type { Difficulty, Distance, EventType } from "@/lib/types";
+import type { Country, ShirtSize } from "./vocabulary";
+
+/**
+ * The publish wizard's values, as strings the way the inputs hold them.
+ *
+ * A new event starts from `EMPTY_EVENT_FORM`; editing one starts from the
+ * stored row, mapped by `toEventForm` in `lib/events/organizer.ts`. Shared by
+ * the server (to build it) and the wizard (to render it), so nothing here may
+ * import server code.
+ */
+export type EventFormCategory = {
+  /** The stored row's id; null for a category added in this session. */
+  id: string | null;
+  distance: Distance;
+  km: string;
+  price: string;
+  capacity: string;
+  start: string;
+  /** Runners already signed up — a floor for the cap, and a lock on removal. */
+  registered: number;
+};
+
+export type EventFormValues = {
+  /** Null until the first save. */
+  id: string | null;
+  status: "draft" | "published";
+  slug: string | null;
+  name: string;
+  description: string;
+  type: EventType;
+  eventDate: string;
+  startTime: string;
+  registrationOpens: string;
+  registrationCloses: string;
+  venue: string;
+  address: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  country: Country;
+  capacity: string;
+  minimumAge: string;
+  maximumAge: string;
+  shirtSizes: ShirtSize[];
+  /** Extras: each can be switched off without losing its price or sizes. */
+  offersShirt: boolean;
+  shirtPrice: string;
+  offersPhotos: boolean;
+  photoPrice: string;
+  acceptsDonations: boolean;
+  /** Who receives the donations, shown to runners beside the amounts. */
+  donationRecipient: string;
+  terrain: string;
+  difficulty: Difficulty;
+  elevationGain: string;
+  cutoff: string;
+  /** One "km — offers" line per station, as typed. */
+  aidStations: string;
+  /** One "time — what happens" line per item, as typed. */
+  schedule: string;
+  parking: string;
+  directions: string;
+  categories: EventFormCategory[];
+};
+
+export const EMPTY_EVENT_FORM: EventFormValues = {
+  id: null,
+  status: "draft",
+  slug: null,
+  name: "",
+  description: "",
+  type: "Road Race",
+  eventDate: "",
+  startTime: "06:00",
+  registrationOpens: "",
+  registrationCloses: "",
+  venue: "",
+  address: "",
+  city: "",
+  region: "Puerto Rico",
+  postalCode: "",
+  country: "PR",
+  capacity: "",
+  minimumAge: "14",
+  maximumAge: "",
+  shirtSizes: ["S", "M", "L", "XL"],
+  offersShirt: true,
+  shirtPrice: "22",
+  offersPhotos: false,
+  photoPrice: "12",
+  acceptsDonations: false,
+  donationRecipient: "",
+  terrain: "",
+  difficulty: "Moderate",
+  elevationGain: "",
+  cutoff: "",
+  aidStations: "",
+  schedule: "",
+  parking: "",
+  directions: "",
+  categories: [
+    { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "06:00", registered: 0 },
+    { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "06:15", registered: 0 },
+  ],
+};

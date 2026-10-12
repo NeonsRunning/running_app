@@ -111,11 +111,281 @@ export type Database = {
           },
         ];
       };
+      events: {
+        Row: {
+          id: string;
+          organizer_id: string;
+          slug: string;
+          status: Database["public"]["Enums"]["event_status"];
+          published_at: string | null;
+          name: string;
+          description: string;
+          type: Database["public"]["Enums"]["event_type"] | null;
+          event_date: string | null;
+          start_time: string | null;
+          registration_opens: string | null;
+          registration_closes: string | null;
+          venue: string | null;
+          address: string;
+          city: string | null;
+          region: string;
+          postal_code: string | null;
+          country: string;
+          difficulty: Database["public"]["Enums"]["event_difficulty"];
+          terrain: string;
+          elevation_gain: number;
+          cutoff: string;
+          capacity: number | null;
+          minimum_age: number;
+          maximum_age: number | null;
+          shirt_sizes: Database["public"]["Enums"]["shirt_size"][];
+          offers_shirt: boolean;
+          shirt_price: number;
+          offers_photos: boolean;
+          photo_price: number;
+          accepts_donations: boolean;
+          donation_recipient: string;
+          aid_stations: Json;
+          schedule: Json;
+          parking: string;
+          directions: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organizer_id: string;
+          slug: string;
+          status?: Database["public"]["Enums"]["event_status"];
+          published_at?: string | null;
+          name: string;
+          description?: string;
+          type?: Database["public"]["Enums"]["event_type"] | null;
+          event_date?: string | null;
+          start_time?: string | null;
+          registration_opens?: string | null;
+          registration_closes?: string | null;
+          venue?: string | null;
+          address?: string;
+          city?: string | null;
+          region?: string;
+          postal_code?: string | null;
+          country?: string;
+          difficulty?: Database["public"]["Enums"]["event_difficulty"];
+          terrain?: string;
+          elevation_gain?: number;
+          cutoff?: string;
+          capacity?: number | null;
+          minimum_age?: number;
+          maximum_age?: number | null;
+          shirt_sizes?: Database["public"]["Enums"]["shirt_size"][];
+          offers_shirt?: boolean;
+          shirt_price?: number;
+          offers_photos?: boolean;
+          photo_price?: number;
+          accepts_donations?: boolean;
+          donation_recipient?: string;
+          aid_stations?: Json;
+          schedule?: Json;
+          parking?: string;
+          directions?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organizer_id?: string;
+          slug?: string;
+          status?: Database["public"]["Enums"]["event_status"];
+          published_at?: string | null;
+          name?: string;
+          description?: string;
+          type?: Database["public"]["Enums"]["event_type"] | null;
+          event_date?: string | null;
+          start_time?: string | null;
+          registration_opens?: string | null;
+          registration_closes?: string | null;
+          venue?: string | null;
+          address?: string;
+          city?: string | null;
+          region?: string;
+          postal_code?: string | null;
+          country?: string;
+          difficulty?: Database["public"]["Enums"]["event_difficulty"];
+          terrain?: string;
+          elevation_gain?: number;
+          cutoff?: string;
+          capacity?: number | null;
+          minimum_age?: number;
+          maximum_age?: number | null;
+          shirt_sizes?: Database["public"]["Enums"]["shirt_size"][];
+          offers_shirt?: boolean;
+          shirt_price?: number;
+          offers_photos?: boolean;
+          photo_price?: number;
+          accepts_donations?: boolean;
+          donation_recipient?: string;
+          aid_stations?: Json;
+          schedule?: Json;
+          parking?: string;
+          directions?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "events_organizer_id_fkey";
+            columns: ["organizer_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_categories: {
+        Row: {
+          id: string;
+          event_id: string;
+          distance: Database["public"]["Enums"]["race_distance"];
+          distance_km: number;
+          price: number;
+          capacity: number;
+          start_time: string;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          distance: Database["public"]["Enums"]["race_distance"];
+          distance_km: number;
+          price: number;
+          capacity: number;
+          start_time: string;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          event_id?: string;
+          distance?: Database["public"]["Enums"]["race_distance"];
+          distance_km?: number;
+          price?: number;
+          capacity?: number;
+          start_time?: string;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "event_categories_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      registrations: {
+        Row: {
+          id: string;
+          event_id: string;
+          category_id: string;
+          runner_id: string;
+          bib: number;
+          first_name: string;
+          last_name: string;
+          email: string;
+          phone: string;
+          birth_date: string;
+          gender: Database["public"]["Enums"]["profile_gender"];
+          emergency_contact_name: string;
+          emergency_contact_phone: string;
+          club: string | null;
+          shirt_size: Database["public"]["Enums"]["shirt_size"] | null;
+          wants_photos: boolean;
+          donation: number;
+          amount: number;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "registrations_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registrations_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "event_categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registrations_runner_id_fkey";
+            columns: ["runner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
+    Functions: {
+      is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
+      platform_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          races: number;
+          runners: number;
+          organizers: number;
+          clubs: number;
+        }[];
+      };
+      registration_counts: {
+        Args: { p_event_ids: string[] };
+        Returns: { category_id: string; registered: number }[];
+      };
+      save_event: {
+        Args: {
+          p_id: string | null;
+          p_slug: string;
+          p_event: Json;
+          p_categories: Json;
+        };
+        Returns: Database["public"]["Tables"]["events"]["Row"];
+      };
+      register_for_event: {
+        Args: { p_category_id: string; p_details: Json };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+    };
     Enums: {
       account_type: "runner" | "organizer";
+      event_type:
+        | "Road Race"
+        | "Trail"
+        | "Track"
+        | "Fun Run"
+        | "Charity Run"
+        | "Virtual Race"
+        | "Relay"
+        | "Kids Race";
+      race_distance:
+        | "1 Mile"
+        | "3K"
+        | "5K"
+        | "10K"
+        | "Half Marathon"
+        | "Marathon"
+        | "Ultra";
+      event_difficulty: "Easy" | "Moderate" | "Hard";
+      event_status: "draft" | "published";
       profile_gender: "f" | "m" | "x";
       shirt_size: "XS" | "S" | "M" | "L" | "XL" | "XXL";
     };

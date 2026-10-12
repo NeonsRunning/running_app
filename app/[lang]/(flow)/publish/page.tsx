@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { PublishWizard } from "@/components/publish/publish-wizard";
 import { getT } from "@/lib/i18n/server";
-import { requireUser } from "@/lib/auth/session";
+import { requireOrganizer } from "@/lib/auth/session";
+import { OrganizerOnly } from "@/components/organizer/organizer-only";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -12,7 +13,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PublishPage() {
-  await requireUser("/publish");
+  if (!(await requireOrganizer("/publish"))) return <OrganizerOnly />;
 
   return <PublishWizard />;
 }

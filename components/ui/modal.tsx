@@ -144,6 +144,7 @@ export function ConfirmDialog({
   confirmLabel?: string;
   destructive?: boolean;
 }) {
+  const t = useT();
   return (
     <Modal
       open={open}
@@ -153,7 +154,7 @@ export function ConfirmDialog({
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button
             variant={destructive ? "danger" : "primary"}

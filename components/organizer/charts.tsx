@@ -31,9 +31,22 @@ function seriesLabel(t: Translate, value: string): string {
   return domainLabel(t, "series", value);
 }
 
+/**
+ * Evenly spaced axis ticks from zero, stepping by 1, 2 or 5 times a power of
+ * ten — whatever the magnitude, and never a zero-height axis, so a new
+ * organizer with no sign-ups yet still gets a drawable chart.
+ */
 function niceTicks(max: number, count = 4): number[] {
-  const step = Math.ceil(max / count / 10) * 10;
+  const raw = Math.max(max, 1) / count;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const n = raw / magnitude;
+  const step = Math.max(1, (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * magnitude);
   return Array.from({ length: count + 1 }, (_, i) => i * step);
+}
+
+/** The top of a nice axis for `max`. */
+function niceMax(max: number): number {
+  return niceTicks(max).at(-1) ?? 1;
 }
 
 function ChartFrame({
@@ -289,7 +302,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
   const plotH = H - PAD.top - PAD.bottom;
 
   const max = Math.max(...data.map((d) => d.value));
-  const yMax = Math.ceil(max / 2000) * 2000;
+  const yMax = niceMax(max);
   const band = plotW / data.length;
   const barW = Math.min(24, band - 12); // capped; leftover band is air
 
@@ -413,7 +426,7 @@ export function DemographicsChart({
   const plotH = H - PAD.top - PAD.bottom;
 
   const max = Math.max(...data.flatMap((d) => [d.women, d.men]));
-  const yMax = Math.ceil(max / 50) * 50;
+  const yMax = niceMax(max);
   const band = plotW / data.length;
   // Two bars plus a 2px surface gap between them; the rest of the band is air.
   const barW = Math.min(20, (band - 16 - 2) / 2);

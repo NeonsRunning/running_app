@@ -96,6 +96,19 @@ export function isOrganizer(profile: Profile | null): boolean {
 }
 
 /**
+ * The signed-in account if it is an organizer's, null if it is a runner's,
+ * and a redirect to login when signed out.
+ *
+ * Null rather than a 404 so the organizer pages can tell a runner who
+ * followed a "publish your race" link how to get access. The role itself is
+ * granted by the team in the database; nothing in the app can set it.
+ */
+export async function requireOrganizer(path?: string): Promise<Account | null> {
+  const account = await requireAccount(path);
+  return isOrganizer(account.profile) ? account : null;
+}
+
+/**
  * Project an account onto the session the header and settings render.
  *
  * The profile is the source of truth. The metadata fallback below only

@@ -77,8 +77,6 @@ export type RunningEvent = {
   region: string;
   venue: string;
   address: string;
-  /** Percentage coordinates used to place markers on the schematic map. */
-  map: { x: number; y: number };
   date: string; // ISO date
   dow: string;
   day: string;
@@ -86,6 +84,8 @@ export type RunningEvent = {
   year: string;
   startTime: string;
   registrationCloses: string;
+  /** Formatted like `registrationCloses`; absent when sign-ups open on publish. */
+  registrationOpens?: string;
   registrationStatus: RegistrationStatus;
   statusLabel: string;
   difficulty: Difficulty;
@@ -106,6 +106,23 @@ export type RunningEvent = {
   parking: string;
   directions: string;
   popularity: number;
+  /**
+   * True for races published from /publish, whose registration writes to the
+   * database. Fixture races keep the demo flow.
+   */
+  bookable?: boolean;
+  /** Sizes the organizer offers; set on bookable races only. */
+  shirtSizes?: string[];
+  /** What the organizer offers at sign-up; set on bookable races only. */
+  extras?: EventExtras;
+};
+
+/** Add-ons a runner can pick at sign-up. Null means not on offer. */
+export type EventExtras = {
+  shirtPrice: number | null;
+  photoPrice: number | null;
+  /** Who receives donations. */
+  donationRecipient: string | null;
 };
 
 export type IncludedIcon =

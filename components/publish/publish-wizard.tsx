@@ -1,7 +1,13 @@
 "use client";
 
-import { Link } from "@/components/i18n/link";
-import { useState } from "react";
+import { Link, useLocalizedRouter } from "@/components/i18n/link";
+import {
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
 import { BrandLock } from "@/components/brand/logo";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,20 +19,50 @@ import {
   Select,
   Textarea,
 } from "@/components/ui/field";
+import { ArrowLeftIcon } from "@/components/ui/icons";
+import { ConfirmDialog } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
-import { useT } from "@/components/i18n/provider";
-import { difficultyLabel, eventTypeLabel } from "@/lib/i18n/labels";
+import { useFormat, useLocale, useT } from "@/components/i18n/provider";
+import {
+  deleteEventAction,
+  saveEventAction,
+  type EventFormState,
+} from "@/lib/events/actions";
+import { EMPTY_EVENT_FORM, type EventFormValues } from "@/lib/events/form";
+import {
+  COUNTRIES,
+  DIFFICULTIES,
+  DISTANCES,
+  DISTANCE_KM,
+  EVENT_TYPES,
+  PR_MUNICIPALITIES,
+  SHIRT_SIZES,
+  isOneOf,
+  type Country,
+  type ShirtSize,
+} from "@/lib/events/vocabulary";
+import {
+  difficultyLabel,
+  distanceLabel,
+  eventTypeLabel,
+} from "@/lib/i18n/labels";
+import { localizePath } from "@/lib/i18n/config";
 import { cn } from "@/lib/cn";
-import type { EventType } from "@/lib/types";
+import type { Distance, EventType } from "@/lib/types";
 
 /**
- * Seven-step wizard for listing an event.
+ * Seven-step wizard for listing an event, and for editing one.
  *
- * Like the registration flow this is a single client component holding the
- * draft in memory — the last step shows a confirmation rather than writing
- * anywhere. Steps never block on validation: Next always advances and the
- * rail jumps back to any step already visited, so a draft can be filled in
- * whatever order suits. Only Publish is gated, on the review checklist.
+ * One form spans every step. Inactive steps are hidden rather than unmounted,
+ * so an uncontrolled input keeps its value while the organizer moves around,
+ * and every save posts the lot to `saveEventAction`. Steps never block on
+ * validation: Next always advances and the rail jumps back to any step already
+ * visited. The server validates everything; its errors land beside their
+ * fields, and the wizard opens the first step that has one.
+ *
+ * A new event starts from `EMPTY_EVENT_FORM`; an existing one from its saved
+ * row. "Save draft" keeps a listing private, "Publish" makes it live, and a
+ * live listing only ever saves as live.
  */
 
 /** Step labels are dictionary keys, resolved at render. */
@@ -35,84 +71,235 @@ const STEPS = [
   "publish.steps.location",
   "publish.steps.categories",
   "publish.steps.registration",
+  "publish.steps.extras",
   "publish.steps.details",
-  "publish.steps.media",
   "publish.steps.review",
 ] as const;
 
-const EVENT_TYPES: EventType[] = [
-  "Road Race",
-  "Trail",
-  "Track",
-  "Virtual Race",
-  "Charity Run",
-  "Fun Run",
-  "Relay",
-  "Kids Race",
-];
+const REVIEW_STEP = STEPS.length - 1;
 
-const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"];
-
-type Category = {
-  id: number;
-  name: string;
-  distance: string;
-  price: string;
-  capacity: string;
-  start: string;
+/** Which step each server-validated field lives on. */
+const FIELD_STEP: Record<string, number> = {
+  name: 0,
+  description: 0,
+  type: 0,
+  event_date: 0,
+  start_time: 0,
+  registration_opens: 0,
+  registration_closes: 0,
+  venue: 1,
+  address: 1,
+  city: 1,
+  region: 1,
+  postal_code: 1,
+  country: 1,
+  categories: 2,
+  capacity: 3,
+  minimum_age: 3,
+  maximum_age: 3,
+  offers_shirt: 4,
+  shirt_price: 4,
+  shirt_sizes: 4,
+  photo_price: 4,
+  donation_recipient: 4,
+  terrain: 5,
+  difficulty: 5,
+  elevation_gain: 5,
+  cutoff: 5,
+  aid_stations: 5,
+  schedule: 5,
+  parking: 5,
+  directions: 5,
 };
 
-/** Ids for categories added during a session; the two seeded rows take 1 and 2. */
-let nextCategoryId = 3;
+/** A form row: the stored category plus a key that survives reordering. */
+type Category = EventFormValues["categories"][number] & { key: number };
 
-export function PublishWizard() {
+/** Keys for category rows; only needs to be unique within a session. */
+let nextCategoryKey = 1;
+
+export function PublishWizard({
+  initial = EMPTY_EVENT_FORM,
+}: {
+  initial?: EventFormValues;
+}) {
   const [step, setStep] = useState(0);
-  const [name, setName] = useState("");
-  const [type, setType] = useState<EventType>("Road Race");
-  const [categories, setCategories] = useState<Category[]>([
-    { id: 1, name: "5K", distance: "5", price: "35", capacity: "500", start: "06:00" },
-    { id: 2, name: "10K", distance: "10", price: "45", capacity: "300", start: "06:15" },
-  ]);
-  const [sizes, setSizes] = useState<string[]>(["S", "M", "L", "XL"]);
-  const [cover, setCover] = useState<string | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const [published, setPublished] = useState(false);
+  // An existing event can be browsed in any order from the start.
+  const [visited, setVisited] = useState(initial.id ? REVIEW_STEP : 0);
+  const [eventId, setEventId] = useState(initial.id);
+  const [status, setStatus] = useState(initial.status);
+  const [slug, setSlug] = useState(initial.slug);
+  const [justPublished, setJustPublished] = useState(false);
+  const [name, setName] = useState(initial.name);
+  const [type, setType] = useState<EventType>(initial.type);
+  const [eventDate, setEventDate] = useState(initial.eventDate);
+  const [city, setCity] = useState(initial.city);
+  const [country, setCountry] = useState<Country>(initial.country);
+  const [categories, setCategories] = useState<Category[]>(() =>
+    initial.categories.map((c) => ({ ...c, key: nextCategoryKey++ })),
+  );
+  const [minimumAge, setMinimumAge] = useState(initial.minimumAge);
+  const [sizes, setSizes] = useState<ShirtSize[]>(initial.shirtSizes);
+  const [offersShirt, setOffersShirt] = useState(initial.offersShirt);
+  const [offersPhotos, setOffersPhotos] = useState(initial.offersPhotos);
+  const [acceptsDonations, setAcceptsDonations] = useState(initial.acceptsDonations);
+  const [state, setState] = useState<EventFormState>();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const [deleting, startDelete] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+  const router = useLocalizedRouter();
+  const locale = useLocale();
   const { toast } = useToast();
   const t = useT();
+  const fmt = useFormat();
+  const live = status === "published";
 
   const eventName = name.trim() || t("publish.untitled");
+  const errors = state?.fieldErrors ?? {};
+  const fieldError = (field: string) =>
+    errors[field] ? t(`publish.errors.${errors[field]}`) : undefined;
+
+  function goTo(next: number) {
+    setStep(next);
+    setVisited((v) => Math.max(v, next));
+  }
+
+  /**
+   * Posted through a transition rather than the form's `action` prop: React
+   * resets a form after an action runs, which would wipe every uncontrolled
+   * field the moment the server reported a single typo.
+   */
+  function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    // The submitter carries `intent`: "draft" or "publish".
+    const submitter = (e.nativeEvent as SubmitEvent).submitter;
+    const data = new FormData(e.currentTarget, submitter);
+    startTransition(async () => {
+      const result = await saveEventAction(state, data);
+      setState(result);
+
+      if (result.saved) {
+        const saved = result.saved;
+        const wasLive = live;
+        setEventId(saved.id);
+        setSlug(saved.slug);
+        setStatus(saved.status);
+        // Rows inserted by this save now have ids; without them the next save
+        // would delete and re-create them.
+        setCategories((list) =>
+          list.map((c) => ({ ...c, id: saved.categoryIds[c.distance] ?? c.id })),
+        );
+        // A new event now has an address of its own: put it in the URL, so a
+        // reload or a later save edits this row instead of creating another.
+        if (!initial.id) {
+          window.history.replaceState(
+            null,
+            "",
+            localizePath(`/organizer/events/${saved.id}/edit`, locale),
+          );
+        }
+        if (saved.status === "published" && !wasLive) {
+          setJustPublished(true);
+        } else {
+          toast({
+            title: t(wasLive ? "publish.changesSavedTitle" : "publish.draftSavedTitle"),
+            body: t(wasLive ? "publish.changesSavedBody" : "publish.draftSavedBody", {
+              name: eventName,
+            }),
+          });
+        }
+        return;
+      }
+
+      // Open the first step with an error, then move focus to its first
+      // invalid control so the message is read out where it applies.
+      const failed = Object.keys(result.fieldErrors ?? {});
+      if (failed.length === 0) return;
+      const first = Math.min(...failed.map((f) => FIELD_STEP[f] ?? REVIEW_STEP));
+      setStep(first);
+      requestAnimationFrame(() => {
+        formRef.current
+          ?.querySelector<HTMLElement>(
+            `[data-step="${first}"] [aria-invalid="true"], [data-step="${first}"] [role="alert"]`,
+          )
+          ?.focus();
+      });
+    });
+  }
+
+  function remove() {
+    if (!eventId) return;
+    startDelete(async () => {
+      const result = await deleteEventAction(eventId);
+      if (result.ok) {
+        toast({
+          title: t("publish.deletedTitle"),
+          body: t("publish.deletedBody", { name: eventName }),
+        });
+        router.push("/organizer");
+        return;
+      }
+      setConfirmDelete(false);
+      toast({
+        title: t("publish.deleteFailedTitle"),
+        body: t(`publish.errors.${result.error ?? "deleteFailed"}`),
+        tone: "danger",
+      });
+    });
+  }
+
+  /** Enter in a text field moves on a step instead of publishing early. */
+  function onKeyDown(e: KeyboardEvent<HTMLFormElement>) {
+    if (
+      e.key === "Enter" &&
+      e.target instanceof HTMLInputElement &&
+      step < REVIEW_STEP
+    ) {
+      e.preventDefault();
+      goTo(step + 1);
+    }
+  }
 
   function addCategory() {
+    const used = new Set(categories.map((c) => c.distance));
+    const distance = DISTANCES.find((d) => !used.has(d)) ?? "5K";
     setCategories((c) => [
       ...c,
       {
-        id: nextCategoryId++,
-        name: "",
-        distance: "",
+        key: nextCategoryKey++,
+        id: null,
+        distance,
+        km: String(DISTANCE_KM[distance]),
         price: "",
         capacity: "",
         start: "06:00",
+        registered: 0,
       },
     ]);
   }
 
-  function updateCategory(id: number, patch: Partial<Category>) {
-    setCategories((c) => c.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  function updateCategory(key: number, patch: Partial<Category>) {
+    setCategories((c) => c.map((x) => (x.key === key ? { ...x, ...patch } : x)));
   }
 
   const checklist = [
-    { key: "publish.checklist.info", done: name.trim().length > 0 },
-    { key: "publish.checklist.location", done: true },
+    { key: "publish.checklist.info", done: name.trim().length > 0 && eventDate !== "" },
+    { key: "publish.checklist.location", done: city.trim().length > 0 },
     {
       key: "publish.checklist.categories",
-      done: categories.some((c) => c.name && c.price),
+      done: categories.some((c) => c.price && c.capacity),
     },
-    { key: "publish.checklist.registration", done: sizes.length > 0 },
-    { key: "publish.checklist.images", done: cover !== null },
+    // Extras are optional — an organizer may offer none.
+    { key: "publish.checklist.registration", done: minimumAge.trim() !== "" },
   ];
-  const ready = checklist.every((c) => c.done);
 
-  if (published) {
+  const prices = categories
+    .filter((c) => c.price.trim() !== "")
+    .map((c) => Number(c.price.replace(",", ".")))
+    .filter((p) => Number.isFinite(p) && p >= 0);
+
+  if (justPublished && slug) {
     return (
       <div className="mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
         <div className="animate-pop-in flex h-24 w-24 items-center justify-center bg-neon-lime text-5xl">
@@ -125,11 +312,11 @@ export function PublishWizard() {
           {t("publish.publishedBody", { name: eventName })}
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <Button href="/organizer" size="lg">
-            {t("publish.goToDashboard")}
-          </Button>
-          <Button href="/events" variant="outline" size="lg">
+          <Button href={`/events/${slug}`} size="lg">
             {t("publish.viewListing")}
+          </Button>
+          <Button href="/organizer" variant="outline" size="lg">
+            {t("publish.goToDashboard")}
           </Button>
         </div>
       </div>
@@ -137,29 +324,70 @@ export function PublishWizard() {
   }
 
   return (
-    <div className="pb-28 lg:pb-0">
+    <form
+      ref={formRef}
+      onSubmit={submit}
+      onKeyDown={onKeyDown}
+      noValidate
+      className="pb-28 lg:pb-0"
+    >
+      <input type="hidden" name="id" value={eventId ?? ""} />
+
       {/* Header ---------------------------------------------------------- */}
       <header className="sticky top-0 z-60 border-b-2 border-line bg-ink">
         <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-10">
+          <Link
+            href="/organizer"
+            aria-label={t("publish.backToDashboard")}
+            className="flex h-10 shrink-0 items-center gap-2 border-2 border-line-strong px-2.5 font-mono text-[11px] tracking-[0.14em] uppercase hover:border-neon-lime hover:text-neon-lime"
+          >
+            <ArrowLeftIcon size={18} aria-hidden />
+            <span className="hidden xl:inline">{t("publish.backToDashboard")}</span>
+          </Link>
           <BrandLock compact />
           <div className="hidden min-w-0 border-l-2 border-line pl-4 sm:block">
-            <Eyebrow>{t("publish.createEvent")}</Eyebrow>
-            <p className="mt-0.5 truncate text-[15px] font-extrabold uppercase">
+            <Eyebrow>
+              {t(eventId ? "publish.editEvent" : "publish.createEvent")}
+            </Eyebrow>
+            <p className="mt-0.5 flex items-center gap-2 truncate text-[15px] font-extrabold uppercase">
               {eventName}
+              <Badge tone={live ? "lime" : "outline"}>
+                {t(live ? "labels.eventStatus.live" : "labels.eventStatus.draft")}
+              </Badge>
             </p>
           </div>
           <div className="flex-1" />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() =>
-              toast({
-                title: t("publish.draftSavedTitle"),
-                body: t("publish.draftSavedBody"),
-              })
-            }
-          >
-            {t("publish.saveDraft")}
+          {live && slug ? (
+            <Button href={`/events/${slug}`} variant="ghost" size="sm">
+              {t("publish.viewListing")}
+            </Button>
+          ) : null}
+          {eventId ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-danger"
+              disabled={deleting}
+              aria-busy={deleting}
+              onClick={() => setConfirmDelete(true)}
+            >
+              {deleting ? t("publish.deleting") : t("publish.delete")}
+            </Button>
+          ) : null}
+          {!live ? (
+            <Button
+              type="submit"
+              name="intent"
+              value="draft"
+              variant="outline"
+              size="sm"
+              disabled={pending}
+            >
+              {t("publish.saveDraft")}
+            </Button>
+          ) : null}
+          <Button href="/organizer" variant="ghost" size="sm">
+            {t("publish.cancel")}
           </Button>
         </div>
 
@@ -180,31 +408,46 @@ export function PublishWizard() {
           className="hidden border-r-2 border-line lg:block"
         >
           <ol className="sticky top-24">
-            {STEPS.map((s, i) => (
-              <li key={s}>
-                <button
-                  type="button"
-                  onClick={() => i <= step && setStep(i)}
-                  disabled={i > step}
-                  aria-current={i === step ? "step" : undefined}
-                  className={cn(
-                    "flex w-full items-center gap-3 border-b-2 border-line px-5 py-4 text-left",
-                    i === step
-                      ? "bg-neon-lime text-ink"
-                      : i < step
-                        ? "text-fg hover:bg-carbon"
-                        : "text-fg-faint",
-                  )}
-                >
-                  <span className="font-mono text-[11px] tracking-[0.18em] opacity-75">
-                    0{i + 1}
-                  </span>
-                  <span className="text-[13px] font-extrabold tracking-[0.08em] uppercase">
-                    {t(s)}
-                  </span>
-                </button>
-              </li>
-            ))}
+            {STEPS.map((s, i) => {
+              const hasError = Object.keys(errors).some(
+                (f) => (FIELD_STEP[f] ?? REVIEW_STEP) === i,
+              );
+              return (
+                <li key={s}>
+                  <button
+                    type="button"
+                    onClick={() => goTo(i)}
+                    disabled={i > visited}
+                    aria-current={i === step ? "step" : undefined}
+                    className={cn(
+                      "flex w-full items-center gap-3 border-b-2 border-line px-5 py-4 text-left",
+                      i === step
+                        ? "bg-neon-lime text-ink"
+                        : i <= visited
+                          ? "text-fg hover:bg-carbon"
+                          : "text-fg-faint",
+                    )}
+                  >
+                    <span className="font-mono text-[11px] tracking-[0.18em] opacity-75">
+                      0{i + 1}
+                    </span>
+                    <span className="text-[13px] font-extrabold tracking-[0.08em] uppercase">
+                      {t(s)}
+                    </span>
+                    {hasError ? (
+                      <span
+                        className={cn(
+                          "ml-auto text-[11px] font-black",
+                          i === step ? "text-ink" : "text-danger",
+                        )}
+                      >
+                        ▲<span className="sr-only">{t("publish.stepHasErrors")}</span>
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         </nav>
 
@@ -220,227 +463,356 @@ export function PublishWizard() {
           </h1>
 
           {/* 1 — Basic info -------------------------------------------- */}
-          {step === 0 ? (
-            <div className="mt-8 flex max-w-3xl flex-col gap-6">
+          <div
+            data-step={0}
+            hidden={step !== 0}
+            className="mt-8 flex max-w-3xl flex-col gap-6"
+          >
+            <Field
+              label={t("publish.eventName")}
+              hint={t("publish.eventNameHint")}
+              error={fieldError("name")}
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  name="name"
+                  value={name}
+                  maxLength={120}
+                  autoComplete="off"
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t("publish.eventNamePlaceholder")}
+                />
+              )}
+            </Field>
+
+            <Field
+              label={t("publish.eventDescription")}
+              hint={t("publish.eventDescriptionHint")}
+              error={fieldError("description")}
+              optional
+            >
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="description"
+                  defaultValue={initial.description}
+                  maxLength={4000}
+                  placeholder={t("publish.eventDescriptionPlaceholder")}
+                />
+              )}
+            </Field>
+
+            <fieldset>
+              <legend className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase">
+                {t("publish.eventType")}
+              </legend>
+              <input type="hidden" name="type" value={type} />
+              <div className="mt-3 flex flex-wrap gap-2">
+                {EVENT_TYPES.map((option) => (
+                  <Chip
+                    key={option}
+                    active={type === option}
+                    onClick={() => setType(option)}
+                  >
+                    {eventTypeLabel(t, option)}
+                  </Chip>
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field label={t("publish.eventDate")} error={fieldError("event_date")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="date"
+                    name="event_date"
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                  />
+                )}
+              </Field>
+              <Field label={t("publish.startTime")} error={fieldError("start_time")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="time"
+                    name="start_time"
+                    defaultValue={initial.startTime}
+                  />
+                )}
+              </Field>
               <Field
-                label={t("publish.eventName")}
-                hint={t("publish.eventNameHint")}
+                label={t("publish.registrationOpens")}
+                error={fieldError("registration_opens")}
+                optional
               >
                 {(p) => (
                   <Input
                     {...p}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t("publish.eventNamePlaceholder")}
+                    type="date"
+                    name="registration_opens"
+                    defaultValue={initial.registrationOpens}
                   />
                 )}
               </Field>
-
               <Field
-                label={t("publish.eventDescription")}
-                hint={t("publish.eventDescriptionHint")}
+                label={t("publish.registrationCloses")}
+                error={fieldError("registration_closes")}
               >
                 {(p) => (
-                  <Textarea
+                  <Input
                     {...p}
-                    placeholder={t("publish.eventDescriptionPlaceholder")}
+                    type="date"
+                    name="registration_closes"
+                    defaultValue={initial.registrationCloses}
                   />
                 )}
               </Field>
-
-              <div>
-                <Eyebrow>{t("publish.eventType")}</Eyebrow>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {EVENT_TYPES.map((option) => (
-                    <Chip
-                      key={option}
-                      active={type === option}
-                      onClick={() => setType(option)}
-                    >
-                      {eventTypeLabel(t, option)}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field label={t("publish.eventDate")}>
-                  {(p) => <Input {...p} type="date" defaultValue="2026-09-12" />}
-                </Field>
-                <Field label={t("publish.startTime")}>
-                  {(p) => <Input {...p} type="time" defaultValue="18:00" />}
-                </Field>
-                <Field label={t("publish.registrationOpens")}>
-                  {(p) => <Input {...p} type="date" defaultValue="2026-06-01" />}
-                </Field>
-                <Field label={t("publish.registrationCloses")}>
-                  {(p) => <Input {...p} type="date" defaultValue="2026-09-09" />}
-                </Field>
-              </div>
             </div>
-          ) : null}
+          </div>
 
           {/* 2 — Location ---------------------------------------------- */}
-          {step === 1 ? (
-            <div className="mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_1fr]">
-              <div className="flex flex-col gap-6">
-                <Field label={t("publish.venueName")}>
-                  {(p) => <Input {...p} placeholder="Paseo de la Princesa" />}
-                </Field>
-                <Field label={t("publish.streetAddress")}>
-                  {(p) => (
-                    <Input {...p} placeholder={t("publish.streetPlaceholder")} />
-                  )}
-                </Field>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <Field label={t("publish.city")}>
-                    {(p) => <Input {...p} placeholder="San Juan" />}
-                  </Field>
-                  <Field label={t("publish.region")}>
-                    {(p) => <Input {...p} placeholder="Puerto Rico" />}
-                  </Field>
-                  <Field label={t("publish.postalCode")}>
-                    {(p) => <Input {...p} placeholder="00901" inputMode="numeric" />}
-                  </Field>
-                  <Field label={t("publish.country")}>
-                    {(p) => (
-                      <Select {...p} defaultValue="PR">
-                        <option value="PR">Puerto Rico</option>
-                        <option value="US">
-                          {t("publish.countryUS")}
+          <div
+            data-step={1}
+            hidden={step !== 1}
+            className="mt-8 flex max-w-3xl flex-col gap-6"
+          >
+            <Field label={t("publish.venueName")} error={fieldError("venue")}>
+              {(p) => (
+                <Input
+                  {...p}
+                  name="venue"
+                  defaultValue={initial.venue}
+                  maxLength={120}
+                  placeholder="Paseo de la Princesa…"
+                />
+              )}
+            </Field>
+            <Field
+              label={t("publish.streetAddress")}
+              error={fieldError("address")}
+              optional
+            >
+              {(p) => (
+                <Input
+                  {...p}
+                  name="address"
+                  defaultValue={initial.address}
+                  maxLength={200}
+                  autoComplete="street-address"
+                  placeholder={t("publish.streetPlaceholder")}
+                />
+              )}
+            </Field>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field label={t("publish.city")} error={fieldError("city")}>
+                {(p) =>
+                  country === "PR" ? (
+                    <Select
+                      {...p}
+                      name="city"
+                      value={city}
+                      autoComplete="address-level2"
+                      onChange={(e) => setCity(e.target.value)}
+                    >
+                      <option value="" disabled>
+                        {t("publish.chooseMunicipality")}
+                      </option>
+                      {/* Keep a city saved before the list existed selectable. */}
+                      {city && !isOneOf(PR_MUNICIPALITIES, city) && (
+                        <option value={city}>{city}</option>
+                      )}
+                      {PR_MUNICIPALITIES.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
                         </option>
-                        <option value="DO">
-                          {t("publish.countryDO")}
-                        </option>
-                        <option value="other">
-                          {t("publish.countryOther")}
-                        </option>
-                      </Select>
-                    )}
-                  </Field>
-                </div>
-              </div>
-
-              <div>
-                <Eyebrow>{t("publish.positionMarkers")}</Eyebrow>
-                <div className="bg-grid-map relative mt-3 h-80 border-2 border-line bg-carbon">
-                  <button
-                    type="button"
-                    className="absolute top-[58%] left-[24%] -translate-x-1/2 -translate-y-1/2 cursor-move bg-neon-green px-2.5 py-1.5 text-[11px] font-black text-ink"
+                      ))}
+                    </Select>
+                  ) : (
+                    <Input
+                      {...p}
+                      name="city"
+                      value={city}
+                      maxLength={80}
+                      autoComplete="address-level2"
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="San Juan…"
+                    />
+                  )
+                }
+              </Field>
+              <Field label={t("publish.region")} error={fieldError("region")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="region"
+                    maxLength={80}
+                    defaultValue={initial.region}
+                    autoComplete="address-level1"
+                  />
+                )}
+              </Field>
+              <Field
+                label={t("publish.postalCode")}
+                error={fieldError("postal_code")}
+                optional
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="postal_code"
+                    defaultValue={initial.postalCode}
+                    maxLength={12}
+                    inputMode="numeric"
+                    autoComplete="postal-code"
+                    placeholder="00901"
+                  />
+                )}
+              </Field>
+              <Field label={t("publish.country")} error={fieldError("country")}>
+                {(p) => (
+                  <Select
+                    {...p}
+                    name="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value as Country)}
                   >
-                    {t("publish.start")}
-                  </button>
-                  <button
-                    type="button"
-                    className="absolute top-[38%] left-[68%] -translate-x-1/2 -translate-y-1/2 cursor-move bg-neon-yellow px-2.5 py-1.5 text-[11px] font-black text-ink"
-                  >
-                    {t("publish.finish")}
-                  </button>
-                  <p className="absolute bottom-4 left-4 font-mono text-[10px] tracking-[0.14em] text-fg-faint uppercase">
-                    {t("publish.dragMarkers")}
-                  </p>
-                </div>
-              </div>
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {t(`publish.countries.${c}`)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
             </div>
-          ) : null}
+          </div>
 
           {/* 3 — Race categories --------------------------------------- */}
-          {step === 2 ? (
-            <div className="mt-8 max-w-4xl">
-              <p className="text-[15px] text-fg-dim">
-                {t("publish.categoriesIntro")}
+          <div data-step={2} hidden={step !== 2} className="mt-8 max-w-4xl">
+            <p className="text-[15px] text-fg-dim">
+              {t("publish.categoriesIntro")}
+            </p>
+
+            {errors.categories ? (
+              <p
+                role="alert"
+                tabIndex={-1}
+                className="mt-5 flex items-center gap-2 text-[13px] font-semibold text-danger"
+              >
+                <span aria-hidden="true">▲</span>
+                {fieldError("categories")}
               </p>
+            ) : null}
 
-              <ul className="mt-7 flex flex-col gap-4">
-                {categories.map((c, i) => (
-                  <li key={c.id} className="border-2 border-line bg-carbon">
-                    <div className="flex items-center justify-between border-b-2 border-line px-5 py-3.5">
-                      <Eyebrow>
-                        {t("publish.category", { n: i + 1 })}
-                      </Eyebrow>
-                      {categories.length > 1 ? (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCategories((list) =>
-                              list.filter((x) => x.id !== c.id),
-                            )
-                          }
-                          className="text-[11px] font-bold tracking-wider text-danger uppercase hover:underline"
+            <ul className="mt-7 flex flex-col gap-4">
+              {categories.map((c, i) => (
+                <li key={c.key} className="border-2 border-line bg-carbon">
+                  <input type="hidden" name="category_id" value={c.id ?? ""} />
+                  <div className="flex items-center justify-between border-b-2 border-line px-5 py-3.5">
+                    <Eyebrow>{t("publish.category", { n: i + 1 })}</Eyebrow>
+                    {/* Runners already in a category hold it in place. */}
+                    {c.registered > 0 ? (
+                      <span className="font-mono text-[11px] tracking-wider text-fg-dim uppercase">
+                        {t("publish.categoryRegistered", { count: c.registered })}
+                      </span>
+                    ) : categories.length > 1 ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCategories((list) =>
+                            list.filter((x) => x.key !== c.key),
+                          )
+                        }
+                        className="text-[11px] font-bold tracking-wider text-danger uppercase hover:underline"
+                      >
+                        {t("publish.remove")}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-5">
+                    <Field label={t("publish.distance")}>
+                      {(p) => (
+                        <Select
+                          {...p}
+                          name="category_distance"
+                          value={c.distance}
+                          onChange={(e) => {
+                            const distance = e.target.value as Distance;
+                            updateCategory(c.key, {
+                              distance,
+                              km: String(DISTANCE_KM[distance]),
+                            });
+                          }}
                         >
-                          {t("publish.remove")}
-                        </button>
-                      ) : null}
-                    </div>
-                    <div className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-5">
-                      <Field label={t("publish.name")}>
-                        {(p) => (
-                          <Input
-                            {...p}
-                            value={c.name}
-                            placeholder="10K"
-                            onChange={(e) =>
-                              updateCategory(c.id, { name: e.target.value })
-                            }
-                          />
-                        )}
-                      </Field>
-                      <Field label={t("publish.distanceKm")}>
-                        {(p) => (
-                          <Input
-                            {...p}
-                            value={c.distance}
-                            inputMode="decimal"
-                            placeholder="10"
-                            onChange={(e) =>
-                              updateCategory(c.id, { distance: e.target.value })
-                            }
-                          />
-                        )}
-                      </Field>
-                      <Field label={t("publish.priceUsd")}>
-                        {(p) => (
-                          <Input
-                            {...p}
-                            value={c.price}
-                            inputMode="numeric"
-                            placeholder="45"
-                            onChange={(e) =>
-                              updateCategory(c.id, { price: e.target.value })
-                            }
-                          />
-                        )}
-                      </Field>
-                      <Field label={t("publish.maxParticipants")}>
-                        {(p) => (
-                          <Input
-                            {...p}
-                            value={c.capacity}
-                            inputMode="numeric"
-                            placeholder="500"
-                            onChange={(e) =>
-                              updateCategory(c.id, { capacity: e.target.value })
-                            }
-                          />
-                        )}
-                      </Field>
-                      <Field label={t("publish.startTime")}>
-                        {(p) => (
-                          <Input
-                            {...p}
-                            type="time"
-                            value={c.start}
-                            onChange={(e) =>
-                              updateCategory(c.id, { start: e.target.value })
-                            }
-                          />
-                        )}
-                      </Field>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+                          {DISTANCES.map((d) => (
+                            <option key={d} value={d}>
+                              {distanceLabel(t, d)}
+                            </option>
+                          ))}
+                        </Select>
+                      )}
+                    </Field>
+                    <Field label={t("publish.distanceKm")}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          name="category_km"
+                          value={c.km}
+                          inputMode="decimal"
+                          onChange={(e) => updateCategory(c.key, { km: e.target.value })}
+                        />
+                      )}
+                    </Field>
+                    <Field label={t("publish.priceUsd")}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          name="category_price"
+                          value={c.price}
+                          inputMode="decimal"
+                          placeholder="45"
+                          onChange={(e) =>
+                            updateCategory(c.key, { price: e.target.value })
+                          }
+                        />
+                      )}
+                    </Field>
+                    <Field label={t("publish.maxParticipants")}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          name="category_capacity"
+                          value={c.capacity}
+                          inputMode="numeric"
+                          placeholder="500"
+                          onChange={(e) =>
+                            updateCategory(c.key, { capacity: e.target.value })
+                          }
+                        />
+                      )}
+                    </Field>
+                    <Field label={t("publish.startTime")}>
+                      {(p) => (
+                        <Input
+                          {...p}
+                          type="time"
+                          name="category_start"
+                          value={c.start}
+                          onChange={(e) =>
+                            updateCategory(c.key, { start: e.target.value })
+                          }
+                        />
+                      )}
+                    </Field>
+                  </div>
+                </li>
+              ))}
+            </ul>
 
+            {categories.length < DISTANCES.length ? (
               <Button
                 variant="outline"
                 size="lg"
@@ -449,354 +821,425 @@ export function PublishWizard() {
               >
                 {t("publish.addCategory")}
               </Button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
           {/* 4 — Registration settings --------------------------------- */}
-          {step === 3 ? (
-            <div className="mt-8 flex max-w-3xl flex-col gap-8">
-              <div className="grid gap-6 sm:grid-cols-3">
-                <Field label={t("publish.participantLimit")}>
-                  {(p) => <Input {...p} defaultValue="800" inputMode="numeric" />}
-                </Field>
-                <Field label={t("publish.minimumAge")}>
-                  {(p) => <Input {...p} defaultValue="14" inputMode="numeric" />}
-                </Field>
-                <Field label={t("publish.maximumAge")} optional>
-                  {(p) => (
-                    <Input
-                      {...p}
-                      placeholder={t("publish.noLimit")}
-                      inputMode="numeric"
-                    />
-                  )}
-                </Field>
-              </div>
-
-              <div>
-                <Eyebrow>{t("publish.shirtSizes")}</Eyebrow>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {SHIRT_SIZES.map((s) => (
-                    <Chip
-                      key={s}
-                      active={sizes.includes(s)}
-                      onClick={() =>
-                        setSizes((v) =>
-                          v.includes(s) ? v.filter((x) => x !== s) : [...v, s],
-                        )
-                      }
-                    >
-                      {s}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <fieldset className="flex flex-col gap-4 border-2 border-line p-5">
-                <legend className="px-2 font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase">
-                  {t("publish.collectAtRegistration")}
-                </legend>
-                <Checkbox defaultChecked label={t("publish.collectEmergency")} />
-                <Checkbox defaultChecked label={t("publish.collectWaiver")} />
-                <Checkbox defaultChecked label={t("publish.collectEstimate")} />
-                <Checkbox label={t("publish.collectClub")} />
-                <Checkbox label={t("publish.collectMedical")} />
-              </fieldset>
-
+          <div
+            data-step={3}
+            hidden={step !== 3}
+            className="mt-8 flex max-w-3xl flex-col gap-8"
+          >
+            <div className="grid gap-6 sm:grid-cols-3">
               <Field
-                label={t("publish.customQuestion")}
+                label={t("publish.participantLimit")}
+                hint={t("publish.participantLimitHint")}
+                error={fieldError("capacity")}
                 optional
-                hint={t("publish.customQuestionHint")}
               >
                 {(p) => (
                   <Input
                     {...p}
-                    placeholder={t("publish.customQuestionPlaceholder")}
+                    name="capacity"
+                    defaultValue={initial.capacity}
+                    inputMode="numeric"
                   />
                 )}
               </Field>
-
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field label={t("publish.promoCode")} optional>
-                  {(p) => <Input {...p} placeholder="CLUB25" />}
-                </Field>
-                <Field label={t("publish.discount")} optional>
-                  {(p) => <Input {...p} placeholder="25" inputMode="numeric" />}
-                </Field>
-              </div>
-            </div>
-          ) : null}
-
-          {/* 5 — Event details ----------------------------------------- */}
-          {step === 4 ? (
-            <div className="mt-8 flex max-w-3xl flex-col gap-6">
-              <div className="grid gap-6 sm:grid-cols-2">
-                <Field label={t("publish.terrain")}>
-                  {(p) => (
-                    <Input {...p} placeholder={t("publish.terrainPlaceholder")} />
-                  )}
-                </Field>
-                <Field label={t("publish.difficulty")}>
-                  {(p) => (
-                    <Select {...p} defaultValue="Moderate">
-                      {(["Easy", "Moderate", "Hard"] as const).map((level) => (
-                        <option key={level} value={level}>
-                          {difficultyLabel(t, level)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </Field>
-                <Field label={t("publish.elevationGain")}>
-                  {(p) => <Input {...p} placeholder="42" inputMode="numeric" />}
-                </Field>
-                <Field label={t("publish.cutoffTime")}>
-                  {(p) => <Input {...p} placeholder="1:45:00" />}
-                </Field>
-              </div>
-
+              <Field label={t("publish.minimumAge")} error={fieldError("minimum_age")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="minimum_age"
+                    value={minimumAge}
+                    onChange={(e) => setMinimumAge(e.target.value)}
+                    inputMode="numeric"
+                  />
+                )}
+              </Field>
               <Field
-                label={t("publish.aidStations")}
-                hint={t("publish.aidStationsHint")}
+                label={t("publish.maximumAge")}
+                error={fieldError("maximum_age")}
+                optional
               >
                 {(p) => (
-                  <Textarea
+                  <Input
                     {...p}
-                    defaultValue={t("publish.aidStationsDefault")}
+                    name="maximum_age"
+                    defaultValue={initial.maximumAge}
+                    placeholder={t("publish.noLimit")}
+                    inputMode="numeric"
                   />
-                )}
-              </Field>
-
-              <Field
-                label={t("publish.daySchedule")}
-                hint={t("publish.dayScheduleHint")}
-              >
-                {(p) => (
-                  <Textarea
-                    {...p}
-                    defaultValue={t("publish.dayScheduleDefault")}
-                  />
-                )}
-              </Field>
-
-              <Field label={t("publish.parkingDirections")}>
-                {(p) => (
-                  <Textarea {...p} placeholder={t("publish.parkingPlaceholder")} />
                 )}
               </Field>
             </div>
-          ) : null}
+          </div>
 
-          {/* 6 — Media --------------------------------------------------- */}
-          {step === 5 ? (
-            <div className="mt-8 max-w-3xl">
-              <Eyebrow>{t("publish.coverImage")}</Eyebrow>
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragging(true);
-                }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragging(false);
-                  setCover(e.dataTransfer.files[0]?.name ?? "cover.jpg");
-                }}
-                className={cn(
-                  "mt-3 border-2 border-dashed px-6 py-14 text-center transition-colors",
-                  dragging
-                    ? "border-neon-lime bg-neon-lime/6"
-                    : cover
-                      ? "border-neon-lime"
-                      : "border-line",
-                )}
-              >
-                {cover ? (
-                  <>
-                    <div className="bg-cover-wash mx-auto h-32 w-full max-w-md border-2 border-line" />
-                    <p className="mt-4 font-mono text-[12px] text-neon-lime">
-                      {cover}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setCover(null)}
-                      className="mt-3 text-[11px] font-bold tracking-wider text-fg-dim uppercase hover:text-danger"
+          {/* 5 — Extras ------------------------------------------------- */}
+          {/* A switched-off extra still posts its price and sizes, so turning
+              it back on restores them; runners just stop seeing it. */}
+          <div
+            data-step={4}
+            hidden={step !== 4}
+            className="mt-8 flex max-w-3xl flex-col gap-6"
+          >
+            <p className="text-[15px] text-fg-dim">{t("publish.extrasIntro")}</p>
+
+            <ul className="flex flex-col gap-4">
+              <li className="border-2 border-line bg-carbon p-5">
+                <ExtraToggle
+                  name="offers_shirt"
+                  checked={offersShirt}
+                  onChange={setOffersShirt}
+                  title={t("publish.extras.shirt")}
+                  detail={t("publish.extras.shirtDetail")}
+                />
+                {sizes.map((s) => (
+                  <input key={s} type="hidden" name="shirt_sizes" value={s} />
+                ))}
+                <div hidden={!offersShirt} className="mt-5 flex flex-col gap-6">
+                  <div className="max-w-56">
+                    <Field
+                      label={t("publish.priceUsd")}
+                      hint={t("publish.extras.freeHint")}
+                      error={fieldError("shirt_price")}
                     >
-                      {t("publish.remove")}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-display text-2xl font-black uppercase">
-                      {t("publish.dropCover")}
-                    </p>
-                    <p className="mt-2 text-sm text-fg-dim">
-                      {t("publish.coverSpec")}
-                    </p>
-                    <label className="mt-6 inline-flex cursor-pointer border-2 border-line-strong px-5 py-3 text-xs font-black tracking-[0.12em] uppercase hover:border-neon-lime hover:text-neon-lime">
-                      {t("publish.chooseFile")}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="sr-only"
-                        onChange={(e) =>
-                          setCover(e.target.files?.[0]?.name ?? null)
-                        }
+                      {(p) => (
+                        <Input
+                          {...p}
+                          name="shirt_price"
+                          defaultValue={initial.shirtPrice}
+                          inputMode="decimal"
+                        />
+                      )}
+                    </Field>
+                  </div>
+                  <fieldset>
+                    <legend className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase">
+                      {t("publish.shirtSizes")}
+                    </legend>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {SHIRT_SIZES.map((s) => (
+                        <Chip
+                          key={s}
+                          active={sizes.includes(s)}
+                          onClick={() =>
+                            setSizes((v) =>
+                              v.includes(s) ? v.filter((x) => x !== s) : [...v, s],
+                            )
+                          }
+                        >
+                          {s}
+                        </Chip>
+                      ))}
+                    </div>
+                    {errors.shirt_sizes ? (
+                      <p
+                        role="alert"
+                        tabIndex={-1}
+                        className="mt-3 flex items-center gap-2 text-[13px] font-semibold text-danger"
+                      >
+                        <span aria-hidden="true">▲</span>
+                        {fieldError("shirt_sizes")}
+                      </p>
+                    ) : null}
+                  </fieldset>
+                </div>
+              </li>
+
+              <li className="border-2 border-line bg-carbon p-5">
+                <ExtraToggle
+                  name="offers_photos"
+                  checked={offersPhotos}
+                  onChange={setOffersPhotos}
+                  title={t("publish.extras.photos")}
+                  detail={t("publish.extras.photosDetail")}
+                />
+                <div hidden={!offersPhotos} className="mt-5 max-w-56">
+                  <Field
+                    label={t("publish.priceUsd")}
+                    hint={t("publish.extras.freeHint")}
+                    error={fieldError("photo_price")}
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="photo_price"
+                        defaultValue={initial.photoPrice}
+                        inputMode="decimal"
                       />
-                    </label>
-                  </>
+                    )}
+                  </Field>
+                </div>
+              </li>
+
+              <li className="border-2 border-line bg-carbon p-5">
+                <ExtraToggle
+                  name="accepts_donations"
+                  checked={acceptsDonations}
+                  onChange={setAcceptsDonations}
+                  title={t("publish.extras.donations")}
+                  detail={t("publish.extras.donationsDetail")}
+                />
+                <div hidden={!acceptsDonations} className="mt-5">
+                  <Field
+                    label={t("publish.extras.donationRecipient")}
+                    hint={t("publish.extras.donationRecipientHint")}
+                    error={fieldError("donation_recipient")}
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="donation_recipient"
+                        defaultValue={initial.donationRecipient}
+                        maxLength={120}
+                        placeholder={t("publish.extras.donationRecipientPlaceholder")}
+                      />
+                    )}
+                  </Field>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          {/* 6 — Event details ----------------------------------------- */}
+          <div
+            data-step={5}
+            hidden={step !== 5}
+            className="mt-8 flex max-w-3xl flex-col gap-6"
+          >
+            <div className="grid gap-6 sm:grid-cols-2">
+              <Field label={t("publish.terrain")} error={fieldError("terrain")} optional>
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="terrain"
+                    defaultValue={initial.terrain}
+                    maxLength={80}
+                    placeholder={t("publish.terrainPlaceholder")}
+                  />
                 )}
-              </div>
-
-              <Eyebrow className="mt-9">{t("publish.gallery")}</Eyebrow>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex aspect-4/3 items-center justify-center border-2 border-dashed border-line text-2xl text-fg-faint"
-                  >
-                    +
-                  </div>
-                ))}
-              </div>
-
-              <Eyebrow className="mt-9">{t("publish.sponsorLogos")}</Eyebrow>
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex h-20 items-center justify-center border-2 border-dashed border-line text-xs text-fg-faint"
-                  >
-                    {t("publish.uploadLogo")}
-                  </div>
-                ))}
-              </div>
+              </Field>
+              <Field label={t("publish.difficulty")} error={fieldError("difficulty")}>
+                {(p) => (
+                  <Select {...p} name="difficulty" defaultValue={initial.difficulty}>
+                    {DIFFICULTIES.map((level) => (
+                      <option key={level} value={level}>
+                        {difficultyLabel(t, level)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              <Field
+                label={t("publish.elevationGain")}
+                error={fieldError("elevation_gain")}
+                optional
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="elevation_gain"
+                    defaultValue={initial.elevationGain}
+                    placeholder="42"
+                    inputMode="numeric"
+                  />
+                )}
+              </Field>
+              <Field label={t("publish.cutoffTime")} error={fieldError("cutoff")} optional>
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="cutoff"
+                    maxLength={20}
+                    defaultValue={initial.cutoff}
+                    placeholder="1:45:00"
+                  />
+                )}
+              </Field>
             </div>
-          ) : null}
+
+            <Field
+              label={t("publish.aidStations")}
+              hint={t("publish.aidStationsHint")}
+              error={fieldError("aid_stations")}
+              optional
+            >
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="aid_stations"
+                  defaultValue={initial.aidStations}
+                  placeholder={t("publish.aidStationsPlaceholder")}
+                />
+              )}
+            </Field>
+
+            <Field
+              label={t("publish.daySchedule")}
+              hint={t("publish.dayScheduleHint")}
+              error={fieldError("schedule")}
+              optional
+            >
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="schedule"
+                  defaultValue={initial.schedule}
+                  placeholder={t("publish.daySchedulePlaceholder")}
+                />
+              )}
+            </Field>
+
+            <Field label={t("publish.parking")} error={fieldError("parking")} optional>
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="parking"
+                  defaultValue={initial.parking}
+                  maxLength={1000}
+                  placeholder={t("publish.parkingPlaceholder")}
+                />
+              )}
+            </Field>
+
+            <Field
+              label={t("publish.directions")}
+              error={fieldError("directions")}
+              optional
+            >
+              {(p) => (
+                <Textarea
+                  {...p}
+                  name="directions"
+                  defaultValue={initial.directions}
+                  maxLength={1000}
+                  placeholder={t("publish.directionsPlaceholder")}
+                />
+              )}
+            </Field>
+          </div>
 
           {/* 7 — Review -------------------------------------------------- */}
-          {step === 6 ? (
-            <div className="mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px]">
-              {/* Listing preview */}
-              <div>
-                <Eyebrow>{t("publish.listingPreview")}</Eyebrow>
-                <article className="mt-3 border-2 border-line bg-carbon">
-                  <div className="bg-cover-wash relative h-40">
-                    <div className="bg-track-lanes absolute inset-0" />
-                    <Badge
-                      tone="neutral"
-                      className="absolute top-0 left-0 bg-ink font-mono text-[10px] font-normal text-neon-lime"
-                    >
-                      {eventTypeLabel(t, type)}
-                    </Badge>
-                  </div>
-                  <div className="p-5">
-                    <Badge tone="lime">
-                      {t("publish.registrationOpen")}
-                    </Badge>
-                    <h2 className="mt-3 font-display text-3xl font-black uppercase">
-                      {eventName}
-                    </h2>
-                    <p className="mt-2 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                      {t("publish.previewDate")}
-                    </p>
-                    <div className="mt-5 flex items-baseline gap-2 border-t-2 border-line pt-4">
-                      <span className="font-mono text-[11px] text-fg-dim">
-                        {t("publish.from")}
-                      </span>
-                      <span className="font-display text-2xl font-black text-neon-yellow">
-                        $
-                        {categories.reduce(
-                          (min, c) =>
-                            c.price ? Math.min(min, Number(c.price)) : min,
-                          Infinity,
-                        ) === Infinity
-                          ? "—"
-                          : Math.min(
-                              ...categories
-                                .filter((c) => c.price)
-                                .map((c) => Number(c.price)),
-                            )}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              </div>
-
-              {/* Checklist */}
-              <div>
-                <Eyebrow>{t("publish.beforePublishing")}</Eyebrow>
-                <ul className="mt-3 border-2 border-line">
-                  {checklist.map((c) => (
-                    <li
-                      key={c.key}
-                      className="flex items-center gap-3 border-b-2 border-line px-4 py-3.5 last:border-b-0"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "flex h-6 w-6 shrink-0 items-center justify-center border-2 text-xs font-black",
-                          c.done
-                            ? "border-neon-lime text-neon-lime"
-                            : "border-line-bright text-fg-faint",
-                        )}
-                      >
-                        {c.done ? "✓" : "—"}
-                      </span>
-                      <span
-                        className={cn(
-                          "text-sm",
-                          c.done ? "text-fg" : "text-fg-dim",
-                        )}
-                      >
-                        {t(c.key)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                {!ready ? (
-                  <p className="mt-4 text-[13px] leading-relaxed text-neon-yellow">
-                    {t("publish.finishItems")}
-                  </p>
-                ) : null}
-
-                <div className="mt-6 flex flex-col gap-3">
-                  <Button
-                    block
-                    size="xl"
-                    disabled={!ready}
-                    onClick={() => setPublished(true)}
+          <div
+            data-step={6}
+            hidden={step !== 6}
+            className="mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px]"
+          >
+            {/* Listing preview */}
+            <div>
+              <Eyebrow>{t("publish.listingPreview")}</Eyebrow>
+              <article className="mt-3 border-2 border-line bg-carbon">
+                <div className="bg-cover-wash relative h-40">
+                  <div className="bg-track-lanes absolute inset-0" />
+                  <Badge
+                    tone="neutral"
+                    className="absolute top-0 left-0 bg-ink font-mono text-[10px] font-normal text-neon-lime"
                   >
-                    {t("publish.publishEvent")}
-                  </Button>
+                    {eventTypeLabel(t, type)}
+                  </Badge>
+                </div>
+                <div className="p-5">
+                  <Badge tone="lime">{t("publish.registrationOpen")}</Badge>
+                  <h2 className="mt-3 font-display text-3xl font-black wrap-break-word uppercase">
+                    {eventName}
+                  </h2>
+                  <p className="mt-2 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
+                    {[eventDate ? fmt.mediumDate(eventDate) : null, city.trim() || null]
+                      .filter(Boolean)
+                      .join(" · ") || t("publish.previewDatePending")}
+                  </p>
+                  <div className="mt-5 flex items-baseline gap-2 border-t-2 border-line pt-4">
+                    <span className="font-mono text-[11px] text-fg-dim">
+                      {t("publish.from")}
+                    </span>
+                    <span className="font-display text-2xl font-black text-neon-yellow">
+                      {prices.length ? fmt.moneyWhole(Math.min(...prices)) : "—"}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            {/* Checklist */}
+            <div>
+              <Eyebrow>{t("publish.beforePublishing")}</Eyebrow>
+              <ul className="mt-3 border-2 border-line">
+                {checklist.map((c) => (
+                  <li
+                    key={c.key}
+                    className="flex items-center gap-3 border-b-2 border-line px-4 py-3.5 last:border-b-0"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "flex h-6 w-6 shrink-0 items-center justify-center border-2 text-xs font-black",
+                        c.done
+                          ? "border-neon-lime text-neon-lime"
+                          : "border-line-bright text-fg-faint",
+                      )}
+                    >
+                      {c.done ? "✓" : "—"}
+                    </span>
+                    <span className={cn("text-sm", c.done ? "text-fg" : "text-fg-dim")}>
+                      {t(c.key)}
+                      <span className="sr-only">
+                        {" "}
+                        — {c.done ? t("publish.checkDone") : t("publish.checkPending")}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+
+              {state?.error ? (
+                <p
+                  role="alert"
+                  className="mt-4 flex items-start gap-2 text-[13px] leading-relaxed font-semibold text-danger"
+                >
+                  <span aria-hidden="true">▲</span>
+                  {t(`publish.errors.${state.error}`)}
+                </p>
+              ) : null}
+
+              <div className="mt-6 flex flex-col gap-3">
+                <Button
+                  type="submit"
+                  name="intent"
+                  value="publish"
+                  block
+                  size="xl"
+                  disabled={pending}
+                  aria-busy={pending}
+                >
+                  {pending
+                    ? t("common.saving")
+                    : t(live ? "publish.saveChanges" : "publish.publishEvent")}
+                </Button>
+                {!live ? (
                   <Button
+                    type="submit"
+                    name="intent"
+                    value="draft"
                     block
                     variant="outline"
                     size="lg"
-                    onClick={() =>
-                      toast({
-                        title: t("publish.draftSavedTitle"),
-                        body: t("publish.draftSavedBodyNamed", {
-                          name: eventName,
-                        }),
-                      })
-                    }
+                    disabled={pending}
                   >
                     {t("publish.saveDraft")}
                   </Button>
-                </div>
-
-                <p className="mt-5 text-xs leading-relaxed text-fg-faint">
-                  {t("publish.termsPre")}{" "}
-                  <Link href="/legal/organizer-terms" className="text-neon-lime underline">
-                    {t("publish.termsLink")}
-                  </Link>
-                  .
-                </p>
+                ) : null}
               </div>
+
+              <p className="mt-5 text-xs leading-relaxed text-fg-faint">
+                {t("publish.termsPre")}{" "}
+                <Link href="/legal/organizer-terms" className="text-neon-lime underline">
+                  {t("publish.termsLink")}
+                </Link>
+                .
+              </p>
             </div>
-          ) : null}
+          </div>
         </main>
       </div>
 
@@ -806,19 +1249,60 @@ export function PublishWizard() {
           variant="outline"
           size="lg"
           disabled={step === 0}
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          onClick={() => goTo(Math.max(0, step - 1))}
         >
           {t("publish.back")}
         </Button>
         <Button
           size="lg"
           className="flex-1 lg:flex-none"
-          disabled={step === STEPS.length - 1}
-          onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+          disabled={step === REVIEW_STEP}
+          onClick={() => goTo(Math.min(REVIEW_STEP, step + 1))}
         >
           {t("publish.continue")}
         </Button>
       </div>
-    </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={remove}
+        title={t("publish.deleteTitle", { name: eventName })}
+        description={t(live ? "publish.deleteLiveDescription" : "publish.deleteDescription")}
+        confirmLabel={t("publish.delete")}
+        destructive
+      />
+    </form>
+  );
+}
+
+/** One extra's on/off switch, with what a runner gets from it. */
+function ExtraToggle({
+  name,
+  checked,
+  onChange,
+  title,
+  detail,
+}: {
+  name: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  title: string;
+  detail: string;
+}) {
+  return (
+    <Checkbox
+      name={name}
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      label={
+        <span className="flex flex-col gap-1">
+          <span className="font-display text-lg font-black text-fg uppercase">
+            {title}
+          </span>
+          <span className="text-sm text-fg-dim">{detail}</span>
+        </span>
+      }
+    />
   );
 }
