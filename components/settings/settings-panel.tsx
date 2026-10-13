@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
-import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { ConfirmDialog } from "@/components/ui/modal";
@@ -11,9 +11,11 @@ import { useT } from "@/components/i18n/provider";
 import {
   setProfileVisibilityAction,
   updateProfileAction,
+  updateRaceDetailsAction,
   type ProfileState,
 } from "@/lib/profile/actions";
-import type { Profile } from "@/lib/profile/queries";
+import type { Profile, ProfileDetails } from "@/lib/profile/queries";
+import { SHIRT_SIZES } from "@/lib/events/vocabulary";
 import { PR_MUNICIPALITIES } from "@/lib/pr-municipalities";
 import { cn } from "@/lib/cn";
 
@@ -53,7 +55,13 @@ function Section({
   );
 }
 
-export function SettingsPanel({ profile }: { profile: Profile | null }) {
+export function SettingsPanel({
+  profile,
+  details,
+}: {
+  profile: Profile | null;
+  details: ProfileDetails | null;
+}) {
   const session = useSession();
   const { toast } = useToast();
   const t = useT();
@@ -63,19 +71,20 @@ export function SettingsPanel({ profile }: { profile: Profile | null }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:py-14">
-      <header className="border-b-2 border-line pb-8">
-        <Eyebrow>{t("settings.eyebrow")}</Eyebrow>
-        <h1 className="mt-3 font-display text-4xl font-black uppercase sm:text-5xl">
-          {t("settings.title")}
-        </h1>
-      </header>
+    <div className="max-w-4xl">
 
       <Section
         title={t("settings.profile")}
         description={t("settings.profileDescription")}
       >
         <ProfileForm profile={profile} email={session.email} />
+      </Section>
+
+      <Section
+        title={t("settings.raceDetails")}
+        description={t("settings.raceDetailsDescription")}
+      >
+        <RaceDetailsForm details={details} />
       </Section>
 
       <Section
@@ -345,6 +354,151 @@ function ProfileForm({
               name="bio"
               maxLength={280}
               defaultValue={profile?.bio ?? ""}
+            />
+          )}
+        </Field>
+      </div>
+
+      <Button
+        type="submit"
+        size="lg"
+        className="mt-6"
+        disabled={pending}
+        aria-busy={pending}
+      >
+        {pending ? t("common.saving") : t("common.saveChanges")}
+      </Button>
+    </form>
+  );
+}
+
+/**
+ * The private half: what every race sign-up asks for, filled in once here and
+ * pre-filled into each registration. Registering also writes it back, so a
+ * runner who never opens this section still only types it the first time.
+ */
+function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
+  const t = useT();
+  const { toast } = useToast();
+  const [state, action, pending] = useActionState(
+    updateRaceDetailsAction,
+    undefined,
+  );
+
+  useEffect(() => {
+    if (!state?.ok) return;
+    toast({ title: t("settings.raceDetailsSaved") });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  const fieldError = (field: string) => {
+    const key = state?.fieldErrors?.[field];
+    return key ? t(`settings.errors.${key}`) : undefined;
+  };
+
+  return (
+    <form action={action} noValidate>
+      {state?.error ? (
+        <p
+          role="alert"
+          className="mb-6 flex items-start gap-2 border-2 border-danger bg-danger/8 px-4 py-3 text-[13px] font-semibold text-danger"
+        >
+          <span aria-hidden="true">▲</span>
+          {t(`settings.errors.${state.error}`)}
+        </p>
+      ) : null}
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field
+          label={t("settings.birthDate")}
+          error={fieldError("birthDate")}
+          hint={t("settings.birthDateHint")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="date"
+              name="birthDate"
+              autoComplete="bday"
+              defaultValue={details?.birthDate ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field label={t("settings.gender")}>
+          {(p) => (
+            <Select {...p} name="gender" defaultValue={details?.gender ?? ""}>
+              <option value="">{t("register.step2.genderUndisclosed")}</option>
+              <option value="f">{t("register.step2.genderFemale")}</option>
+              <option value="m">{t("register.step2.genderMale")}</option>
+              <option value="x">{t("register.step2.genderOther")}</option>
+            </Select>
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.phone")}
+          error={fieldError("phone")}
+          hint={t("settings.phoneHint")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="tel"
+              inputMode="tel"
+              name="phone"
+              autoComplete="tel"
+              maxLength={20}
+              defaultValue={details?.phone ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field label={t("settings.shirtSize")} optional>
+          {(p) => (
+            <Select
+              {...p}
+              name="shirtSize"
+              defaultValue={details?.shirtSize ?? ""}
+            >
+              <option value="">{t("settings.shirtSizePlaceholder")}</option>
+              {SHIRT_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+      </div>
+
+      <div className="mt-8 grid gap-6 border-t-2 border-line pt-8 sm:grid-cols-2">
+        <Field
+          label={t("settings.emergencyName")}
+          error={fieldError("emergencyName")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="emergencyName"
+              maxLength={80}
+              defaultValue={details?.emergencyContactName ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.emergencyPhone")}
+          error={fieldError("emergencyPhone")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              type="tel"
+              inputMode="tel"
+              name="emergencyPhone"
+              maxLength={20}
+              defaultValue={details?.emergencyContactPhone ?? ""}
             />
           )}
         </Field>

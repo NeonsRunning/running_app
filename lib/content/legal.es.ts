@@ -1,7 +1,7 @@
 /**
  * Spanish copy for the policy documents.
  *
- * Same split as `events.es.ts`: `lib/legal.ts` holds the base document and
+ * Same split as `fixtures.es.ts`: `lib/legal.ts` holds the base document and
  * this file is the translation layered over it. Sections are keyed by their
  * English heading rather than by array position, so reordering or inserting a
  * clause in the base document cannot silently attach the wrong translation —

@@ -22,7 +22,7 @@ another so the app reads as a working product rather than a set of mockups.
 | Event discovery (filters, sort, list/map) | `/events` |
 | Event details | `/events/[slug]` |
 | Registration flow (5 steps + confirmation) | `/events/[slug]/register` |
-| Runner profile — public, and your own races when it is yours | `/runners/[id]`, `/runners/me` |
+| Runner profile — public, and your own races and settings when it is yours | `/runners/[id]`, `/runners/me` |
 | Publish event wizard (7 steps) | `/publish` |
 | Organizer dashboard (with charts) | `/organizer` |
 | Participant management | `/organizer/participants` |
@@ -30,7 +30,7 @@ another so the app reads as a working product rather than a set of mockups.
 | Results leaderboard / result detail | `/events/[slug]/results[/bib]` |
 | Authentication | `/login`, `/signup`, `/forgot-password`, `/verify-email`, `/reset-password` |
 
-Secondary: `/community`, `/notifications`, `/settings`, `/results`, `/about`,
+Secondary: `/community`, `/notifications`, `/results`, `/about`,
 `/contact`, `/faq`, `/legal/[doc]`, plus 404, error and loading states.
 
 ## Structure
@@ -210,7 +210,7 @@ browser from the one that asked for the reset.
 
 Sign-up puts `full_name` on the user's metadata, where the `handle_new_user`
 trigger reads it to seed the profile row that `toSession()` projects onto the
-header and settings. The account type is the trigger's to set — always
+header and the profile's settings. The account type is the trigger's to set — always
 `runner` — and settings can promote a runner to an organizer later.
 
 Neither the sign-up form nor the recovery form will tell a stranger whether an
@@ -267,6 +267,28 @@ npm run db:types    # regenerate database.types.ts from the live schema
 Or paste `supabase/migrations/20260824120000_profiles.sql` into the SQL editor
 in the dashboard. It is idempotent in the part that matters: accounts that
 existed before it ran are backfilled at the end.
+
+## Email
+
+A paid registration sends the runner a confirmation — bib, race, distance,
+date, start time, location, extras and total — through Brevo's transactional
+API. Set `BREVO_API_KEY` and `BREVO_SENDER_EMAIL` (a sender verified in Brevo)
+to turn it on; without them nothing is sent and sign-ups work as before.
+
+```
+lib/email/brevo.ts                   the API call
+lib/email/registration-confirmed.ts  claiming, content, sending
+```
+
+- **Sent once.** The payment step, the register page and the Stripe webhook can
+  all confirm the same payment. Whichever sets
+  `registrations.confirmation_email_sent_at` first sends; a failed send clears
+  it so a later confirmation retries.
+- **Never in the way.** It goes out with `after()`, once the response is sent,
+  and a Brevo failure is logged rather than failing the sign-up.
+- **In the runner's language.** The flow saves the locale the runner signed up
+  in to `profile_private.locale`, and the email reads it from there. Copy
+  lives under `emails.registrationConfirmed` in the dictionaries.
 
 ## Accessibility
 

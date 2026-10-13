@@ -7,7 +7,7 @@ import type { EventExtras } from "@/lib/types";
  * prices here are the starting values a new event gets, and what fixture
  * races charge. The registration flow uses these to show a running total; the
  * amount that is stored is computed again by `register_for_event()` in
- * `20261015120000_event_extras.sql`, which repeats the service fee. Change it
+ * `20261017120000_registration_payments.sql`, which repeats the service fee. Change it
  * in both places.
  */
 export const SHIRT_PRICE = 22;

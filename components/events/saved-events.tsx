@@ -9,9 +9,13 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/cn";
+import { NEXT_PARAM } from "@/lib/auth/routes";
+import { setEventSavedAction } from "@/lib/events/saved";
 import { useToast } from "@/components/ui/toast";
 import { HeartIcon } from "@/components/ui/icons";
 import { useT } from "@/components/i18n/provider";
+import { useAppPathname, useLocalizedRouter } from "@/components/i18n/link";
+import { useSession } from "@/components/layout/session";
 
 type SavedApi = {
   saved: Record<string, boolean>;
@@ -28,31 +32,63 @@ export function useSavedEvents(): SavedApi {
   return ctx;
 }
 
-export function SavedEventsProvider({ children }: { children: ReactNode }) {
-  const [saved, setSaved] = useState<Record<string, boolean>>({
-    "condado-coastal-10k": true,
-    "ponce-track-night-5k": true,
-  });
+/**
+ * The runner's saved races, seeded from `saved_events` by the layout.
+ *
+ * A heart flips the moment it is pressed and the write follows; if the write
+ * fails, the heart flips back and says so. Guests are sent to log in, and
+ * come back to the page they were on.
+ */
+export function SavedEventsProvider({
+  initial,
+  children,
+}: {
+  /** Slugs saved when the layout rendered. Read once, on mount. */
+  initial: string[];
+  children: ReactNode;
+}) {
+  const [saved, setSaved] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(initial.map((slug) => [slug, true])),
+  );
   const { toast } = useToast();
   const t = useT();
+  const { signedIn } = useSession();
+  const router = useLocalizedRouter();
+  const pathname = useAppPathname();
 
   const toggle = useCallback(
     (id: string, name: string) => {
-      setSaved((prev) => {
-        const next = { ...prev, [id]: !prev[id] };
-        toast({
-          title: next[id]
-            ? t("events.save.savedTitle")
-            : t("events.save.removedTitle"),
-          body: next[id]
-            ? t("events.save.savedBody", { name })
-            : t("events.save.removedBody", { name }),
-          tone: next[id] ? "success" : "info",
-        });
-        return next;
+      if (!signedIn) {
+        router.push(`/login?${NEXT_PARAM}=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
+      const next = !saved[id];
+      setSaved((prev) => ({ ...prev, [id]: next }));
+      toast({
+        title: next
+          ? t("events.save.savedTitle")
+          : t("events.save.removedTitle"),
+        body: next
+          ? t("events.save.savedBody", { name })
+          : t("events.save.removedBody", { name }),
+        tone: next ? "success" : "info",
       });
+
+      void setEventSavedAction(id, next)
+        .catch(() => ({ ok: false }) as const)
+        .then((result) => {
+          if (result.ok) return;
+          // Only undo if nothing has changed the heart since.
+          setSaved((prev) => (prev[id] === next ? { ...prev, [id]: !next } : prev));
+          toast({
+            title: t("events.save.failedTitle"),
+            body: t("events.save.failedBody", { name }),
+            tone: "danger",
+          });
+        });
     },
-    [toast, t],
+    [saved, signedIn, router, pathname, toast, t],
   );
 
   const value = useMemo<SavedApi>(

@@ -1,21 +1,12 @@
 /**
- * Spanish copy for the non-event fixtures — organizers, runner profiles,
- * notifications, clubs and the community feed.
+ * Spanish copy for the fixtures — runner profiles, notifications, clubs and
+ * the community feed.
  *
- * Same split as `events.es.ts`: `lib/data.ts` holds the base record and this
+ * `lib/data.ts` holds the base record and this
  * file is the translation layered over it, keyed by the fixture's stable id.
  * Names, handles, bib numbers and times are identity, not copy, so they are
  * absent here and pass through untouched.
  */
-
-export const ORGANIZER_BLURB_ES: Record<string, string> = {
-  "neons-pr":
-    "Organizando carreras nocturnas por toda la isla desde 2019. Rutas cerradas, cronometraje por chip en todas las distancias y una línea de salida que se siente como una fiesta de barrio.",
-  "yunque-trails":
-    "Carreras de bosque lluvioso y cresta en el noreste. Pelotones pequeños, mucho desnivel y una regla: todo corredor baja de la montaña antes del anochecer.",
-  "costa-club":
-    "Un club comunitario convertido en serie de carreras. Salidas en la playa, corrales familiares y recaudos que se quedan en la costa norte.",
-};
 
 export const RUNNER_BIO_ES: Record<string, string> = {
   "alex-rivera":

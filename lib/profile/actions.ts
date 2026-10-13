@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { SHIRT_SIZES } from "@/lib/events/vocabulary";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -79,6 +80,72 @@ export async function updateProfileAction(
 
   // The header renders the name and initials, so the whole tree is stale.
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Race-day details                                                           */
+/* -------------------------------------------------------------------------- */
+
+/** The same pattern `profile_private` and `registrations` check. */
+const PHONE = /^\+?[0-9][0-9 ()-]{6,19}$/;
+const GENDERS = ["f", "m", "x"] as const;
+
+/**
+ * The private half: what every registration asks for.
+ *
+ * Every field is optional here — a runner may fill in some now and the rest at
+ * their first sign-up — but whatever is filled in has to be something a
+ * registration would accept, so the pre-filled form never starts out invalid.
+ */
+export async function updateRaceDetailsAction(
+  _prev: ProfileState | undefined,
+  formData: FormData,
+): Promise<ProfileState> {
+  const birthDate = readText(formData, "birthDate");
+  const gender = readText(formData, "gender");
+  const shirtSize = readText(formData, "shirtSize");
+  const phone = readText(formData, "phone");
+  const emergencyName = readText(formData, "emergencyName");
+  const emergencyPhone = readText(formData, "emergencyPhone");
+
+  const fieldErrors: Record<string, string> = {};
+  if (
+    birthDate &&
+    (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) ||
+      birthDate <= "1900-01-01" ||
+      birthDate > new Date().toISOString().slice(0, 10))
+  )
+    fieldErrors.birthDate = "birthDateInvalid";
+  if (phone && !PHONE.test(phone)) fieldErrors.phone = "phoneInvalid";
+  if (emergencyName.length > LIMITS.name)
+    fieldErrors.emergencyName = "nameTooLong";
+  if (emergencyPhone && !PHONE.test(emergencyPhone))
+    fieldErrors.emergencyPhone = "phoneInvalid";
+  if (Object.keys(fieldErrors).length) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "sessionExpired" };
+
+  const { data, error } = await supabase
+    .from("profile_private")
+    .update({
+      birth_date: orNull(birthDate),
+      // Anything off the menu clears the column rather than failing the cast.
+      gender: GENDERS.find((g) => g === gender) ?? null,
+      shirt_size: SHIRT_SIZES.find((s) => s === shirtSize) ?? null,
+      phone: orNull(phone),
+      emergency_contact_name: orNull(emergencyName),
+      emergency_contact_phone: orNull(emergencyPhone),
+    })
+    .eq("id", userData.user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { error: "saveFailed" };
+
+  revalidatePath("/[lang]/runners/[id]", "page");
   return { ok: true };
 }
 

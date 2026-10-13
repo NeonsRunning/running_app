@@ -2,16 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SpecCell } from "@/components/ui/card";
-import { Leaderboard } from "@/components/results/leaderboard";
-import { LEADERBOARD, getEventBySlug, getEventSlugs } from "@/lib/data";
+import { EmptyState } from "@/components/ui/misc";
+import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
-import { distanceLabel } from "@/lib/i18n/labels";
-
-export function generateStaticParams() {
-  return getEventSlugs().map((slug) => ({ slug }));
-}
 
 export async function generateMetadata(
   props: PageProps<"/[lang]/events/[slug]/results">,
@@ -20,10 +14,10 @@ export async function generateMetadata(
   const locale = await getLocale();
   const t = await getT();
 
-  const event = getEventBySlug(slug, locale);
+  const found = await findEvent(slug, locale);
   return {
-    title: event
-      ? t("results.metaTitle", { event: event.name })
+    title: found
+      ? t("results.metaTitle", { event: found.event.name })
       : t("results.metaTitleFallback"),
   };
 }
@@ -36,10 +30,9 @@ export default async function EventResultsPage(
   const t = await getT();
   const fmt = createFormatters(locale);
 
-  const event = getEventBySlug(slug, locale);
-  if (!event) notFound();
-
-  const winner = LEADERBOARD[0];
+  const found = await findEvent(slug, locale);
+  if (!found) notFound();
+  const { event } = found;
 
   return (
     <div>
@@ -60,35 +53,13 @@ export default async function EventResultsPage(
         </div>
       </header>
 
-      <section
-        aria-label={t("results.summary")}
-        className="mx-auto grid max-w-[1600px] grid-cols-2 gap-0.5 border-b-2 border-line bg-line lg:grid-cols-4"
-      >
-        <SpecCell
-          label={t("results.finishers")}
-          value={fmt.number(528)}
-          className="bg-ink"
+      {/* Results have no table behind them yet. */}
+      <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 lg:px-10">
+        <EmptyState
+          icon="⏱"
+          title={t("results.emptyTitle")}
+          body={t("results.emptyBody")}
         />
-        <SpecCell
-          label={t("results.winningTime")}
-          value={winner.time}
-          accent="yellow"
-          className="bg-ink"
-        />
-        <SpecCell
-          label={t("results.medianTime")}
-          value="52:40"
-          className="bg-ink"
-        />
-        <SpecCell
-          label={t("results.distance")}
-          value={distanceLabel(t, event.featuredDistance)}
-          className="bg-ink"
-        />
-      </section>
-
-      <div className="mx-auto max-w-[1600px]">
-        <Leaderboard rows={LEADERBOARD} slug={event.slug} highlightBib="1048" />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/misc";
+import { getPlatformStats } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 
@@ -31,6 +32,7 @@ export default async function AboutPage() {
   const locale = await getLocale();
   const t = await getT();
   const fmt = createFormatters(locale);
+  const stats = await getPlatformStats();
 
   return (
     <div>
@@ -53,20 +55,20 @@ export default async function AboutPage() {
         aria-label={t("about.glance")}
         className="mx-auto grid max-w-[1600px] grid-cols-2 gap-0.5 border-b-2 border-line bg-line lg:grid-cols-4"
       >
-        <StatCard value="2019" label={t("about.founded")} className="bg-ink" />
+        <StatCard value="2026" label={t("about.founded")} className="bg-ink" />
         <StatCard
-          value={fmt.number(184)}
+          value={fmt.number(stats.races)}
           label={t("about.racesListed")}
           accent="yellow"
           className="bg-ink"
         />
         <StatCard
-          value={fmt.number(26410)}
+          value={fmt.number(stats.runners)}
           label={t("about.runnersRegistered")}
           className="bg-ink"
         />
         <StatCard
-          value={fmt.number(62)}
+          value={fmt.number(stats.organizers)}
           label={t("about.organizers")}
           accent="lime"
           className="bg-ink"
@@ -109,9 +111,6 @@ export default async function AboutPage() {
           <div className="mt-7 flex flex-wrap gap-3">
             <Button href="/events" size="lg">
               {t("about.exploreEvents")}
-            </Button>
-            <Button href="/publish" variant="outline" size="lg">
-              {t("about.publishEvent")}
             </Button>
             <Button href="/contact" variant="ghost" size="lg">
               {t("about.contactTeam")}

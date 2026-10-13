@@ -65,7 +65,7 @@
   },
   "footer": {
     "blurb": "Race discovery, registration and results for the Caribbean running community. Built by runners who are at the start line too.",
-    "copyright": "© 2026 Neons Running · San Juan, Puerto Rico",
+    "copyright": "© 2026 Neons Running · Cabo Rojo, Puerto Rico",
     "motto": "Corremos · Superamos · Inspiramos",
     "runners": {
       "title": "Runners",
@@ -216,7 +216,9 @@
       "savedBody": "{name} added to your saved events.",
       "removedBody": "{name} removed from your saved events.",
       "saveEvent": "Save event",
-      "savedLabel": "Saved"
+      "savedLabel": "Saved",
+      "failedTitle": "Couldn’t save",
+      "failedBody": "{name} wasn’t updated. Try again."
     },
     "meta": {
       "title": "Find your next race",
@@ -373,6 +375,7 @@
       "dob": "Your age group is calculated from this.",
       "emergencyName": "Required — medical staff need a contact.",
       "emergencyPhone": "Required.",
+      "phoneInvalid": "Use at least 7 digits, e.g. 787 555 0123.",
       "toastTitle": "Check the highlighted fields",
       "toastBody": "A few details are still missing.",
       "saveTitle": "Couldn’t complete your registration",
@@ -386,7 +389,12 @@
       "extrasChanged": "The organizer changed the extras for this race. Go back to the extras step and check your picks.",
       "shirtSizeUnavailable": "That shirt size isn’t offered for this race.",
       "donationInvalid": "Donations can be from $0 to $1,000. Go back to the extras step and check the amount.",
-      "registrationFailed": "Something went wrong — try again in a moment."
+      "registrationFailed": "Something went wrong — try again in a moment.",
+      "paymentTitle": "Payment not completed",
+      "paymentsUnavailable": "Online payment isn’t available right now. Try again later.",
+      "paymentIncomplete": "Your payment didn’t go through. Check your payment details and try again.",
+      "paymentProcessing": "Your payment is still processing. Your registration is confirmed as soon as it clears — check back on this page shortly.",
+      "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -437,14 +445,9 @@
     },
     "step4": {
       "title": "Payment",
-      "body": "Encrypted and processed securely. No card details are stored.",
-      "methodCard": "Card",
-      "cardNumber": "Card number",
-      "expiry": "Expiry",
-      "cvc": "CVC",
-      "nameOnCard": "Name on card",
-      "promoCode": "Promo code",
-      "apply": "Apply"
+      "body": "Processed securely by Stripe. Your card details go straight to Stripe — we never see or store them.",
+      "hold": "Your spot is held for 30 minutes while you pay.",
+      "demo": "This is a demo race: no payment is taken and nothing is saved."
     },
     "summary": {
       "title": "Order summary",
@@ -478,9 +481,29 @@
       "receiptSentTo": "Receipt sent to",
       "totalCharged": "Total charged",
       "registrationConfirmed": "Registration confirmed",
-      "paymentReceived": "Payment received",
-      "totalDue": "Total due",
-      "paymentPending": "Payment pending"
+      "paymentReceived": "Payment received"
+    }
+  },
+  "emails": {
+    "registrationConfirmed": {
+      "subject": "You’re in: {event}",
+      "preheader": "Your bib is #{bib}. Here are your race details.",
+      "heading": "You’re in, {name}!",
+      "intro": "Your spot at {event} is confirmed. Keep this email handy for race day.",
+      "bib": "Bib number",
+      "race": "Race",
+      "distance": "Distance",
+      "date": "Date",
+      "start": "Start time",
+      "location": "Location",
+      "extras": "Extras",
+      "shirt": "Race shirt ({size})",
+      "photos": "Race photos",
+      "donation": "Donation",
+      "donationTo": "Donation to {recipient}",
+      "total": "Total charged",
+      "cta": "View race details",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your card receipt arrives in a separate email."
     }
   },
   "results": {
@@ -489,43 +512,18 @@
     "heading": "{event} results",
     "raceInformation": "Race information",
     "allResults": "All results",
-    "summary": "Race summary",
-    "finishers": "Finishers",
-    "winningTime": "Winning time",
-    "medianTime": "Median time",
-    "distance": "Distance",
-    "detail": {
-      "metaFallback": "Race result",
-      "breadcrumb": "Breadcrumb",
-      "backToResults": "← All results",
-      "bib": "Bib #{bib}",
-      "podium": "Podium",
-      "finishTime": "Finish time",
-      "averagePace": "{pace} average pace",
-      "overall": "Overall",
-      "gender": "Gender",
-      "ageGroup": "Age group",
-      "splits": "Splits",
-      "finish": "Finish",
-      "shareCard": "Share card · 9:16 for stories",
-      "pace": "Pace",
-      "bibShort": "Bib",
-      "downloadShareCard": "Download share card",
-      "shareTitle": "{name} ran {time} at {event}"
-    },
     "index": {
       "metaTitle": "Results",
       "metaDescription": "Official chip times and leaderboards from every NEONS RUNNING race.",
       "eyebrow": "Official timing",
       "title": "Race results",
       "body": "Chip times, splits and age-group placings, posted within two hours of the last finisher. Search any race below.",
-      "latestRaces": "Latest races",
-      "season": "2026 season",
-      "finishers": "Finishers",
-      "winningTime": "Winning time",
-      "resultsPosted": "Results posted",
-      "viewLeaderboard": "View leaderboard"
-    }
+      "emptyTitle": "No results yet",
+      "emptyBody": "Official times show up here as races are run and organizers post their results.",
+      "emptyAction": "Browse races"
+    },
+    "emptyTitle": "No results posted yet",
+    "emptyBody": "Chip times and placings appear here once the organizer posts them."
   },
   "organizer": {
     "metaTitle": "Organizer dashboard",
@@ -597,8 +595,8 @@
     "savedEvents": "Saved events",
     "findMore": "Find more",
     "recommended": "Recommended for you",
-    "recommendedKicker": "Based on {club} and your 10K times",
-    "recommendedKickerAny": "Most popular this season"
+    "recommendedKicker": "Open for sign-up · {city} first",
+    "recommendedKickerAny": "Open for sign-up · filling fastest"
   },
   "auth": {
     "shell": {
@@ -732,21 +730,20 @@
     "organizers": "Organizers",
     "whyTitle": "Why we built it",
     "whyKicker": "The short version",
-    "story1": "In 2019 finding a race on this island meant three Facebook groups, a WhatsApp thread and a Google Form that closed without warning. Runners missed races they would have loved. Organizers filled half a start line and never knew why.",
-    "story2": "NEONS RUNNING started as one spreadsheet of every road race in Puerto Rico. It is now the platform those races run on: listings, registration, payments, participant management, race-day check-in and official results in one place.",
-    "story3": "We are a small team of runners and engineers in San Juan. If something in the product is wrong, one of us has probably already heard about it at a start line.",
+    "story1": "Finding a race on this island has long meant three Facebook groups, a WhatsApp thread and a Google Form that closes without warning. Runners miss races they would have loved. Organizers fill half a start line and never know why.",
+    "story2": "We founded NEONS RUNNING in 2026 to fix that: one place for every road race in Puerto Rico, with listings, registration, payments, participant management, race-day check-in and official results built in.",
+    "story3": "We are a small team of runners in Cabo Rojo. If something in the product is wrong, one of us has probably already heard about it at a start line.",
     "values": {
       "runnersFirst": "Runners first",
       "runnersFirstBody": "Registration takes under a minute and works on a phone with one bar of signal at the expo. No account walls in front of race information.",
       "honestPricing": "Honest pricing",
       "honestPricingBody": "One flat service fee, shown before checkout. Organizers keep the rest, and refunds inside the window are automatic — no email chain required.",
       "builtWhereWeRun": "Built where we run",
-      "builtWhereWeRunBody": "The team is in San Juan. We stand at the finish lines we sell entries to, and most features come out of a conversation at kilometre eight."
+      "builtWhereWeRunBody": "The team is in Cabo Rojo. We stand at the finish lines we sell entries to, and most features come out of a conversation at kilometre eight."
     },
     "getInTouch": "Get in touch",
     "runWithUs": "Run with us",
     "exploreEvents": "Explore events",
-    "publishEvent": "Publish an event",
     "contactTeam": "Contact the team"
   },
   "community": {
@@ -774,23 +771,20 @@
     "directChannels": "Direct channels",
     "channels": [
       {
-        "label": "Runner support",
-        "value": "hola@neonsrunning.pr",
-        "note": "Registrations, refunds, results. Answered within one working day."
+        "label": "Facebook",
+        "value": "NEONS RUNNING",
+        "href": "https://www.facebook.com/profile.php?id=61593061740333",
+        "note": "Messages, registrations, race news. Answered within one working day."
       },
       {
-        "label": "Organizers",
-        "value": "organizadores@neonsrunning.pr",
-        "note": "Listing a race, payouts, timing integrations."
-      },
-      {
-        "label": "Press and partnerships",
-        "value": "prensa@neonsrunning.pr",
-        "note": "Media requests and sponsorship."
+        "label": "Instagram",
+        "value": "@neonsrunning",
+        "href": "https://www.instagram.com/neonsrunning/",
+        "note": "Race photos, updates and direct messages."
       },
       {
         "label": "Office",
-        "value": "Calle Loíza 1804, San Juan, PR 00911",
+        "value": "Cabo Rojo, PR 00623",
         "note": "Weekdays 9 AM – 5 PM AST."
       }
     ]
@@ -941,27 +935,7 @@
     "checkFormBody": "A few fields still need attention.",
     "submit": "Send message"
   },
-  "leaderboard": {
-    "searchPlaceholder": "Search runner or bib number",
-    "searchAria": "Search results by runner name or bib number",
-    "filter": "Filter results",
-    "overall": "Overall",
-    "male": "Male",
-    "female": "Female",
-    "emptyTitle": "No runner matches that search",
-    "emptyBody": "Check the bib number, or try a partial surname. Results are posted within two hours of the last finisher crossing the line.",
-    "place": "Place",
-    "runner": "Runner",
-    "bib": "Bib",
-    "time": "Time",
-    "pace": "Pace",
-    "ageGroup": "Age group",
-    "bibInline": "Bib {bib}"
-  },
   "settings": {
-    "metaTitle": "Settings",
-    "metaDescription": "Profile, notifications, account type and privacy.",
-    "eyebrow": "Account",
     "title": "Settings",
     "profile": "Profile",
     "profileDescription": "What other runners see on your public profile and what gets printed on your bib.",
@@ -970,6 +944,18 @@
     "city": "City",
     "club": "Running club",
     "bio": "Bio",
+    "raceDetails": "Race-day details",
+    "raceDetailsDescription": "Private — only you and the organizers of races you sign up for see these. Every registration opens with them already filled in.",
+    "raceDetailsSaved": "Race-day details saved",
+    "birthDate": "Date of birth",
+    "birthDateHint": "Your age group is worked out from this.",
+    "gender": "Gender",
+    "phone": "Phone",
+    "phoneHint": "Race-day updates are sent by SMS.",
+    "shirtSize": "Shirt size",
+    "shirtSizePlaceholder": "Choose a size…",
+    "emergencyName": "Emergency contact",
+    "emergencyPhone": "Emergency phone",
     "profileSaved": "Profile saved",
     "emailHint": "The address you sign in with.",
     "cityPlaceholder": "Pick your municipality…",
@@ -981,6 +967,8 @@
       "cityTooLong": "Keep the city under 80 characters.",
       "clubTooLong": "Keep the club name under 80 characters.",
       "bioTooLong": "Keep your bio under 280 characters.",
+      "birthDateInvalid": "That date of birth doesn't look right.",
+      "phoneInvalid": "Use at least 7 digits, e.g. 787 555 0123.",
       "saveFailed": "Could not save — try again.",
       "sessionExpired": "Your session expired. Start again from the log in screen."
     },

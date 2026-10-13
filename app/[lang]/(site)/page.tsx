@@ -11,6 +11,9 @@ import { getAccount, isOrganizer } from "@/lib/auth/session";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 
+/** Community is held back for a later release; flip to show the strip again. */
+const SHOW_COMMUNITY = false;
+
 export default async function LandingPage() {
   const locale = await getLocale();
   const t = await getT();
@@ -62,7 +65,9 @@ export default async function LandingPage() {
             <h1 className="mt-6 max-w-4xl font-display text-[3.25rem] leading-[0.88] font-black tracking-[-0.04em] uppercase sm:text-7xl lg:text-[7rem]">
               {t("home.heroTitleLine1")}
               <br />
-              <span className="text-neon-yellow">{t("home.heroTitleLine2")}</span>
+              <span className="text-neon-yellow">
+                {t("home.heroTitleLine2")}
+              </span>
             </h1>
 
             <p className="mt-7 max-w-xl text-base leading-relaxed text-fg-muted sm:text-lg">
@@ -118,7 +123,10 @@ export default async function LandingPage() {
           label={t("home.statsOrganizers")}
           className="border-r-2 border-line"
         />
-        <StatCard value={fmt.number(stats.clubs)} label={t("home.statsClubs")} />
+        <StatCard
+          value={fmt.number(stats.clubs)}
+          label={t("home.statsClubs")}
+        />
       </section>
 
       {/* ---------------------------------------------------------------- */}
@@ -165,85 +173,87 @@ export default async function LandingPage() {
       {/* ---------------------------------------------------------------- */}
       {/* Community strip                                                  */}
       {/* ---------------------------------------------------------------- */}
-      <section className="border-y-2 border-line bg-carbon">
-        <div className="mx-auto max-w-[1600px] px-4 py-14 sm:px-6 lg:px-10 lg:py-20">
-          <SectionHeading
-            title={t("home.communityTitle")}
-            kicker={t("home.communityKicker")}
-            href="/community"
-            hrefLabel={t("home.communityHrefLabel")}
-          />
+      {SHOW_COMMUNITY && (
+        <section className="border-y-2 border-line bg-carbon">
+          <div className="mx-auto max-w-[1600px] px-4 py-14 sm:px-6 lg:px-10 lg:py-20">
+            <SectionHeading
+              title={t("home.communityTitle")}
+              kicker={t("home.communityKicker")}
+              href="/community"
+              hrefLabel={t("home.communityHrefLabel")}
+            />
 
-          <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <div>
-              <h3 className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
-                {t("home.recentAchievements")}
-              </h3>
-              <ul className="mt-5 flex flex-col">
-                {communityFeed.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-start gap-4 border-b-2 border-line py-4 last:border-b-0"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className={
-                        item.tone === "lime"
-                          ? "flex h-11 w-11 shrink-0 items-center justify-center bg-linear-to-br from-neon-lime to-neon-green text-xs font-black text-ink"
-                          : item.tone === "yellow"
-                            ? "flex h-11 w-11 shrink-0 items-center justify-center bg-graphite text-xs font-black text-neon-yellow"
-                            : "flex h-11 w-11 shrink-0 items-center justify-center bg-graphite text-xs font-black text-neon-green"
-                      }
+            <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_1fr]">
+              <div>
+                <h3 className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
+                  {t("home.recentAchievements")}
+                </h3>
+                <ul className="mt-5 flex flex-col">
+                  {communityFeed.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex items-start gap-4 border-b-2 border-line py-4 last:border-b-0"
                     >
-                      {item.initials}
-                    </span>
-                    <p className="text-sm leading-relaxed text-fg-muted">
-                      <span className="font-bold text-fg">{item.name}</span>{" "}
-                      {item.text}
-                      <span className="mt-1 block font-mono text-[10px] tracking-[0.14em] text-fg-faint uppercase">
-                        {item.time}
-                      </span>
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
-                {t("home.clubsNearYou")}
-              </h3>
-              <ul className="mt-5 grid gap-3 sm:grid-cols-2">
-                {clubs.map((club) => (
-                  <li
-                    key={club.id}
-                    className="border-2 border-line bg-ink p-4 transition-colors hover:border-line-strong"
-                  >
-                    <div className="flex items-center gap-3">
                       <span
                         aria-hidden="true"
-                        className="flex h-10 w-10 items-center justify-center border-2 border-line-strong text-[11px] font-black text-neon-lime"
+                        className={
+                          item.tone === "lime"
+                            ? "flex h-11 w-11 shrink-0 items-center justify-center bg-linear-to-br from-neon-lime to-neon-green text-xs font-black text-ink"
+                            : item.tone === "yellow"
+                              ? "flex h-11 w-11 shrink-0 items-center justify-center bg-graphite text-xs font-black text-neon-yellow"
+                              : "flex h-11 w-11 shrink-0 items-center justify-center bg-graphite text-xs font-black text-neon-green"
+                        }
                       >
-                        {club.initials}
+                        {item.initials}
                       </span>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-extrabold uppercase">
-                          {club.name}
-                        </p>
-                        <p className="font-mono text-[10px] tracking-[0.12em] text-fg-faint uppercase">
-                          {club.city} ·{" "}
-                          {t("home.clubMembers", { count: club.members })}
-                        </p>
+                      <p className="text-sm leading-relaxed text-fg-muted">
+                        <span className="font-bold text-fg">{item.name}</span>{" "}
+                        {item.text}
+                        <span className="mt-1 block font-mono text-[10px] tracking-[0.14em] text-fg-faint uppercase">
+                          {item.time}
+                        </span>
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <h3 className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
+                  {t("home.clubsNearYou")}
+                </h3>
+                <ul className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {clubs.map((club) => (
+                    <li
+                      key={club.id}
+                      className="border-2 border-line bg-ink p-4 transition-colors hover:border-line-strong"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          aria-hidden="true"
+                          className="flex h-10 w-10 items-center justify-center border-2 border-line-strong text-[11px] font-black text-neon-lime"
+                        >
+                          {club.initials}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-extrabold uppercase">
+                            {club.name}
+                          </p>
+                          <p className="font-mono text-[10px] tracking-[0.12em] text-fg-faint uppercase">
+                            {club.city} ·{" "}
+                            {t("home.clubMembers", { count: club.members })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <p className="mt-3 text-xs text-fg-dim">{club.focus}</p>
-                  </li>
-                ))}
-              </ul>
+                      <p className="mt-3 text-xs text-fg-dim">{club.focus}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ---------------------------------------------------------------- */}
       {/* Organizer CTA — the one place the accent runs as a full field,     */}

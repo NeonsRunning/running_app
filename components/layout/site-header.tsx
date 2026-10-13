@@ -11,9 +11,7 @@ import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import {
   BellIcon,
   DashboardIcon,
-  MedalIcon,
   SearchIcon,
-  SettingsIcon,
   SignOutIcon,
   UserIcon,
 } from "@/components/ui/icons";
@@ -23,10 +21,14 @@ import { SignOutButton } from "@/components/auth/sign-out-button";
 /** Labels are dictionary keys, resolved at render against the active locale. */
 const NAV = [
   { href: "/events", key: "nav.events" },
-  { href: "/results", key: "nav.results" },
-  { href: "/community", key: "nav.community" },
+  // Results and Community are held back for a later release.
+  // { href: "/results", key: "nav.results" },
+  // { href: "/community", key: "nav.community" },
   { href: "/about", key: "nav.about" },
 ] as const;
+
+/** Notifications are held back for a later release; flip to show them again. */
+const SHOW_NOTIFICATIONS = false;
 
 /**
  * The account menu, built per session: the profile link needs the user id.
@@ -36,8 +38,8 @@ const NAV = [
 function accountMenu(session: { id: string; isOrganizer: boolean }) {
   return [
     { href: `/runners/${session.id}`, key: "account.profile", Icon: UserIcon },
-    { href: "/results", key: "account.results", Icon: MedalIcon },
-    { href: "/settings", key: "account.settings", Icon: SettingsIcon },
+    // Results is held back for a later release.
+    // { href: "/results", key: "account.results", Icon: MedalIcon },
     // Only organizers have a dashboard to open.
     ...(session.isOrganizer
       ? [
@@ -133,20 +135,22 @@ export function SiteHeader() {
 
         {session.signedIn ? (
           <>
-            <Link
-              href="/notifications"
-              className="relative hidden h-10 w-10 items-center justify-center border-2 border-line-strong text-fg-dim hover:border-fg-dim hover:text-fg md:flex"
-              aria-label={t("nav.notificationsLabel", {
-                count: session.unreadNotifications,
-              })}
-            >
-              <BellIcon size={18} />
-              {session.unreadNotifications > 0 ? (
-                <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center bg-neon-yellow px-1 text-[10px] font-black text-ink">
-                  {session.unreadNotifications}
-                </span>
-              ) : null}
-            </Link>
+            {SHOW_NOTIFICATIONS ? (
+              <Link
+                href="/notifications"
+                className="relative hidden h-10 w-10 items-center justify-center border-2 border-line-strong text-fg-dim hover:border-fg-dim hover:text-fg md:flex"
+                aria-label={t("nav.notificationsLabel", {
+                  count: session.unreadNotifications,
+                })}
+              >
+                <BellIcon size={18} />
+                {session.unreadNotifications > 0 ? (
+                  <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center bg-neon-yellow px-1 text-[10px] font-black text-ink">
+                    {session.unreadNotifications}
+                  </span>
+                ) : null}
+              </Link>
+            ) : null}
 
             <div ref={accountRef} className="relative hidden md:block">
               <button
@@ -262,17 +266,19 @@ export function SiteHeader() {
                 >
                   {t("account.profile")}
                 </Link>
-                <Link
-                  href="/notifications"
-                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
-                >
-                  {t("nav.notifications")}
-                  {session.unreadNotifications > 0 ? (
-                    <span className="ml-2 bg-neon-yellow px-2 py-0.5 text-[11px] text-ink">
-                      {session.unreadNotifications}
-                    </span>
-                  ) : null}
-                </Link>
+                {SHOW_NOTIFICATIONS ? (
+                  <Link
+                    href="/notifications"
+                    className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
+                  >
+                    {t("nav.notifications")}
+                    {session.unreadNotifications > 0 ? (
+                      <span className="ml-2 bg-neon-yellow px-2 py-0.5 text-[11px] text-ink">
+                        {session.unreadNotifications}
+                      </span>
+                    ) : null}
+                  </Link>
+                ) : null}
                 {session.isOrganizer ? (
                   <Link
                     href="/organizer"

@@ -10,9 +10,17 @@ import { FollowButton } from "@/components/profile/follow-button";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
 import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
+import { SettingsPanel } from "@/components/settings/settings-panel";
 import { cn } from "@/lib/cn";
-import { daysUntil, getEventBySlug, getEvents } from "@/lib/data";
+import { daysUntil } from "@/lib/data";
+import {
+  getRegisteredEventIds,
+  getSavedSlugs,
+  listPublishedEvents,
+  todayIso,
+} from "@/lib/events/queries";
 import { getRunnerView, type RunnerView } from "@/lib/profile/view";
+import { getProfile, getProfileDetails } from "@/lib/profile/queries";
 import { getUser, requireUser } from "@/lib/auth/session";
 import { SELF_ID, SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -31,9 +39,9 @@ import type { RunningEvent } from "@/lib/types";
  * in: the one address that can be linked to before an id is known, which is
  * what the nav, the login redirect and the confirmation emails all need.
  *
- * Owning the profile adds to the page rather than replacing it — saved races
- * and recommendations mean nothing to anyone else, and everything above them
- * reads the same either way.
+ * Owning the profile adds to the page rather than replacing it — saved races,
+ * recommendations and the account settings mean nothing to anyone else, and
+ * everything above them reads the same either way.
  *
  * No `generateStaticParams` here, deliberately. Ids resolve against
  * `profiles`, and reading that table means reading the caller's cookies:
@@ -90,15 +98,44 @@ function identityLine(
   return null;
 }
 
-/** Races the runner has not entered, most popular first. */
+/**
+ * Up to three races worth a look: still ahead, still taking sign-ups, and not
+ * already on the runner's calendar or saved list. Races in the runner's city
+ * come first, then ones at a distance they have raced, then the fullest by
+ * share of places taken, then the soonest.
+ */
 function recommendedFor(
   runner: RunnerView,
   events: RunningEvent[],
+  exclude: { slugs: Set<string>; ids: Set<string> },
 ): RunningEvent[] {
-  const entered = new Set(runner.upcoming.map((u) => u.eventSlug));
+  const today = todayIso();
+  const city = runner.city?.trim().toLowerCase();
+  const raced = new Set([
+    ...runner.personalBests.map((pb) => pb.distance),
+    ...runner.results.map((r) => r.distance),
+  ]);
+
+  const score = (e: RunningEvent) =>
+    (city && e.city.toLowerCase() === city ? 2 : 0) +
+    (e.categories.some((c) => raced.has(c.name)) ? 1 : 0);
+  const fill = (e: RunningEvent) =>
+    e.capacity > 0 ? e.registered / e.capacity : 0;
+
   return events
-    .filter((e) => !entered.has(e.slug))
-    .sort((a, b) => b.popularity - a.popularity)
+    .filter(
+      (e) =>
+        e.date >= today &&
+        e.registrationStatus !== "closed" &&
+        !exclude.slugs.has(e.slug) &&
+        !exclude.ids.has(e.id),
+    )
+    .sort(
+      (a, b) =>
+        score(b) - score(a) ||
+        fill(b) - fill(a) ||
+        a.date.localeCompare(b.date),
+    )
     .slice(0, 3);
 }
 
@@ -127,20 +164,43 @@ export default async function RunnerProfilePage(
 
   const isSelf = viewerId !== null && viewerId === runner.id;
 
+  // The calendar, saved and recommended panels all read the published races;
+  // a stranger's view of a profile with nothing on its calendar skips them.
+  const events =
+    isSelf || runner.upcoming.length > 0
+      ? await listPublishedEvents(locale)
+      : [];
+  const bySlug = new Map(events.map((e) => [e.slug, e]));
+
   const next = runner.upcoming[0];
-  const nextEvent = next ? getEventBySlug(next.eventSlug, locale) : undefined;
+  const nextEvent = next ? bySlug.get(next.eventSlug) : undefined;
 
   const laterRaces = runner.upcoming
     .slice(1)
-    .map((u) => ({ ...u, event: getEventBySlug(u.eventSlug, locale) }))
+    .map((u) => ({ ...u, event: bySlug.get(u.eventSlug) }))
     .filter((u): u is typeof u & { event: NonNullable<typeof u.event> } =>
       Boolean(u.event),
     );
 
-  // The saved and recommended panels belong to the runner alone, so nobody
-  // else pays for the event list behind them.
-  const events = isSelf ? getEvents(locale) : [];
-  const recommended = isSelf ? recommendedFor(runner, events) : [];
+  // The saved, recommended and settings panels belong to the runner alone,
+  // so nobody else pays for the lookups behind them.
+  const [savedSlugs, registeredIds, profile, details] = isSelf
+    ? await Promise.all([
+        getSavedSlugs(runner.id),
+        getRegisteredEventIds(runner.id),
+        getProfile(runner.id),
+        getProfileDetails(runner.id),
+      ])
+    : [[], [], null, null];
+  const recommended = isSelf
+    ? recommendedFor(runner, events, {
+        slugs: new Set([
+          ...savedSlugs,
+          ...runner.upcoming.map((u) => u.eventSlug),
+        ]),
+        ids: new Set(registeredIds),
+      })
+    : [];
 
   // An account with no racing data behind it would otherwise render three
   // empty panels down the side. Drop the column and let the page run full
@@ -198,9 +258,14 @@ export default async function RunnerProfilePage(
 
           <div className="flex w-full flex-col gap-3 lg:w-56">
             {isSelf ? (
-              <Button href="/events" size="md" block>
-                {t("runner.findRace")}
-              </Button>
+              <>
+                <Button href="/events" size="md" block>
+                  {t("runner.findRace")}
+                </Button>
+                <Button href="#settings" variant="outline" size="md" block>
+                  {t("account.settings")}
+                </Button>
+              </>
             ) : (
               <FollowButton name={runner.name} block />
             )}
@@ -440,8 +505,8 @@ export default async function RunnerProfilePage(
                   {t("runner.recommended")}
                 </h2>
                 <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
-                  {runner.club
-                    ? t("runner.recommendedKicker", { club: runner.club })
+                  {runner.city
+                    ? t("runner.recommendedKicker", { city: runner.city })
                     : t("runner.recommendedKickerAny")}
                 </span>
               </div>
@@ -564,6 +629,23 @@ export default async function RunnerProfilePage(
           </aside>
         ) : null}
       </div>
+
+      {/* Settings — the runner's own ------------------------------------- */}
+      {isSelf ? (
+        <section
+          id="settings"
+          aria-labelledby="settings-title"
+          className="mx-auto max-w-[1600px] scroll-mt-24 border-t-2 border-line px-4 py-10 sm:px-8 lg:px-10"
+        >
+          <h2
+            id="settings-title"
+            className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase"
+          >
+            {t("settings.title")}
+          </h2>
+          <SettingsPanel profile={profile} details={details} />
+        </section>
+      ) : null}
     </div>
   );
 }

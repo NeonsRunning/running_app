@@ -292,7 +292,8 @@ export type Database = {
           event_id: string;
           category_id: string;
           runner_id: string;
-          bib: number;
+          /** Null until the payment is confirmed. */
+          bib: number | null;
           first_name: string;
           last_name: string;
           email: string;
@@ -307,9 +308,21 @@ export type Database = {
           donation: number;
           amount: number;
           created_at: string;
+          status: Database["public"]["Enums"]["registration_status"];
+          hold_expires_at: string | null;
+          payment_intent_id: string | null;
+          paid_at: string | null;
+          confirmation_email_sent_at: string | null;
         };
         Insert: never;
-        Update: never;
+        /**
+         * Service role only: the server records the PaymentIntent it opened
+         * and when the confirmation email went out.
+         */
+        Update: {
+          payment_intent_id?: string | null;
+          confirmation_email_sent_at?: string | null;
+        };
         Relationships: [
           {
             foreignKeyName: "registrations_event_id_fkey";
@@ -327,6 +340,28 @@ export type Database = {
           },
           {
             foreignKeyName: "registrations_runner_id_fkey";
+            columns: ["runner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      saved_events: {
+        Row: {
+          runner_id: string;
+          event_slug: string;
+          created_at: string;
+        };
+        Insert: {
+          runner_id?: string;
+          event_slug: string;
+          created_at?: string;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "saved_events_runner_id_fkey";
             columns: ["runner_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
@@ -364,6 +399,14 @@ export type Database = {
         Args: { p_category_id: string; p_details: Json };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
+      confirm_registration_payment: {
+        Args: {
+          p_registration_id: string;
+          p_payment_intent_id: string;
+          p_amount_cents: number;
+        };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
     };
     Enums: {
       account_type: "runner" | "organizer";
@@ -386,6 +429,7 @@ export type Database = {
         | "Ultra";
       event_difficulty: "Easy" | "Moderate" | "Hard";
       event_status: "draft" | "published";
+      registration_status: "pending" | "confirmed";
       profile_gender: "f" | "m" | "x";
       shirt_size: "XS" | "S" | "M" | "L" | "XL" | "XXL";
     };
