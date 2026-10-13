@@ -1,6 +1,6 @@
 /**
  * Which routes require a session, and which ones a signed-in runner should
- * never see. Paths here are locale-free (`/settings`, not `/en/settings`) —
+ * never see. Paths here are locale-free (`/organizer`, not `/en/organizer`) —
  * the proxy strips the prefix before asking.
  */
 
@@ -22,7 +22,6 @@ export const SELF_PROFILE_PATH = `/runners/${SELF_ID}`;
  */
 const PROTECTED = [
   SELF_PROFILE_PATH,
-  "/settings",
   "/notifications",
   "/organizer",
   "/publish",

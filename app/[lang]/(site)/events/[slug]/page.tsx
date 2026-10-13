@@ -7,15 +7,11 @@ import { Progress } from "@/components/ui/misc";
 import { EventDetailTabs } from "@/components/events/event-detail-tabs";
 import { SaveButton } from "@/components/events/saved-events";
 import { ShareRow } from "@/components/events/share-row";
-import { daysUntil, getEventSlugs } from "@/lib/data";
+import { daysUntil } from "@/lib/data";
 import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 import { distanceLabel, eventTypeLabel } from "@/lib/i18n/labels";
-
-export function generateStaticParams() {
-  return getEventSlugs().map((slug) => ({ slug }));
-}
 
 export async function generateMetadata(
   props: PageProps<"/[lang]/events/[slug]">,

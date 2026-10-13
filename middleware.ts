@@ -96,6 +96,8 @@ export const config = {
   /**
    * Skip Next internals and anything in `public/`. Without the file-extension
    * escape hatch the rewrite would swallow images and the web manifest.
+   * `/api` routes live outside `app/[lang]` and carry no session — the Stripe
+   * webhook among them — so they are left alone too.
    */
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)"],
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|.*\\..*).*)"],
 };

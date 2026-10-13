@@ -1,12 +1,17 @@
 "use client";
 
 import { Link } from "@/components/i18n/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { useFormat, useT } from "@/components/i18n/provider";
+import { useFormat, useLocale, useT } from "@/components/i18n/provider";
+import {
+  PaymentFields,
+  paymentsConfigured,
+  type PaymentHandle,
+} from "@/components/register/payment-fields";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
 import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
@@ -20,20 +25,26 @@ import {
   parseDonation,
   registrationTotal,
 } from "@/lib/events/pricing";
-import { registerForEventAction } from "@/lib/events/registrations";
+import {
+  completeRegistrationPaymentAction,
+  startRegistrationPaymentAction,
+  type ConfirmedSignUp,
+} from "@/lib/events/registrations";
 import type { RunningEvent } from "@/lib/types";
 
 /**
  * Five-step registration: race → runner → extras → payment → confirmation.
  *
  * The whole flow is one client component holding its own state. For a race
- * published from /publish (`event.bookable`), completing step 4 writes the
- * registration and the confirmation shows the bib the database assigned; the
- * runner fields open pre-filled from their profile. For the fixture races
- * nothing is persisted, step 4 stands in for the round-trip with a timer, and
- * the fields open with the demo account.
+ * published from /publish (`event.bookable`), leaving step 3 reserves the
+ * spot and opens a Stripe payment for the amount the database computed;
+ * step 4 collects it with Stripe's Payment Element, and the confirmation shows
+ * the bib the database assigned once Stripe says it was paid. The runner
+ * fields open pre-filled from their profile.
  *
- * No card is charged either way: there is no payment provider yet.
+ * For the fixture races nothing is persisted or charged: step 4 says so and
+ * stands in for the round-trip with a timer, and the fields open with the
+ * demo account.
  */
 const STEPS = [
   { n: 1, key: "register.steps.race" },
@@ -82,6 +93,12 @@ type Errors = Partial<Record<keyof Runner, string>>;
 
 const EMPTY_ERRORS: Errors = {};
 
+/**
+ * The pattern `registrations` checks. Caught here so a short number is flagged
+ * on this step rather than refused by the server after the payment step.
+ */
+const PHONE = /^\+?[0-9][0-9 ()-]{6,19}$/;
+
 /** Messages come from the dictionary so validation speaks the reader's language. */
 function validateRunner(r: Runner, t: Translate): Errors {
   const e: Errors = {};
@@ -91,36 +108,48 @@ function validateRunner(r: Runner, t: Translate): Errors {
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))
     e.email = t("register.errors.emailInvalid");
   if (!r.phone.trim()) e.phone = t("register.errors.phone");
+  else if (!PHONE.test(r.phone.trim()))
+    e.phone = t("register.errors.phoneInvalid");
   if (!r.dob) e.dob = t("register.errors.dob");
   if (!r.emergencyName.trim())
     e.emergencyName = t("register.errors.emergencyName");
   if (!r.emergencyPhone.trim())
     e.emergencyPhone = t("register.errors.emergencyPhone");
+  else if (!PHONE.test(r.emergencyPhone.trim()))
+    e.emergencyPhone = t("register.errors.phoneInvalid");
   return e;
 }
 
 export function RegistrationFlow({
   event,
   initialRunner = DEMO_RUNNER,
+  initialShirtSize = null,
   existing = null,
 }: {
   event: RunningEvent;
   initialRunner?: Runner;
+  /** The size saved on the runner's profile, preselected if this race offers it. */
+  initialShirtSize?: string | null;
   /** Set when the runner has already signed up: opens on the confirmation. */
   existing?: ConfirmedRegistration | null;
 }) {
   const { toast } = useToast();
   const t = useT();
   const fmt = useFormat();
+  const locale = useLocale();
 
   // A bookable race offers the extras and sizes its organizer picked,
   // possibly none.
   const shirtSizes = event.bookable ? (event.shirtSizes ?? []) : SHIRT_SIZES;
-  const extras = event.bookable ? (event.extras ?? FIXTURE_EXTRAS) : FIXTURE_EXTRAS;
+  const extras = event.bookable
+    ? (event.extras ?? FIXTURE_EXTRAS)
+    : FIXTURE_EXTRAS;
   const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
   const photoPrice = extras.photoPrice;
   const hasExtras =
-    shirtPrice !== null || photoPrice !== null || extras.donationRecipient !== null;
+    shirtPrice !== null ||
+    photoPrice !== null ||
+    extras.donationRecipient !== null;
 
   const [confirmed, setConfirmed] = useState(existing);
   const [step, setStep] = useState(existing ? 5 : 1);
@@ -133,9 +162,24 @@ export function RegistrationFlow({
   const [waiverError, setWaiverError] = useState(false);
   const [runner, setRunner] = useState<Runner>(initialRunner);
   const [errors, setErrors] = useState<Errors>(EMPTY_ERRORS);
+
+  /** An edited field drops its error; the rest stay until the next Continue. */
+  function updateRunner(field: keyof Runner, value: string) {
+    setRunner((r) => ({ ...r, [field]: value }));
+    setErrors((e) => {
+      if (!e[field]) return e;
+      const rest = { ...e };
+      delete rest[field];
+      return rest;
+    });
+  }
   const [wantsShirt, setWantsShirt] = useState(false);
   const [shirtSize, setShirtSize] = useState<string>(
-    shirtSizes.includes("M") ? "M" : (shirtSizes[0] ?? "M"),
+    initialShirtSize && shirtSizes.includes(initialShirtSize)
+      ? initialShirtSize
+      : shirtSizes.includes("M")
+        ? "M"
+        : (shirtSizes[0] ?? "M"),
   );
   const [wantsPhotos, setWantsPhotos] = useState(false);
   const [presetDonation, setPresetDonation] = useState<number>(0);
@@ -148,6 +192,12 @@ export function RegistrationFlow({
     ? (typedDonation ?? 0)
     : presetDonation;
   const [submitting, setSubmitting] = useState(false);
+  /** The Stripe payment opened for this sign-up, once step 3 is behind us. */
+  const [payment, setPayment] = useState<{
+    registrationId: string;
+    clientSecret: string;
+  } | null>(null);
+  const paymentRef = useRef<PaymentHandle>(null);
 
   const category =
     event.categories.find((c) => c.id === categoryId) ?? event.categories[0];
@@ -171,6 +221,28 @@ export function RegistrationFlow({
     price === 0
       ? t("register.step3.free")
       : `+${Number.isInteger(price) ? fmt.moneyWhole(price) : fmt.money(price)}`;
+
+  /** A key under `register.errors`, or Stripe's own words about the card. */
+  function fail(key: string | null, message?: string) {
+    toast({
+      title: t(
+        key === null || key.startsWith("payment")
+          ? "register.errors.paymentTitle"
+          : "register.errors.saveTitle",
+      ),
+      body: key === null ? (message ?? "") : t(`register.errors.${key}`),
+      tone: "danger",
+    });
+  }
+
+  function finish(signUp: ConfirmedSignUp) {
+    setConfirmed({ categoryId: category.id, ...signUp });
+    setStep(5);
+    toast({
+      title: t("register.confirmToastTitle"),
+      body: t("register.confirmToastBody", { event: event.name }),
+    });
+  }
 
   function goNext() {
     if (step === 1) {
@@ -196,43 +268,49 @@ export function RegistrationFlow({
       setDonationError(true);
       return;
     }
-    if (step === 4 && event.bookable) {
+    if (step === 3 && event.bookable) {
+      // Reserve the spot and open the payment for what the database prices
+      // it at. Called again after going back: the same sign-up is updated.
       setSubmitting(true);
-      registerForEventAction({
+      startRegistrationPaymentAction({
         ...runner,
         categoryId: category.id,
         shirtSize: wantsShirt ? shirtSize : null,
         wantsPhotos,
         donation,
+        locale,
       })
         .then((result) => {
-          if (!result.ok) {
-            toast({
-              title: t("register.errors.saveTitle"),
-              body: t(`register.errors.${result.error}`),
-              tone: "danger",
-            });
+          if (!result.ok) return fail(result.error);
+          if ("confirmed" in result) return finish(result.confirmed);
+          setPayment({
+            registrationId: result.registrationId,
+            clientSecret: result.clientSecret,
+          });
+          setStep(4);
+        })
+        .catch(() => fail("registrationFailed"))
+        .finally(() => setSubmitting(false));
+      return;
+    }
+    if (step === 4 && event.bookable) {
+      const handle = paymentRef.current;
+      if (!payment || !handle) return;
+      setSubmitting(true);
+      handle
+        .pay()
+        .then(async (outcome) => {
+          if (outcome.status === "failed") {
+            if (outcome.message) fail(null, outcome.message);
             return;
           }
-          setConfirmed({
-            categoryId: category.id,
-            bib: result.bib,
-            amount: result.amount,
-            email: result.email,
-          });
-          setStep(5);
-          toast({
-            title: t("register.confirmToastTitle"),
-            body: t("register.confirmToastBody", { event: event.name }),
-          });
+          const result = await completeRegistrationPaymentAction(
+            payment.registrationId,
+          );
+          if (!result.ok) return fail(result.error);
+          finish(result.confirmed);
         })
-        .catch(() =>
-          toast({
-            title: t("register.errors.saveTitle"),
-            body: t("register.errors.registrationFailed"),
-            tone: "danger",
-          }),
-        )
+        .catch(() => fail("registrationFailed"))
         .finally(() => setSubmitting(false));
       return;
     }
@@ -332,7 +410,7 @@ export function RegistrationFlow({
               <span className="font-mono text-[11px] tracking-[0.18em] opacity-75">
                 0{s.n}
               </span>
-              <span className="text-[15px] font-extrabold tracking-[0.1em] uppercase">
+              <span className="text-[15px] font-extrabold tracking-widest uppercase">
                 {t(s.key)}
               </span>
             </button>
@@ -341,7 +419,7 @@ export function RegistrationFlow({
       </nav>
 
       <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[1fr_400px]">
-        <main className="border-line px-4 py-8 sm:px-8 lg:min-h-[42rem] lg:border-r-2 lg:px-10 lg:py-12">
+        <main className="border-line px-4 py-8 sm:px-8 lg:min-h-168 lg:border-r-2 lg:px-10 lg:py-12">
           {step === 1 ? (
             <section>
               <h1 className="font-display text-3xl font-black uppercase sm:text-4xl">
@@ -433,7 +511,10 @@ export function RegistrationFlow({
                   }
                 />
                 {waiverError ? (
-                  <p role="alert" className="mt-3 text-[13px] font-semibold text-danger">
+                  <p
+                    role="alert"
+                    className="mt-3 text-[13px] font-semibold text-danger"
+                  >
                     {t("register.step1.waiverError")}
                   </p>
                 ) : null}
@@ -461,7 +542,7 @@ export function RegistrationFlow({
                       value={runner.firstName}
                       autoComplete="given-name"
                       onChange={(e) =>
-                        setRunner({ ...runner, firstName: e.target.value })
+                        updateRunner("firstName", e.target.value)
                       }
                     />
                   )}
@@ -475,9 +556,7 @@ export function RegistrationFlow({
                       {...p}
                       value={runner.lastName}
                       autoComplete="family-name"
-                      onChange={(e) =>
-                        setRunner({ ...runner, lastName: e.target.value })
-                      }
+                      onChange={(e) => updateRunner("lastName", e.target.value)}
                     />
                   )}
                 </Field>
@@ -489,9 +568,7 @@ export function RegistrationFlow({
                       inputMode="email"
                       value={runner.email}
                       autoComplete="email"
-                      onChange={(e) =>
-                        setRunner({ ...runner, email: e.target.value })
-                      }
+                      onChange={(e) => updateRunner("email", e.target.value)}
                     />
                   )}
                 </Field>
@@ -503,9 +580,7 @@ export function RegistrationFlow({
                       inputMode="tel"
                       value={runner.phone}
                       autoComplete="tel"
-                      onChange={(e) =>
-                        setRunner({ ...runner, phone: e.target.value })
-                      }
+                      onChange={(e) => updateRunner("phone", e.target.value)}
                     />
                   )}
                 </Field>
@@ -516,9 +591,7 @@ export function RegistrationFlow({
                       type="date"
                       value={runner.dob}
                       autoComplete="bday"
-                      onChange={(e) =>
-                        setRunner({ ...runner, dob: e.target.value })
-                      }
+                      onChange={(e) => updateRunner("dob", e.target.value)}
                     />
                   )}
                 </Field>
@@ -527,9 +600,7 @@ export function RegistrationFlow({
                     <Select
                       {...p}
                       value={runner.gender}
-                      onChange={(e) =>
-                        setRunner({ ...runner, gender: e.target.value })
-                      }
+                      onChange={(e) => updateRunner("gender", e.target.value)}
                     >
                       <option value="female">
                         {t("register.step2.genderFemale")}
@@ -558,7 +629,7 @@ export function RegistrationFlow({
                       {...p}
                       value={runner.emergencyName}
                       onChange={(e) =>
-                        setRunner({ ...runner, emergencyName: e.target.value })
+                        updateRunner("emergencyName", e.target.value)
                       }
                     />
                   )}
@@ -573,7 +644,7 @@ export function RegistrationFlow({
                       type="tel"
                       value={runner.emergencyPhone}
                       onChange={(e) =>
-                        setRunner({ ...runner, emergencyPhone: e.target.value })
+                        updateRunner("emergencyPhone", e.target.value)
                       }
                     />
                   )}
@@ -587,9 +658,7 @@ export function RegistrationFlow({
                     <Input
                       {...p}
                       value={runner.club}
-                      onChange={(e) =>
-                        setRunner({ ...runner, club: e.target.value })
-                      }
+                      onChange={(e) => updateRunner("club", e.target.value)}
                     />
                   )}
                 </Field>
@@ -714,7 +783,9 @@ export function RegistrationFlow({
                           key={d}
                           type="button"
                           role="radio"
-                          aria-checked={!customDonation.trim() && donation === d}
+                          aria-checked={
+                            !customDonation.trim() && donation === d
+                          }
                           onClick={() => {
                             setPresetDonation(d);
                             setCustomDonation("");
@@ -786,84 +857,35 @@ export function RegistrationFlow({
                 {t("register.step4.body")}
               </p>
 
-              <div className="mt-8 flex flex-col gap-2.5 sm:flex-row">
-                {[t("register.step4.methodCard"), "Apple Pay", "Google Pay"].map(
-                  (m, i) => (
-                  <button
-                    key={m}
-                    type="button"
-                    aria-pressed={i === 0}
-                    className={cn(
-                      "flex-1 border-2 px-4 py-4 text-[13px] font-extrabold tracking-[0.12em] uppercase",
-                      i === 0
-                        ? "border-neon-lime bg-neon-lime/8 text-neon-lime"
-                        : "border-line-strong text-fg-muted hover:border-fg-dim",
-                    )}
-                  >
-                    {m}
-                  </button>
-                  ),
-                )}
-              </div>
-
-              <div className="mt-8 grid gap-6 sm:grid-cols-2">
-                <Field
-                  label={t("register.step4.cardNumber")}
-                  className="sm:col-span-2"
-                >
-                  {(p) => (
-                    <Input
-                      {...p}
-                      defaultValue="4242 4242 4242 4242"
-                      inputMode="numeric"
-                      autoComplete="cc-number"
-                      className="font-mono"
+              {event.bookable && payment && paymentsConfigured() ? (
+                <>
+                  <p className="mt-2 font-mono text-[11px] tracking-[0.14em] text-neon-lime uppercase">
+                    {t("register.step4.hold")}
+                  </p>
+                  <div className="mt-8">
+                    {/* A new secret means a repriced order: start afresh. */}
+                    <PaymentFields
+                      key={payment.clientSecret}
+                      ref={paymentRef}
+                      clientSecret={payment.clientSecret}
+                      locale={locale}
+                      returnUrl={
+                        typeof window === "undefined"
+                          ? ""
+                          : `${window.location.origin}${window.location.pathname}`
+                      }
                     />
+                  </div>
+                </>
+              ) : (
+                <p className="mt-8 border-2 border-line p-5 text-[15px] text-fg-dim sm:p-7">
+                  {t(
+                    event.bookable
+                      ? "register.errors.paymentsUnavailable"
+                      : "register.step4.demo",
                   )}
-                </Field>
-                <Field label={t("register.step4.expiry")}>
-                  {(p) => (
-                    <Input
-                      {...p}
-                      defaultValue="09 / 29"
-                      autoComplete="cc-exp"
-                      className="font-mono"
-                    />
-                  )}
-                </Field>
-                <Field label={t("register.step4.cvc")}>
-                  {(p) => (
-                    <Input
-                      {...p}
-                      defaultValue="•••"
-                      autoComplete="cc-csc"
-                      className="font-mono"
-                    />
-                  )}
-                </Field>
-                <Field
-                  label={t("register.step4.nameOnCard")}
-                  className="sm:col-span-2"
-                >
-                  {(p) => (
-                    <Input
-                      {...p}
-                      defaultValue={`${runner.firstName} ${runner.lastName}`}
-                      autoComplete="cc-name"
-                    />
-                  )}
-                </Field>
-              </div>
-
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Input
-                  placeholder={t("register.step4.promoCode")}
-                  aria-label={t("register.step4.promoCode")}
-                />
-                <Button variant="outline" size="lg" className="shrink-0">
-                  {t("register.step4.apply")}
-                </Button>
-              </div>
+                </p>
+              )}
             </section>
           ) : null}
         </main>
@@ -941,7 +963,10 @@ export function RegistrationFlow({
               ) : null}
               <p className="mt-5 text-xs leading-relaxed text-fg-faint">
                 {t("register.summary.refundPre")}{" "}
-                <Link href="/legal/refunds" className="text-neon-lime underline">
+                <Link
+                  href="/legal/refunds"
+                  className="text-neon-lime underline"
+                >
                   {t("register.summary.refundLink")}
                 </Link>
                 .
@@ -1110,7 +1135,10 @@ function Confirmation({
               })}
             </p>
             {/* Barcode motif, echoing a real race bib. */}
-            <div aria-hidden="true" className="mt-6 flex justify-center gap-[3px]">
+            <div
+              aria-hidden="true"
+              className="mt-6 flex justify-center gap-0.75"
+            >
               {[4, 2, 6, 2, 4, 8, 2, 4, 6, 2, 5, 3].map((w, i) => (
                 <span
                   key={i}
@@ -1122,10 +1150,7 @@ function Confirmation({
           </div>
 
           <div className="flex items-center gap-5 px-5 py-6">
-            <div
-              aria-hidden="true"
-              className="h-24 w-24 shrink-0 bg-white p-2"
-            >
+            <div aria-hidden="true" className="h-24 w-24 shrink-0 bg-white p-2">
               <div className="bg-finish-line h-full w-full" />
             </div>
             <div>
@@ -1146,14 +1171,8 @@ function Confirmation({
           <Eyebrow>{t("register.confirmation.receiptSentTo")}</Eyebrow>
           <p className="mt-2 text-[15px]">{email}</p>
           <p className="mt-3 flex items-center justify-between text-[13px] text-fg-dim">
-            {/* Nothing is charged for a bookable race until payments exist. */}
-            <span>
-              {t(
-                event.bookable
-                  ? "register.confirmation.totalDue"
-                  : "register.confirmation.totalCharged",
-              )}
-            </span>
+            {/* A bookable race only reaches this screen once Stripe has it. */}
+            <span>{t("register.confirmation.totalCharged")}</span>
             <span className="font-bold text-fg">{fmt.money(total)}</span>
           </p>
         </div>
@@ -1162,15 +1181,9 @@ function Confirmation({
           <Badge tone="green">
             {t("register.confirmation.registrationConfirmed")}
           </Badge>
-          {event.bookable ? (
-            <Badge tone="yellow">
-              {t("register.confirmation.paymentPending")}
-            </Badge>
-          ) : (
-            <Badge tone="green">
-              {t("register.confirmation.paymentReceived")}
-            </Badge>
-          )}
+          <Badge tone="green">
+            {t("register.confirmation.paymentReceived")}
+          </Badge>
         </div>
       </aside>
     </div>

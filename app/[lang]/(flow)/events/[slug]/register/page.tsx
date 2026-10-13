@@ -5,6 +5,7 @@ import {
   type Runner,
 } from "@/components/register/registration-flow";
 import { requireAccount } from "@/lib/auth/session";
+import { reconcilePendingPayment } from "@/lib/events/payments";
 import { findEvent, getOwnRegistration } from "@/lib/events/queries";
 import { localizePath } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -50,6 +51,9 @@ export default async function RegisterPage(
 
   // A real sign-up belongs to an account.
   const { user, profile } = await requireAccount(`/events/${slug}/register`);
+  // Back from a payment that redirected, or one the payment step never heard
+  // back about: confirm it first, so the page opens on the bib.
+  await reconcilePendingPayment(user.id, event.id);
   const [details, existing] = await Promise.all([
     getProfileDetails(user.id),
     getOwnRegistration(user.id, event.id),
@@ -70,6 +74,11 @@ export default async function RegisterPage(
   };
 
   return (
-    <RegistrationFlow event={event} initialRunner={runner} existing={existing} />
+    <RegistrationFlow
+      event={event}
+      initialRunner={runner}
+      initialShirtSize={details?.shirtSize ?? null}
+      existing={existing}
+    />
   );
 }

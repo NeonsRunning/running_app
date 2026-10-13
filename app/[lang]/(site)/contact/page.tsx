@@ -11,7 +11,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-type Channel = { label: string; value: string; note: string };
+/** `href` marks a channel that lives off-site, such as a social profile. */
+type Channel = { label: string; value: string; href?: string; note: string };
 
 export default async function ContactPage() {
   const t = await getT();
@@ -42,7 +43,20 @@ export default async function ContactPage() {
                 <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
                   {c.label}
                 </dt>
-                <dd className="mt-2 text-base font-bold">{c.value}</dd>
+                <dd className="mt-2 text-base font-bold">
+                  {c.href ? (
+                    <a
+                      href={c.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline decoration-2 underline-offset-4 hover:text-neon-lime focus-visible:text-neon-lime"
+                    >
+                      {c.value}
+                    </a>
+                  ) : (
+                    c.value
+                  )}
+                </dd>
                 <dd className="mt-1.5 text-[13px] text-fg-dim">{c.note}</dd>
               </div>
             ))}

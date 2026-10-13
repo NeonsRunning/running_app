@@ -130,7 +130,9 @@ export async function getOrganizerDashboard(
     const { data } = await supabase
       .from("registrations")
       .select("event_id, category_id, amount, created_at, gender, birth_date")
-      .in("event_id", events.map((e) => e.id));
+      .in("event_id", events.map((e) => e.id))
+      // Sign-ups still at the payment step are neither runners nor revenue.
+      .eq("status", "confirmed");
     registrations = data ?? [];
   }
 
@@ -256,7 +258,8 @@ export async function getEventForm(
   const { data: regs } = await supabase
     .from("registrations")
     .select("category_id")
-    .eq("event_id", event.id);
+    .eq("event_id", event.id)
+    .eq("status", "confirmed");
   const registered = new Map<string, number>();
   for (const r of regs ?? []) {
     registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);

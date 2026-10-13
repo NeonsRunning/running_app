@@ -1,4 +1,4 @@
-import { getEventBySlug, getOrganizer } from "@/lib/data";
+import { cache } from "react";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
 import { getT } from "@/lib/i18n/server";
@@ -18,13 +18,9 @@ import type {
 /**
  * Reading events.
  *
- * Published races live in two places for now: the fixtures in `lib/data.ts`
- * and the `events` table organizers write to from /publish. This module is
- * the seam that joins them — rows are mapped into the same `RunningEvent`
- * shape the fixtures use, so every card, filter and detail tab renders a
- * database race without knowing where it came from.
- *
- * Fixtures win a slug collision; the publish action never hands one out.
+ * Every race is a row in the `events` table, written by organizers from
+ * /publish. Rows are mapped into the `RunningEvent` shape the cards, filters
+ * and detail tabs render.
  */
 
 const EVENT_COLUMNS = `
@@ -285,7 +281,10 @@ export async function getPlatformStats(): Promise<PlatformStats> {
     : empty;
 }
 
-/** The caller's own sign-up for an event, if they have one. */
+/**
+ * The caller's own paid sign-up for an event, if they have one. One still
+ * waiting on its payment does not count.
+ */
 export async function getOwnRegistration(
   runnerId: string,
   eventId: string,
@@ -298,19 +297,54 @@ export async function getOwnRegistration(
     .select("category_id, bib, amount, email")
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
+    .eq("status", "confirmed")
     .maybeSingle();
 
   return data
     ? {
         categoryId: data.category_id,
-        bib: data.bib,
+        bib: data.bib ?? 0,
         amount: Number(data.amount),
         email: data.email,
       }
     : null;
 }
 
-/** Upcoming races organizers published, soonest first. No fixtures. */
+/**
+ * Slugs of the races a runner has saved. Empty on any failure: a missing
+ * heart is a better outcome than a broken page.
+ */
+export const getSavedSlugs = cache(async function getSavedSlugs(
+  runnerId: string,
+): Promise<string[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("saved_events")
+    .select("event_slug")
+    .eq("runner_id", runnerId);
+
+  return error || !data ? [] : data.map((r) => r.event_slug);
+});
+
+/** Ids of the database races a runner has signed up and paid for. */
+export async function getRegisteredEventIds(
+  runnerId: string,
+): Promise<string[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("registrations")
+    .select("event_id")
+    .eq("runner_id", runnerId)
+    .eq("status", "confirmed");
+
+  return error || !data ? [] : data.map((r) => r.event_id);
+}
+
+/** Upcoming races organizers published, soonest first. */
 export async function listPublishedEvents(
   locale: Locale,
 ): Promise<RunningEvent[]> {
@@ -327,13 +361,6 @@ export async function findEvent(
   slug: string,
   locale: Locale,
 ): Promise<{ event: RunningEvent; organizer: Organizer } | null> {
-  const fixture = getEventBySlug(slug, locale);
-  if (fixture) {
-    return { event: fixture, organizer: getOrganizer(fixture.organizerId, locale) };
-  }
-
-  // Only slugs the fixtures do not know reach the database, which keeps the
-  // prerendered fixture pages free of request-time APIs.
   const [rows, t] = await Promise.all([selectEvents({ slug }), getT()]);
   const row = rows[0];
   if (!row) return null;

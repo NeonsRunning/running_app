@@ -32,7 +32,14 @@ export async function getDictionary(): Promise<Dictionary> {
 
 /** Translator for the current request. */
 export async function getT(): Promise<Translate> {
-  const locale = await getLocale();
+  return getTranslator(await getLocale());
+}
+
+/**
+ * Translator for a locale chosen by the caller rather than the URL — email,
+ * which is written in the runner's language from wherever it is sent.
+ */
+export async function getTranslator(locale: Locale): Promise<Translate> {
   const dict = await dictionaries[locale]();
   return createTranslator(dict, locale);
 }

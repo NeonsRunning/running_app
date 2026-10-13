@@ -47,6 +47,8 @@ const DYNAMIC_PREFIXES = [
   "nav.",
   "events.discovery.",
   "events.tabs.",
+  // Email copy, resolved through a per-template key helper.
+  "emails.",
 ];
 
 function flatten(node, prefix = "", out = new Set()) {

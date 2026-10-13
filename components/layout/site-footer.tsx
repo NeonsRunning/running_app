@@ -2,35 +2,15 @@ import { NeonsEmblem, NeonsWordmark } from "@/components/brand/logo";
 import { Link } from "@/components/i18n/link";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { getT } from "@/lib/i18n/server";
-import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 
 /** Titles and labels are dictionary keys, resolved against the active locale. */
 const COLUMNS = [
-  {
-    title: "footer.runners.title",
-    links: [
-      { href: "/events", key: "footer.runners.findRaces" },
-      { href: SELF_PROFILE_PATH, key: "footer.runners.myRegistrations" },
-      { href: "/results", key: "footer.runners.results" },
-      { href: "/community", key: "footer.runners.clubs" },
-    ],
-  },
-  {
-    title: "footer.organizers.title",
-    links: [
-      { href: "/publish", key: "footer.organizers.publishEvent" },
-      { href: "/organizer", key: "footer.organizers.dashboard" },
-      { href: "/organizer/checkin", key: "footer.organizers.checkin" },
-      { href: "/legal/organizer-terms", key: "footer.organizers.organizerTerms" },
-    ],
-  },
   {
     title: "footer.company.title",
     links: [
       { href: "/about", key: "footer.company.about" },
       { href: "/contact", key: "footer.company.contact" },
       { href: "/faq", key: "footer.company.faq" },
-      { href: "/legal/privacy", key: "footer.company.privacy" },
     ],
   },
   {
@@ -49,7 +29,7 @@ export async function SiteFooter() {
   return (
     <footer className="border-t-2 border-line bg-ink">
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-10">
-        <div className="grid gap-10 border-b-2 border-line py-12 md:grid-cols-2 lg:grid-cols-[1.6fr_repeat(4,1fr)] lg:gap-8">
+        <div className="grid gap-10 border-b-2 border-line py-12 md:grid-cols-3 lg:grid-cols-[1.6fr_repeat(2,1fr)] lg:gap-8">
           <div className="max-w-xs">
             <div className="flex items-center gap-3">
               <NeonsEmblem height={29} />

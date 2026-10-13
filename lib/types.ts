@@ -196,17 +196,6 @@ export type Participant = {
   email: string;
 };
 
-export type LeaderboardRow = {
-  place: number;
-  name: string;
-  handle?: string;
-  bib: string;
-  time: string;
-  pace: string;
-  gender: "M" | "F";
-  ageGroup: string;
-};
-
 export type AppNotification = {
   id: string;
   kind: "reminder" | "confirmed" | "results" | "update" | "social";

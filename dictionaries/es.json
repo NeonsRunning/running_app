@@ -65,7 +65,7 @@
   },
   "footer": {
     "blurb": "Descubrimiento, inscripción y resultados de carreras para la comunidad corredora del Caribe. Hecho por corredores que también están en la línea de salida.",
-    "copyright": "© 2026 Neons Running · San Juan, Puerto Rico",
+    "copyright": "© 2026 Neons Running · Cabo Rojo, Puerto Rico",
     "motto": "Corremos · Superamos · Inspiramos",
     "runners": {
       "title": "Corredores",
@@ -216,7 +216,9 @@
       "savedBody": "{name} se añadió a tus carreras guardadas.",
       "removedBody": "{name} se quitó de tus carreras guardadas.",
       "saveEvent": "Guardar carrera",
-      "savedLabel": "Guardada"
+      "savedLabel": "Guardada",
+      "failedTitle": "No se pudo guardar",
+      "failedBody": "{name} no se actualizó. Inténtalo de nuevo."
     },
     "meta": {
       "title": "Encuentra tu próxima carrera",
@@ -373,6 +375,7 @@
       "dob": "Tu grupo de edad se calcula con esta fecha.",
       "emergencyName": "Obligatorio — el personal médico necesita un contacto.",
       "emergencyPhone": "Obligatorio.",
+      "phoneInvalid": "Usa al menos 7 dígitos, p. ej. 787 555 0123.",
       "toastTitle": "Revisa los campos marcados",
       "toastBody": "Todavía faltan algunos datos.",
       "saveTitle": "No se pudo completar tu inscripción",
@@ -386,7 +389,12 @@
       "extrasChanged": "El organizador cambió los extras de esta carrera. Vuelve al paso de extras y revisa lo que elegiste.",
       "shirtSizeUnavailable": "Esa talla de camiseta no se ofrece para esta carrera.",
       "donationInvalid": "Las donaciones pueden ser de $0 a $1,000. Vuelve al paso de extras y revisa la cantidad.",
-      "registrationFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+      "registrationFailed": "Algo salió mal — inténtalo de nuevo en un momento.",
+      "paymentTitle": "No se completó el pago",
+      "paymentsUnavailable": "El pago en línea no está disponible en este momento. Inténtalo más tarde.",
+      "paymentIncomplete": "Tu pago no se procesó. Revisa los datos de pago e inténtalo de nuevo.",
+      "paymentProcessing": "Tu pago aún se está procesando. Tu inscripción se confirma en cuanto se acredite — vuelve a esta página en un rato.",
+      "paymentRefunded": "No pudimos asociar tu pago a tu inscripción, así que te lo devolvimos completo. Vuelve a empezar, por favor."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
     "confirmToastBody": "Dorsal n.º 1048 confirmado para {event}.",
@@ -437,14 +445,9 @@
     },
     "step4": {
       "title": "Pago",
-      "body": "Cifrado y procesado de forma segura. No guardamos los datos de tu tarjeta.",
-      "methodCard": "Tarjeta",
-      "cardNumber": "Número de tarjeta",
-      "expiry": "Vencimiento",
-      "cvc": "CVC",
-      "nameOnCard": "Nombre en la tarjeta",
-      "promoCode": "Código promocional",
-      "apply": "Aplicar"
+      "body": "Procesado de forma segura por Stripe. Los datos de tu tarjeta van directo a Stripe — nunca los vemos ni los guardamos.",
+      "hold": "Reservamos tu cupo por 30 minutos mientras pagas.",
+      "demo": "Esta es una carrera de demostración: no se cobra nada ni se guarda nada."
     },
     "summary": {
       "title": "Resumen del pedido",
@@ -478,9 +481,29 @@
       "receiptSentTo": "Recibo enviado a",
       "totalCharged": "Total cobrado",
       "registrationConfirmed": "Inscripción confirmada",
-      "paymentReceived": "Pago recibido",
-      "totalDue": "Total a pagar",
-      "paymentPending": "Pago pendiente"
+      "paymentReceived": "Pago recibido"
+    }
+  },
+  "emails": {
+    "registrationConfirmed": {
+      "subject": "¡Estás inscrito! {event}",
+      "preheader": "Tu número es el #{bib}. Aquí tienes los detalles de tu carrera.",
+      "heading": "¡Estás dentro, {name}!",
+      "intro": "Tu inscripción en {event} está confirmada. Guarda este correo para el día de la carrera.",
+      "bib": "Número de corredor",
+      "race": "Carrera",
+      "distance": "Distancia",
+      "date": "Fecha",
+      "start": "Hora de salida",
+      "location": "Lugar",
+      "extras": "Extras",
+      "shirt": "Camiseta de la carrera ({size})",
+      "photos": "Fotos de la carrera",
+      "donation": "Donativo",
+      "donationTo": "Donativo a {recipient}",
+      "total": "Total cobrado",
+      "cta": "Ver detalles de la carrera",
+      "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING. El recibo de tu tarjeta llega en un correo aparte."
     }
   },
   "results": {
@@ -489,43 +512,18 @@
     "heading": "Resultados de {event}",
     "raceInformation": "Información de la carrera",
     "allResults": "Todos los resultados",
-    "summary": "Resumen de la carrera",
-    "finishers": "Finalistas",
-    "winningTime": "Tiempo ganador",
-    "medianTime": "Tiempo mediano",
-    "distance": "Distancia",
-    "detail": {
-      "metaFallback": "Resultado de carrera",
-      "breadcrumb": "Migas de pan",
-      "backToResults": "← Todos los resultados",
-      "bib": "Dorsal n.º {bib}",
-      "podium": "Podio",
-      "finishTime": "Tiempo de meta",
-      "averagePace": "{pace} de ritmo promedio",
-      "overall": "General",
-      "gender": "Género",
-      "ageGroup": "Grupo de edad",
-      "splits": "Parciales",
-      "finish": "Meta",
-      "shareCard": "Tarjeta para compartir · 9:16 para historias",
-      "pace": "Ritmo",
-      "bibShort": "Dorsal",
-      "downloadShareCard": "Descargar tarjeta",
-      "shareTitle": "{name} corrió {time} en {event}"
-    },
     "index": {
       "metaTitle": "Resultados",
       "metaDescription": "Tiempos oficiales por chip y clasificaciones de todas las carreras de NEONS RUNNING.",
       "eyebrow": "Cronometraje oficial",
       "title": "Resultados de carreras",
       "body": "Tiempos por chip, parciales y posiciones por grupo de edad, publicados en menos de dos horas tras el último finalista. Busca cualquier carrera abajo.",
-      "latestRaces": "Últimas carreras",
-      "season": "Temporada 2026",
-      "finishers": "Finalistas",
-      "winningTime": "Tiempo ganador",
-      "resultsPosted": "Resultados publicados",
-      "viewLeaderboard": "Ver clasificación"
-    }
+      "emptyTitle": "Aún no hay resultados",
+      "emptyBody": "Los tiempos oficiales aparecen aquí a medida que se corren las carreras y los organizadores publican sus resultados.",
+      "emptyAction": "Ver carreras"
+    },
+    "emptyTitle": "Aún no hay resultados",
+    "emptyBody": "Los tiempos de chip y las posiciones aparecen aquí cuando el organizador los publique."
   },
   "organizer": {
     "metaTitle": "Panel de organizador",
@@ -597,8 +595,8 @@
     "savedEvents": "Carreras guardadas",
     "findMore": "Buscar más",
     "recommended": "Recomendadas para ti",
-    "recommendedKicker": "Basado en {club} y tus tiempos de 10K",
-    "recommendedKickerAny": "Las más populares de la temporada"
+    "recommendedKicker": "Inscripciones abiertas · {city} primero",
+    "recommendedKickerAny": "Inscripciones abiertas · las que más se llenan"
   },
   "auth": {
     "shell": {
@@ -732,21 +730,20 @@
     "organizers": "Organizadores",
     "whyTitle": "Por qué la construimos",
     "whyKicker": "La versión corta",
-    "story1": "En 2019, encontrar una carrera en esta isla significaba tres grupos de Facebook, un hilo de WhatsApp y un Google Form que cerraba sin avisar. Los corredores se perdían carreras que les habrían encantado. Los organizadores llenaban media línea de salida y nunca sabían por qué.",
-    "story2": "NEONS RUNNING empezó como una hoja de cálculo con todas las carreras de ruta de Puerto Rico. Hoy es la plataforma sobre la que corren esas carreras: publicación, inscripciones, pagos, gestión de participantes, registro el día del evento y resultados oficiales en un solo lugar.",
-    "story3": "Somos un equipo pequeño de corredores e ingenieros en San Juan. Si algo del producto está mal, probablemente alguno de nosotros ya lo escuchó en una línea de salida.",
+    "story1": "Encontrar una carrera en esta isla ha significado por mucho tiempo tres grupos de Facebook, un hilo de WhatsApp y un Google Form que cierra sin avisar. Los corredores se pierden carreras que les habrían encantado. Los organizadores llenan media línea de salida y nunca saben por qué.",
+    "story2": "Fundamos NEONS RUNNING en 2026 para resolver eso: un solo lugar para todas las carreras de ruta de Puerto Rico, con publicación, inscripciones, pagos, gestión de participantes, registro el día del evento y resultados oficiales integrados.",
+    "story3": "Somos un equipo pequeño de corredores en Cabo Rojo. Si algo del producto está mal, probablemente alguno de nosotros ya lo escuchó en una línea de salida.",
     "values": {
       "runnersFirst": "Primero los corredores",
       "runnersFirstBody": "Inscribirse toma menos de un minuto y funciona en un celular con una raya de señal en la expo. Sin muros de registro delante de la información de la carrera.",
       "honestPricing": "Precios honestos",
       "honestPricingBody": "Un solo cargo por servicio, visible antes de pagar. Los organizadores se quedan con el resto, y los reembolsos dentro del plazo son automáticos — sin cadenas de correos.",
       "builtWhereWeRun": "Hecha donde corremos",
-      "builtWhereWeRunBody": "El equipo está en San Juan. Estamos en las mismas metas para las que vendemos inscripciones, y casi todas las funciones salen de una conversación en el kilómetro ocho."
+      "builtWhereWeRunBody": "El equipo está en Cabo Rojo. Estamos en las mismas metas para las que vendemos inscripciones, y casi todas las funciones salen de una conversación en el kilómetro ocho."
     },
     "getInTouch": "Hablemos",
     "runWithUs": "Corre con nosotros",
     "exploreEvents": "Explorar carreras",
-    "publishEvent": "Publicar un evento",
     "contactTeam": "Contactar al equipo"
   },
   "community": {
@@ -774,23 +771,20 @@
     "directChannels": "Canales directos",
     "channels": [
       {
-        "label": "Apoyo al corredor",
-        "value": "hola@neonsrunning.pr",
-        "note": "Inscripciones, reembolsos, resultados. Respondemos en un día laborable."
+        "label": "Facebook",
+        "value": "NEONS RUNNING",
+        "href": "https://www.facebook.com/profile.php?id=61593061740333",
+        "note": "Mensajes, inscripciones, noticias de carreras. Respondemos en un día laborable."
       },
       {
-        "label": "Organizadores",
-        "value": "organizadores@neonsrunning.pr",
-        "note": "Publicar una carrera, pagos, integraciones de cronometraje."
-      },
-      {
-        "label": "Prensa y alianzas",
-        "value": "prensa@neonsrunning.pr",
-        "note": "Solicitudes de medios y patrocinios."
+        "label": "Instagram",
+        "value": "@neonsrunning",
+        "href": "https://www.instagram.com/neonsrunning/",
+        "note": "Fotos de carreras, novedades y mensajes directos."
       },
       {
         "label": "Oficina",
-        "value": "Calle Loíza 1804, San Juan, PR 00911",
+        "value": "Cabo Rojo, PR 00623",
         "note": "De lunes a viernes, 9:00 a. m. – 5:00 p. m. AST."
       }
     ]
@@ -941,27 +935,7 @@
     "checkFormBody": "Todavía faltan algunos campos por atender.",
     "submit": "Enviar mensaje"
   },
-  "leaderboard": {
-    "searchPlaceholder": "Buscar corredor o dorsal",
-    "searchAria": "Buscar resultados por nombre o número de dorsal",
-    "filter": "Filtrar resultados",
-    "overall": "General",
-    "male": "Masculino",
-    "female": "Femenino",
-    "emptyTitle": "Ningún corredor coincide con esa búsqueda",
-    "emptyBody": "Revisa el número de dorsal, o prueba con parte del apellido. Los resultados se publican en menos de dos horas tras cruzar la meta el último finalista.",
-    "place": "Puesto",
-    "runner": "Corredor",
-    "bib": "Dorsal",
-    "time": "Tiempo",
-    "pace": "Ritmo",
-    "ageGroup": "Grupo de edad",
-    "bibInline": "Dorsal {bib}"
-  },
   "settings": {
-    "metaTitle": "Ajustes",
-    "metaDescription": "Perfil, notificaciones, tipo de cuenta y privacidad.",
-    "eyebrow": "Cuenta",
     "title": "Ajustes",
     "profile": "Perfil",
     "profileDescription": "Lo que otros corredores ven en tu perfil público y lo que se imprime en tu dorsal.",
@@ -970,6 +944,18 @@
     "city": "Ciudad",
     "club": "Club de corredores",
     "bio": "Biografía",
+    "raceDetails": "Datos para carreras",
+    "raceDetailsDescription": "Privado — solo lo ven tú y los organizadores de las carreras en las que te inscribes. Cada inscripción se abre con estos datos ya llenos.",
+    "raceDetailsSaved": "Datos para carreras guardados",
+    "birthDate": "Fecha de nacimiento",
+    "birthDateHint": "Tu grupo de edad se calcula con esta fecha.",
+    "gender": "Género",
+    "phone": "Teléfono",
+    "phoneHint": "Los avisos del día de la carrera se envían por SMS.",
+    "shirtSize": "Talla de camiseta",
+    "shirtSizePlaceholder": "Elige una talla…",
+    "emergencyName": "Contacto de emergencia",
+    "emergencyPhone": "Teléfono de emergencia",
     "profileSaved": "Perfil guardado",
     "emailHint": "Es el correo con el que inicias sesión.",
     "cityPlaceholder": "Elige tu municipio…",
@@ -981,6 +967,8 @@
       "cityTooLong": "La ciudad no puede pasar de 80 caracteres.",
       "clubTooLong": "El club no puede pasar de 80 caracteres.",
       "bioTooLong": "La biografía no puede pasar de 280 caracteres.",
+      "birthDateInvalid": "Esa fecha de nacimiento no parece correcta.",
+      "phoneInvalid": "Usa al menos 7 dígitos, p. ej. 787 555 0123.",
       "saveFailed": "No se pudo guardar. Vuelve a intentarlo.",
       "sessionExpired": "Tu sesión venció. Empieza otra vez desde el inicio de sesión."
     },

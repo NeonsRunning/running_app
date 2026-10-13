@@ -44,13 +44,13 @@ export function MobileTabBar() {
             {active ? (
               <span
                 aria-hidden="true"
-                className="absolute inset-x-0 top-0 h-[3px] bg-neon-yellow"
+                className="absolute inset-x-0 top-0 h-0.75 bg-neon-yellow"
               />
             ) : null}
             <span aria-hidden="true" className="text-sm leading-none">
               {tab.icon}
             </span>
-            <span className="font-mono text-[9px] tracking-[0.1em] uppercase">
+            <span className="font-mono text-[9px] tracking-widest uppercase">
               {t(tab.key)}
             </span>
           </Link>

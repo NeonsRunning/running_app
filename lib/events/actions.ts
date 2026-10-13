@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getEventSlugs } from "@/lib/data";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
 import { PHOTO_PRICE, SHIRT_PRICE } from "./pricing";
@@ -475,14 +474,11 @@ export async function saveEventAction(
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a
-  // published race must not break when it is renamed. Fixture slugs are taken
-  // too, since `/events/[slug]` resolves those first.
-  const reserved = new Set(getEventSlugs());
+  // published race must not break when it is renamed.
   const base = existing?.slug ?? slugify(name);
 
   for (let n = 1; n <= 20; n++) {
     const slug = existing || n === 1 ? base : `${base}-${n}`;
-    if (!existing && reserved.has(slug)) continue;
 
     const { data, error } = await supabase.rpc("save_event", {
       p_id: id,

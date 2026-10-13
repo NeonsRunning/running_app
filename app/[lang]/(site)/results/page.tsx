@@ -1,11 +1,7 @@
 import type { Metadata } from "next";
-import { Link } from "@/components/i18n/link";
-import { Badge, Eyebrow } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { SectionHeading } from "@/components/ui/misc";
-import { LEADERBOARD, getEvents } from "@/lib/data";
-import { getLocale, getT } from "@/lib/i18n/server";
-import { createFormatters } from "@/lib/i18n/format";
+import { Eyebrow } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/misc";
+import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -16,12 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ResultsIndexPage() {
-  const locale = await getLocale();
   const t = await getT();
-  const fmt = createFormatters(locale);
-
-  // In the demo, results exist for races that have already been run.
-  const withResults = getEvents(locale).slice(0, 4);
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
@@ -35,47 +26,13 @@ export default async function ResultsIndexPage() {
         </p>
       </header>
 
-      <section className="py-10">
-        <SectionHeading
-          title={t("results.index.latestRaces")}
-          kicker={t("results.index.season")}
-        />
-        <ul className="mt-6 border-t-2 border-line">
-          {withResults.map((e) => (
-            <li
-              key={e.id}
-              className="flex flex-wrap items-center gap-x-8 gap-y-4 border-b-2 border-line py-6"
-            >
-              <div className="min-w-56 flex-1">
-                <h2 className="font-display text-2xl font-black uppercase">
-                  <Link href={`/events/${e.slug}/results`} className="hover:text-neon-lime">
-                    {e.name}
-                  </Link>
-                </h2>
-                <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                  {e.dow} {e.day} {e.month} {e.year} · {e.city}
-                </p>
-              </div>
-              <div>
-                <Eyebrow>{t("results.index.finishers")}</Eyebrow>
-                <p className="mt-1 font-mono text-lg">
-                  {fmt.number(e.registered)}
-                </p>
-              </div>
-              <div>
-                <Eyebrow>{t("results.index.winningTime")}</Eyebrow>
-                <p className="mt-1 font-mono text-lg text-neon-yellow">
-                  {LEADERBOARD[0].time}
-                </p>
-              </div>
-              <Badge tone="green">{t("results.index.resultsPosted")}</Badge>
-              <Button href={`/events/${e.slug}/results`} variant="outline" size="sm">
-                {t("results.index.viewLeaderboard")}
-              </Button>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {/* Results have no table behind them yet, so there is nothing to list. */}
+      <EmptyState
+        title={t("results.index.emptyTitle")}
+        body={t("results.index.emptyBody")}
+        action={{ label: t("results.index.emptyAction"), href: "/events" }}
+        className="mt-10"
+      />
     </div>
   );
 }
