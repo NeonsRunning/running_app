@@ -254,8 +254,8 @@ async function selectEvents(where: {
 }
 
 /**
- * How many runners are in each category of these events. Counts only: the
- * registrations themselves are private to runner and organizer.
+ * How many paid runners are in each category of these events. Counts only:
+ * the registrations themselves are private to runner and organizer.
  */
 export async function registrationCounts(eventIds: string[]): Promise<Counts> {
   if (!hasSupabaseEnv() || eventIds.length === 0) return new Map();
