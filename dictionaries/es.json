@@ -135,6 +135,10 @@
       "open": "Abierto",
       "seeded-heats": "Series por tiempo"
     },
+    "start": {
+      "anytime": "Cualquier hora",
+      "tba": "Hora por anunciar"
+    },
     "aidOffer": {
       "water": "Agua",
       "electrolyte": "Electrolitos",
@@ -294,7 +298,6 @@
       "details": "Detalles",
       "course": "Ruta",
       "schedule": "Programa",
-      "location": "Ubicación",
       "organizer": "Organizador",
       "about": "Sobre esta carrera",
       "included": "Qué incluye",
@@ -320,7 +323,6 @@
       "kmMarkersValue": "Cada 1 km",
       "specSurface": "Superficie",
       "aidStations": "Avituallamientos",
-      "startFinish": "SALIDA / META",
       "address": "Dirección",
       "parking": "Estacionamiento",
       "directions": "Cómo llegar",
@@ -333,6 +335,8 @@
       "finish": "META",
       "aid": "AVIT. {n} · {km}K",
       "routeMap": "Mapa de ruta · {gain} m de desnivel",
+      "routeImageAlt": "Mapa de ruta de {name}",
+      "routeImageOpen": "Ver en tamaño completo ↗",
       "aidStationLabel": "Avituallamiento {n}"
     }
   },
@@ -1143,6 +1147,8 @@
       "registration": "Inscripciones",
       "extras": "Extras",
       "details": "Detalles del evento",
+      "image": "Imagen de portada",
+      "route": "Mapa de ruta",
       "review": "Revisión"
     },
     "untitled": "Carrera sin título",
@@ -1160,7 +1166,11 @@
     "eventDescriptionPlaceholder": "Describe la ruta, el ambiente y lo que deben esperar los corredores.",
     "eventType": "Tipo de evento",
     "eventDate": "Fecha del evento",
+    "endDate": "Fecha de fin",
+    "endDateHint": "Déjala vacía si la carrera es de un solo día. El evento se mantiene publicado hasta que termine este día.",
     "startTime": "Hora de salida",
+    "startTimeHint": "Déjala vacía si aún no has fijado la hora.",
+    "startTimeHintMultiDay": "Déjala vacía si los corredores pueden salir en cualquier momento entre las dos fechas.",
     "registrationOpens": "Apertura de inscripciones",
     "registrationCloses": "Cierre de inscripciones",
     "venueName": "Nombre del lugar",
@@ -1171,7 +1181,7 @@
     "region": "Región",
     "postalCode": "Código postal",
     "country": "País",
-    "categoriesIntro": "Añade todas las distancias que vas a ofrecer. Cada una tiene su propio precio, cupo y hora de salida.",
+    "categoriesIntro": "Añade todas las distancias que vas a ofrecer. Cada una tiene su propio precio y cupo. Si dejas la hora de salida vacía, esa distancia sale con el evento.",
     "category": "Categoría {n}",
     "remove": "Eliminar",
     "distanceKm": "Distancia (km)",
@@ -1221,7 +1231,6 @@
     "termsLink": "términos para organizadores",
     "back": "Atrás",
     "continue": "Continuar",
-    "cancel": "Cancelar",
     "backToDashboard": "Panel de organizador",
     "stepHasErrors": "Este paso tiene errores",
     "countries": {
@@ -1238,6 +1247,26 @@
     "directions": "Cómo llegar",
     "directionsPlaceholder": "Cómo llegar en carro, guagua o tren.",
     "previewDatePending": "Fecha y ciudad pendientes",
+    "image": {
+      "intro": "La foto que ven los corredores en la tarjeta y la página de tu evento. Opcional — sin ella, el evento lleva la portada de NEONS.",
+      "choose": "Elige una imagen",
+      "drop": "o arrástrala aquí",
+      "hint": "JPG, PNG, WebP o HEIC de iPhone, hasta 40 MB. La ajustamos de tamaño y la convertimos a WebP por ti. Una foto horizontal se ve mejor.",
+      "converting": "Preparando imagen…",
+      "uploading": "Subiendo…",
+      "replace": "Cambiar imagen",
+      "remove": "Quitar imagen"
+    },
+    "routeImage": {
+      "intro": "Un mapa del recorrido, que se muestra en la pestaña Ruta de tu evento. Opcional — sin él, la pestaña muestra un diagrama sencillo del recorrido.",
+      "choose": "Elige un mapa de ruta",
+      "drop": "o arrástralo aquí",
+      "hint": "JPG, PNG, WebP o HEIC de iPhone, hasta 40 MB. Lo ajustamos de tamaño y lo convertimos a WebP por ti. Una captura o exportación de Strava, Garmin o Google Maps funciona bien.",
+      "converting": "Preparando imagen…",
+      "uploading": "Subiendo…",
+      "replace": "Cambiar mapa",
+      "remove": "Quitar mapa"
+    },
     "checkDone": "listo",
     "checkPending": "pendiente",
     "errors": {
@@ -1248,8 +1277,9 @@
       "dateRequired": "Elige una fecha.",
       "dateInvalid": "Escribe una fecha válida.",
       "dateInPast": "La fecha del evento no puede estar en el pasado.",
-      "timeRequired": "Elige una hora de salida.",
-      "closesAfterEvent": "La inscripción tiene que cerrar el día de la carrera o antes.",
+      "endBeforeStart": "La fecha de fin no puede ser antes de la fecha del evento.",
+      "timeInvalid": "Escribe una hora de salida válida.",
+      "closesAfterEvent": "La inscripción tiene que cerrar a más tardar el último día de la carrera.",
       "opensAfterCloses": "La inscripción tiene que abrir antes de cerrar.",
       "venueRequired": "Escribe el nombre del lugar.",
       "cityRequired": "Escribe la ciudad.",
@@ -1257,7 +1287,7 @@
       "tooLong": "Es demasiado largo — acórtalo.",
       "categoriesRequired": "Añade al menos una categoría.",
       "categoriesTooMany": "Un evento puede ofrecer como máximo 7 categorías.",
-      "categoryIncomplete": "Cada categoría necesita distancia en km, precio, cupo y hora de salida.",
+      "categoryIncomplete": "Cada categoría necesita distancia en km, precio y cupo.",
       "categoryDuplicate": "Cada distancia solo se puede ofrecer una vez.",
       "numberInvalid": "Escribe un número entero.",
       "priceInvalid": "Escribe un precio de 0 a 1,000, como 22 o 22.50.",
@@ -1274,7 +1304,12 @@
       "capacityBelowRegistered": "El cupo de una categoría no puede quedar por debajo de los corredores ya inscritos.",
       "categoryHasRegistrations": "Hay corredores inscritos en una categoría que quitaste. Vuelve a añadirla o cambia sus datos.",
       "eventHasRegistrations": "Hay corredores inscritos en este evento, así que no se puede eliminar.",
-      "deleteFailed": "No se pudo eliminar el evento — inténtalo de nuevo en un momento."
+      "deleteFailed": "No se pudo eliminar el evento — inténtalo de nuevo en un momento.",
+      "imageType": "Usa una foto: JPG, PNG, WebP o HEIC.",
+      "imageTooLarge": "Esa imagen es demasiado grande — elige una de menos de 40 MB.",
+      "imageUnreadable": "No se pudo leer esa imagen. Prueba otra foto o guárdala como JPG primero.",
+      "imageUploadFailed": "No se pudo subir la imagen — inténtalo de nuevo en un momento.",
+      "imageInvalid": "Esa imagen no se puede usar. Súbela de nuevo."
     },
     "editEvent": "Editar evento",
     "editMetaTitle": "Editar evento",

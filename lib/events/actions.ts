@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
+import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
 import { PHOTO_PRICE, SHIRT_PRICE } from "./pricing";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
@@ -186,7 +187,8 @@ type Category = {
   distance_km: number;
   price: number;
   capacity: number;
-  start_time: string;
+  /** Null when the distance starts with the event. */
+  start_time: string | null;
 };
 
 /**
@@ -231,7 +233,7 @@ function readCategories(
       price > 100000 ||
       capacity === null ||
       Number.isNaN(capacity) ||
-      !TIME_24.test(start)
+      (start !== "" && !TIME_24.test(start))
     ) {
       return { error: "categoryIncomplete" };
     }
@@ -241,7 +243,7 @@ function readCategories(
       distance_km: km,
       price,
       capacity,
-      start_time: start,
+      start_time: start || null,
     });
   }
 
@@ -270,7 +272,14 @@ async function organizerSession() {
 
 type EventColumns = Omit<
   Tables<"events">,
-  "id" | "organizer_id" | "slug" | "published_at" | "created_at" | "updated_at"
+  | "id"
+  | "organizer_id"
+  | "slug"
+  | "published_at"
+  | "created_at"
+  | "updated_at"
+  // Generated from event_date and end_date.
+  | "last_day"
 >;
 
 /**
@@ -292,12 +301,14 @@ export async function saveEventAction(
   if ("error" in session) return { error: session.error };
   const { supabase, userId } = session;
 
-  let existing: Pick<Tables<"events">, "status" | "slug" | "event_date"> | null =
-    null;
+  let existing: Pick<
+    Tables<"events">,
+    "status" | "slug" | "event_date" | "end_date" | "image_path" | "route_image_path"
+  > | null = null;
   if (id) {
     const { data } = await supabase
       .from("events")
-      .select("status, slug, event_date")
+      .select("status, slug, event_date, end_date, image_path, route_image_path")
       .eq("id", id)
       .eq("organizer_id", userId)
       .maybeSingle();
@@ -320,6 +331,7 @@ export async function saveEventAction(
   const description = readText(formData, "description");
   const type = readText(formData, "type");
   const eventDate = readText(formData, "event_date");
+  const endDate = readText(formData, "end_date");
   const startTime = readText(formData, "start_time");
   const opens = readText(formData, "registration_opens");
   const closes = readText(formData, "registration_closes");
@@ -340,11 +352,23 @@ export async function saveEventAction(
     fieldErrors.event_date = "dateInPast";
   else requireFor("event_date", Boolean(eventDate), "dateRequired");
 
-  if (startTime && !TIME_24.test(startTime)) fieldErrors.start_time = "timeRequired";
-  else requireFor("start_time", Boolean(startTime), "timeRequired");
+  // Optional: left empty, the race ends the day it starts. It decides how
+  // long the event stays listed on /events.
+  if (endDate && !isDate(endDate)) fieldErrors.end_date = "dateInvalid";
+  else if (endDate && isDate(eventDate) && endDate < eventDate)
+    fieldErrors.end_date = "endBeforeStart";
+  else if (endDate && endDate < today && endDate !== existing?.end_date)
+    fieldErrors.end_date = "dateInPast";
 
+  // Optional: a race runners start any time across its dates has none, and
+  // a one-day race may not have announced it yet.
+  if (startTime && !TIME_24.test(startTime)) fieldErrors.start_time = "timeInvalid";
+
+  // Up to the race's last day: a multi-day or virtual race can take sign-ups
+  // until its end date.
+  const lastDay = isDate(endDate) ? endDate : eventDate;
   if (closes && !isDate(closes)) fieldErrors.registration_closes = "dateInvalid";
-  else if (closes && isDate(eventDate) && closes > eventDate)
+  else if (closes && isDate(lastDay) && closes > lastDay)
     fieldErrors.registration_closes = "closesAfterEvent";
   else requireFor("registration_closes", Boolean(closes), "dateRequired");
 
@@ -431,6 +455,16 @@ export async function saveEventAction(
   if (parking.length > LIMITS.notes) fieldErrors.parking = "tooLong";
   if (directions.length > LIMITS.notes) fieldErrors.directions = "tooLong";
 
+  /* Images ---------------------------------------------------------------- */
+  // Uploaded by the browser already; only a path into the caller's own
+  // folder is accepted, so no one can point a listing at another's file.
+  const imagePath = readText(formData, "image_path");
+  if (imagePath && !isOwnImagePath(imagePath, userId))
+    fieldErrors.image_path = "imageInvalid";
+  const routeImagePath = readText(formData, "route_image_path");
+  if (routeImagePath && !isOwnImagePath(routeImagePath, userId))
+    fieldErrors.route_image_path = "imageInvalid";
+
   if (Object.keys(fieldErrors).length || "error" in parsedCategories) {
     return { fieldErrors };
   }
@@ -444,6 +478,7 @@ export async function saveEventAction(
     description,
     type: type as (typeof EVENT_TYPES)[number],
     event_date: eventDate || null,
+    end_date: endDate || null,
     start_time: startTime || null,
     registration_opens: opens || null,
     registration_closes: closes || null,
@@ -471,6 +506,8 @@ export async function saveEventAction(
     schedule: schedule ?? [],
     parking,
     directions,
+    image_path: imagePath || null,
+    route_image_path: routeImagePath || null,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a
@@ -488,6 +525,16 @@ export async function saveEventAction(
     });
 
     if (data) {
+      // A replaced or removed image is no longer shown anywhere. Best effort:
+      // a leftover file costs storage, not correctness.
+      const replaced = [
+        existing?.image_path !== data.image_path && existing?.image_path,
+        existing?.route_image_path !== data.route_image_path && existing?.route_image_path,
+      ].filter((p): p is string => Boolean(p));
+      if (replaced.length) {
+        await supabase.storage.from(EVENT_IMAGE_BUCKET).remove(replaced);
+      }
+
       // Hand back the category ids so the wizard's next save updates these
       // rows rather than replacing them. Distance is unique per event.
       const { data: rows } = await supabase
@@ -530,11 +577,16 @@ export async function saveEventAction(
 }
 
 /**
- * Delete one of the caller's events. Refused once runners have signed up:
- * their registrations hold the event in place by foreign key.
+ * Delete one of the caller's events, and its images with it. Refused once
+ * runners have signed up: their registrations hold the event in place by
+ * foreign key.
+ *
+ * `unsaved` names images the wizard uploaded since its last save: they are
+ * on no row yet, so only the caller knows to drop them.
  */
 export async function deleteEventAction(
   id: string,
+  unsaved: string[] = [],
 ): Promise<{ ok?: true; error?: string }> {
   if (!UUID.test(id)) return { error: "eventNotFound" };
 
@@ -546,12 +598,27 @@ export async function deleteEventAction(
     .delete()
     .eq("id", id)
     .eq("organizer_id", session.userId)
-    .select("id");
+    .select("id, image_path, route_image_path");
 
   if (error?.code === FOREIGN_KEY_VIOLATION)
     return { error: "eventHasRegistrations" };
   if (error) return { error: "deleteFailed" };
   if (!data?.length) return { error: "eventNotFound" };
+
+  // Best effort, as on save: a leftover file costs storage, not correctness.
+  const images = [
+    ...new Set([
+      data[0].image_path,
+      data[0].route_image_path,
+      // Arrives from the browser: only files in the caller's own folder.
+      ...(Array.isArray(unsaved) ? unsaved : []).filter(
+        (p) => typeof p === "string" && isOwnImagePath(p, session.userId),
+      ),
+    ]),
+  ].filter((p): p is string => Boolean(p));
+  if (images.length) {
+    await session.supabase.storage.from(EVENT_IMAGE_BUCKET).remove(images);
+  }
 
   revalidatePath("/", "layout");
   return { ok: true };

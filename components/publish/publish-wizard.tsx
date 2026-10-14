@@ -9,6 +9,8 @@ import {
   type KeyboardEvent,
 } from "react";
 import { BrandLock } from "@/components/brand/logo";
+import { EventCover } from "@/components/events/event-card";
+import { ImageStep } from "@/components/publish/image-step";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +31,7 @@ import {
   type EventFormState,
 } from "@/lib/events/actions";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "@/lib/events/form";
+import { eventImageUrl } from "@/lib/events/images";
 import {
   COUNTRIES,
   DIFFICULTIES,
@@ -51,7 +54,7 @@ import { cn } from "@/lib/cn";
 import type { Distance, EventType } from "@/lib/types";
 
 /**
- * Seven-step wizard for listing an event, and for editing one.
+ * Nine-step wizard for listing an event, and for editing one.
  *
  * One form spans every step. Inactive steps are hidden rather than unmounted,
  * so an uncontrolled input keeps its value while the organizer moves around,
@@ -73,6 +76,8 @@ const STEPS = [
   "publish.steps.registration",
   "publish.steps.extras",
   "publish.steps.details",
+  "publish.steps.image",
+  "publish.steps.route",
   "publish.steps.review",
 ] as const;
 
@@ -84,6 +89,7 @@ const FIELD_STEP: Record<string, number> = {
   description: 0,
   type: 0,
   event_date: 0,
+  end_date: 0,
   start_time: 0,
   registration_opens: 0,
   registration_closes: 0,
@@ -110,6 +116,8 @@ const FIELD_STEP: Record<string, number> = {
   schedule: 5,
   parking: 5,
   directions: 5,
+  image_path: 6,
+  route_image_path: 7,
 };
 
 /** A form row: the stored category plus a key that survives reordering. */
@@ -133,6 +141,17 @@ export function PublishWizard({
   const [name, setName] = useState(initial.name);
   const [type, setType] = useState<EventType>(initial.type);
   const [eventDate, setEventDate] = useState(initial.eventDate);
+  const [endDate, setEndDate] = useState(initial.endDate);
+  // Registration closes on the race's last day unless the organizer picks
+  // another date: it follows the dates while it is empty or still on that day.
+  // Opening does the same with the race's first day.
+  const [opens, setOpens] = useState(initial.registrationOpens);
+  const [closes, setCloses] = useState(initial.registrationCloses);
+  const lastDay = endDate || eventDate;
+  const followDates = (nextEventDate: string, nextEndDate: string) => {
+    if (!opens || opens === eventDate) setOpens(nextEventDate);
+    if (!closes || closes === lastDay) setCloses(nextEndDate || nextEventDate);
+  };
   const [city, setCity] = useState(initial.city);
   const [country, setCountry] = useState<Country>(initial.country);
   const [categories, setCategories] = useState<Category[]>(() =>
@@ -143,6 +162,12 @@ export function PublishWizard({
   const [offersShirt, setOffersShirt] = useState(initial.offersShirt);
   const [offersPhotos, setOffersPhotos] = useState(initial.offersPhotos);
   const [acceptsDonations, setAcceptsDonations] = useState(initial.acceptsDonations);
+  const [imagePath, setImagePath] = useState(initial.imagePath);
+  const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
+  const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
+  const [savedRouteImagePath, setSavedRouteImagePath] = useState(
+    initial.routeImagePath,
+  );
   const [state, setState] = useState<EventFormState>();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -185,6 +210,9 @@ export function PublishWizard({
         setEventId(saved.id);
         setSlug(saved.slug);
         setStatus(saved.status);
+        // The images this save stored are now the event's; see `ImageStep`.
+        setSavedImagePath(String(data.get("image_path") ?? ""));
+        setSavedRouteImagePath(String(data.get("route_image_path") ?? ""));
         // Rows inserted by this save now have ids; without them the next save
         // would delete and re-create them.
         setCategories((list) =>
@@ -231,7 +259,11 @@ export function PublishWizard({
   function remove() {
     if (!eventId) return;
     startDelete(async () => {
-      const result = await deleteEventAction(eventId);
+      const unsaved = [
+        imagePath !== savedImagePath && imagePath,
+        routeImagePath !== savedRouteImagePath && routeImagePath,
+      ].filter((p): p is string => Boolean(p));
+      const result = await deleteEventAction(eventId, unsaved);
       if (result.ok) {
         toast({
           title: t("publish.deletedTitle"),
@@ -273,7 +305,7 @@ export function PublishWizard({
         km: String(DISTANCE_KM[distance]),
         price: "",
         capacity: "",
-        start: "06:00",
+        start: "",
         registered: 0,
       },
     ]);
@@ -386,9 +418,6 @@ export function PublishWizard({
               {t("publish.saveDraft")}
             </Button>
           ) : null}
-          <Button href="/organizer" variant="ghost" size="sm">
-            {t("publish.cancel")}
-          </Button>
         </div>
 
         <div className="flex gap-1 px-4 pb-3 sm:px-6 lg:hidden">
@@ -529,11 +558,43 @@ export function PublishWizard({
                     type="date"
                     name="event_date"
                     value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
+                    onChange={(e) => {
+                      setEventDate(e.target.value);
+                      followDates(e.target.value, endDate);
+                    }}
                   />
                 )}
               </Field>
-              <Field label={t("publish.startTime")} error={fieldError("start_time")}>
+              <Field
+                label={t("publish.endDate")}
+                hint={t("publish.endDateHint")}
+                error={fieldError("end_date")}
+                optional
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="date"
+                    name="end_date"
+                    value={endDate}
+                    min={eventDate || undefined}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      followDates(eventDate, e.target.value);
+                    }}
+                  />
+                )}
+              </Field>
+              <Field
+                label={t("publish.startTime")}
+                hint={t(
+                  endDate
+                    ? "publish.startTimeHintMultiDay"
+                    : "publish.startTimeHint",
+                )}
+                error={fieldError("start_time")}
+                optional
+              >
                 {(p) => (
                   <Input
                     {...p}
@@ -543,17 +604,21 @@ export function PublishWizard({
                   />
                 )}
               </Field>
+              {/* A row of its own, so the registration dates pair up. */}
               <Field
                 label={t("publish.registrationOpens")}
                 error={fieldError("registration_opens")}
                 optional
+                className="sm:col-start-1"
               >
                 {(p) => (
                   <Input
                     {...p}
                     type="date"
                     name="registration_opens"
-                    defaultValue={initial.registrationOpens}
+                    value={opens}
+                    max={closes || undefined}
+                    onChange={(e) => setOpens(e.target.value)}
                   />
                 )}
               </Field>
@@ -566,7 +631,9 @@ export function PublishWizard({
                     {...p}
                     type="date"
                     name="registration_closes"
-                    defaultValue={initial.registrationCloses}
+                    value={closes}
+                    max={lastDay || undefined}
+                    onChange={(e) => setCloses(e.target.value)}
                   />
                 )}
               </Field>
@@ -794,7 +861,7 @@ export function PublishWizard({
                         />
                       )}
                     </Field>
-                    <Field label={t("publish.startTime")}>
+                    <Field label={t("publish.startTime")} optional>
                       {(p) => (
                         <Input
                           {...p}
@@ -1120,32 +1187,80 @@ export function PublishWizard({
             </Field>
           </div>
 
-          {/* 7 — Review -------------------------------------------------- */}
+          {/* 7 — Cover image ------------------------------------------- */}
           <div
             data-step={6}
             hidden={step !== 6}
+            className="mt-8 flex max-w-2xl flex-col gap-6"
+          >
+            <p className="text-[15px] text-fg-dim">{t("publish.image.intro")}</p>
+            <ImageStep
+              name="image_path"
+              messages="publish.image"
+              value={imagePath}
+              savedPath={savedImagePath}
+              onChange={setImagePath}
+              preview={(url) => (
+                <EventCover event={{ type, image: url }} className="aspect-video" />
+              )}
+              error={fieldError("image_path")}
+            />
+          </div>
+
+          {/* 8 — Route map ---------------------------------------------- */}
+          <div
+            data-step={7}
+            hidden={step !== 7}
+            className="mt-8 flex max-w-2xl flex-col gap-6"
+          >
+            <p className="text-[15px] text-fg-dim">{t("publish.routeImage.intro")}</p>
+            <ImageStep
+              name="route_image_path"
+              messages="publish.routeImage"
+              value={routeImagePath}
+              savedPath={savedRouteImagePath}
+              onChange={setRouteImagePath}
+              // A map is shown whole on the Route tab, so it is not cropped here.
+              preview={(url) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={url}
+                  alt=""
+                  className="aspect-video w-full bg-carbon object-contain"
+                />
+              )}
+              error={fieldError("route_image_path")}
+            />
+          </div>
+
+          {/* 9 — Review -------------------------------------------------- */}
+          <div
+            data-step={8}
+            hidden={step !== 8}
             className="mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px]"
           >
             {/* Listing preview */}
             <div>
               <Eyebrow>{t("publish.listingPreview")}</Eyebrow>
               <article className="mt-3 border-2 border-line bg-carbon">
-                <div className="bg-cover-wash relative h-40">
-                  <div className="bg-track-lanes absolute inset-0" />
-                  <Badge
-                    tone="neutral"
-                    className="absolute top-0 left-0 bg-ink font-mono text-[10px] font-normal text-neon-lime"
-                  >
-                    {eventTypeLabel(t, type)}
-                  </Badge>
-                </div>
+                <EventCover
+                  event={{ type, image: eventImageUrl(imagePath) }}
+                  className="h-40"
+                />
                 <div className="p-5">
                   <Badge tone="lime">{t("publish.registrationOpen")}</Badge>
                   <h2 className="mt-3 font-display text-3xl font-black wrap-break-word uppercase">
                     {eventName}
                   </h2>
                   <p className="mt-2 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                    {[eventDate ? fmt.mediumDate(eventDate) : null, city.trim() || null]
+                    {[
+                      eventDate
+                        ? endDate && endDate > eventDate
+                          ? `${fmt.mediumDate(eventDate)} – ${fmt.mediumDate(endDate)}`
+                          : fmt.mediumDate(eventDate)
+                        : null,
+                      city.trim() || null,
+                    ]
                       .filter(Boolean)
                       .join(" · ") || t("publish.previewDatePending")}
                   </p>

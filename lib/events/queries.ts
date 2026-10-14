@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { eventImageUrl } from "@/lib/events/images";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
 import { getT } from "@/lib/i18n/server";
@@ -42,7 +43,7 @@ type EventRow = Tables<"events"> & {
  * `events_published_complete` check guarantees a published row does not.
  */
 type PublishedRow = EventRow & {
-  [K in "type" | "event_date" | "start_time" | "registration_closes" | "venue" | "city"]: NonNullable<EventRow[K]>;
+  [K in "type" | "event_date" | "registration_closes" | "venue" | "city"]: NonNullable<EventRow[K]>;
 };
 
 function isPublished(row: EventRow): row is PublishedRow {
@@ -50,7 +51,6 @@ function isPublished(row: EventRow): row is PublishedRow {
     row.status === "published" &&
     row.type !== null &&
     row.event_date !== null &&
-    row.start_time !== null &&
     row.registration_closes !== null &&
     row.venue !== null &&
     row.city !== null
@@ -97,7 +97,12 @@ function toEvent(
       name: c.distance,
       distanceKm: Number(c.distance_km),
       price: Number(c.price),
-      startTime: clock(c.start_time),
+      // A category without its own time starts with the event.
+      startTime: c.start_time
+        ? clock(c.start_time)
+        : row.start_time
+          ? clock(row.start_time)
+          : undefined,
       wave: "Open",
       capacity: c.capacity,
       registered: counts.get(c.id) ?? 0,
@@ -128,6 +133,8 @@ function toEvent(
     tagline: description[0] ?? "",
     description,
     type: row.type,
+    image: eventImageUrl(row.image_path),
+    routeImage: eventImageUrl(row.route_image_path),
     city: row.city,
     region: row.region,
     venue: row.venue,
@@ -139,7 +146,16 @@ function toEvent(
     day,
     month: formatMonthShort(row.event_date, locale),
     year,
-    startTime: clock(row.start_time),
+    endDate: row.end_date ?? undefined,
+    end:
+      row.end_date && row.end_date > row.event_date
+        ? {
+            dow: formatWeekdayShort(row.end_date, locale),
+            day: row.end_date.split("-")[2],
+            month: formatMonthShort(row.end_date, locale),
+          }
+        : undefined,
+    startTime: row.start_time ? clock(row.start_time) : undefined,
     registrationCloses: new Date(
       `${row.registration_closes}T12:00:00`,
     ).toLocaleDateString(LOCALE_TAGS[locale], {
@@ -230,7 +246,8 @@ async function selectEvents(where: {
     .select(EVENT_COLUMNS)
     .eq("status", "published");
   if (where.slug) query = query.eq("slug", where.slug);
-  if (where.from) query = query.gte("event_date", where.from);
+  // Listed until its last day has passed, not just its first.
+  if (where.from) query = query.gte("last_day", where.from);
 
   const { data, error } = await query.order("event_date");
   return error || !data ? [] : (data as unknown as EventRow[]).filter(isPublished);
@@ -344,7 +361,7 @@ export async function getRegisteredEventIds(
   return error || !data ? [] : data.map((r) => r.event_id);
 }
 
-/** Upcoming races organizers published, soonest first. */
+/** Upcoming and ongoing races organizers published, soonest first. */
 export async function listPublishedEvents(
   locale: Locale,
 ): Promise<RunningEvent[]> {

@@ -26,7 +26,11 @@ import { SELF_ID, SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters, type Formatters } from "@/lib/i18n/format";
 import type { Translate } from "@/lib/i18n/translate";
-import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
+import {
+  distanceLabel,
+  startTimeLabel,
+  waveLabel,
+} from "@/lib/i18n/labels";
 import type { RunningEvent } from "@/lib/types";
 
 /**
@@ -543,7 +547,13 @@ export default async function RunnerProfilePage(
                     <div className="flex justify-between">
                       <dt className="text-fg-dim">{t("runner.start")}</dt>
                       <dd>
-                        {fmt.clock(nextEvent.startTime)} ·{" "}
+                        {startTimeLabel(
+                          t,
+                          fmt,
+                          nextEvent.startTime,
+                          Boolean(nextEvent.endDate),
+                        )}{" "}
+                        ·{" "}
                         {waveLabel(t, next.wave)}
                       </dd>
                     </div>

@@ -30,6 +30,8 @@ export type EventFormValues = {
   description: string;
   type: EventType;
   eventDate: string;
+  /** Last day of a multi-day race; empty for a one-day one. */
+  endDate: string;
   startTime: string;
   registrationOpens: string;
   registrationCloses: string;
@@ -61,6 +63,10 @@ export type EventFormValues = {
   schedule: string;
   parking: string;
   directions: string;
+  /** Path of the cover image in the event-images bucket; empty for none. */
+  imagePath: string;
+  /** Path of the route map image in the same bucket; empty for none. */
+  routeImagePath: string;
   categories: EventFormCategory[];
 };
 
@@ -72,7 +78,8 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   description: "",
   type: "Road Race",
   eventDate: "",
-  startTime: "06:00",
+  endDate: "",
+  startTime: "",
   registrationOpens: "",
   registrationCloses: "",
   venue: "",
@@ -99,8 +106,10 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   schedule: "",
   parking: "",
   directions: "",
+  imagePath: "",
+  routeImagePath: "",
   categories: [
-    { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "06:00", registered: 0 },
-    { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "06:15", registered: 0 },
+    { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0 },
+    { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0 },
   ],
 };

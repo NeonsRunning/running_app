@@ -75,8 +75,8 @@ const SORTS = [
 type Sort = (typeof SORTS)[number]["value"];
 
 /** Minutes past midnight for a "7:30 AM"-style start time, for same-day ties. */
-function minutesOf(time: string): number {
-  const [, h, m, meridiem] = time.match(/(\d+):(\d+)\s*(AM|PM)/i) ?? [];
+function minutesOf(time: string | undefined): number {
+  const [, h, m, meridiem] = time?.match(/(\d+):(\d+)\s*(AM|PM)/i) ?? [];
   if (!h) return 0;
   return ((Number(h) % 12) + (meridiem.toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m);
 }

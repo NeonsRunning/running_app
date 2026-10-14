@@ -93,7 +93,7 @@ function dashboardStatus(
   today: string,
 ): DashboardStatus {
   if (event.status === "draft") return "Draft";
-  if (event.event_date && event.event_date < today) return "Finished";
+  if (event.last_day && event.last_day < today) return "Finished";
   // Closing: registration ends within a week, or the field is nearly full.
   const weekAhead = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   if (
@@ -285,6 +285,7 @@ export async function getEventForm(
     description: event.description,
     type: event.type ?? EMPTY_EVENT_FORM.type,
     eventDate: event.event_date ?? "",
+    endDate: event.end_date ?? "",
     startTime: hhmm(event.start_time),
     registrationOpens: event.registration_opens ?? "",
     registrationCloses: event.registration_closes ?? "",
@@ -317,6 +318,8 @@ export async function getEventForm(
       .join("\n"),
     parking: event.parking,
     directions: event.directions,
+    imagePath: event.image_path ?? "",
+    routeImagePath: event.route_image_path ?? "",
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,

@@ -2,20 +2,28 @@
 
 import { Link } from "@/components/i18n/link";
 import { useFormat, useT } from "@/components/i18n/provider";
-import { eventTypeLabel, distanceLabel } from "@/lib/i18n/labels";
+import {
+  eventTypeLabel,
+  distanceLabel,
+  startTimeLabel,
+} from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
 import type { RunningEvent } from "@/lib/types";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "./saved-events";
 
-/** The gradient cover placeholder every event uses until real photography lands. */
+/**
+ * An event's cover: the organizer's image when there is one, otherwise the
+ * gradient placeholder. The wash stays underneath either way, so an image
+ * still loading shows the brand rather than a hole.
+ */
 export function EventCover({
   event,
   className,
   children,
 }: {
-  event: RunningEvent;
+  event: Pick<RunningEvent, "type" | "image">;
   className?: string;
   children?: React.ReactNode;
 }) {
@@ -23,6 +31,35 @@ export function EventCover({
 
   return (
     <div className={cn("bg-cover-wash relative overflow-hidden", className)}>
+      {event.image ? (
+        // A Supabase Storage URL; next/image would need the project's host
+        // configured as a remote pattern.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={event.image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <GradientArt />
+      )}
+      <Badge
+        tone="neutral"
+        className="absolute top-0 left-0 bg-ink font-mono text-[10px] font-normal tracking-[0.14em] text-neon-lime"
+      >
+        {eventTypeLabel(t, event.type)}
+      </Badge>
+      {children}
+    </div>
+  );
+}
+
+/** Track lanes and a whispered skyline, for covers without an image. */
+function GradientArt() {
+  return (
+    <>
       <div aria-hidden="true" className="bg-track-lanes absolute inset-0" />
       {/* City skyline and palms, kept to a whisper so the neon stays loud. */}
       <svg
@@ -41,18 +78,14 @@ export function EventCover({
           <path d="M172 23c-7-5-13-4-17 0 6-2 11 0 15 4-6-9-4-15 2-18-3 5-2 11 0 15 2-9 7-13 13-13-6 3-11 7-13 12Z" />
         </g>
       </svg>
-      <Badge
-        tone="neutral"
-        className="absolute top-0 left-0 bg-ink font-mono text-[10px] font-normal tracking-[0.14em] text-neon-lime"
-      >
-        {eventTypeLabel(t, event.type)}
-      </Badge>
-      {children}
-    </div>
+    </>
   );
 }
 
-/** Date block — the race-bib style calendar tile. */
+/**
+ * Date block — the race-bib style calendar tile. A multi-day race shows its
+ * first and last day side by side, each with its own weekday and month.
+ */
 export function DateBlock({
   event,
   className,
@@ -60,16 +93,50 @@ export function DateBlock({
   event: RunningEvent;
   className?: string;
 }) {
+  if (!event.end) {
+    return (
+      <DateTile date={event} large className={cn("text-center", className)} />
+    );
+  }
+
+  return (
+    <div className={cn("flex items-center justify-center gap-2.5", className)}>
+      <DateTile date={event} />
+      <span
+        aria-hidden="true"
+        className="font-display text-2xl font-black text-fg-faint"
+      >
+        –
+      </span>
+      <DateTile date={event.end} />
+    </div>
+  );
+}
+
+function DateTile({
+  date,
+  large,
+  className,
+}: {
+  date: { dow: string; day: string; month: string };
+  large?: boolean;
+  className?: string;
+}) {
   return (
     <div className={cn("text-center", className)}>
       <div className="font-mono text-[11px] tracking-[0.2em] text-neon-lime">
-        {event.dow}
+        {date.dow}
       </div>
-      <div className="font-display text-4xl leading-none font-black tracking-[-0.03em] lg:text-5xl">
-        {event.day}
+      <div
+        className={cn(
+          "font-display text-4xl leading-none font-black tracking-[-0.03em]",
+          large && "lg:text-5xl",
+        )}
+      >
+        {date.day}
       </div>
       <div className="font-mono text-[11px] tracking-[0.2em] text-fg-dim">
-        {event.month}
+        {date.month}
       </div>
     </div>
   );
@@ -96,7 +163,10 @@ export function EventRow({ event }: { event: RunningEvent }) {
 
       <div className="flex flex-col gap-2.5 p-5 sm:p-6">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge status={event.registrationStatus} label={event.statusLabel} />
+          <StatusBadge
+            status={event.registrationStatus}
+            label={event.statusLabel}
+          />
           <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
             {event.city}, {event.region}
           </span>
@@ -120,7 +190,11 @@ export function EventRow({ event }: { event: RunningEvent }) {
           <span>
             {t("events.card.runners", { count: fmt.number(event.registered) })}
           </span>
-          <span>{t("events.card.start", { time: fmt.clock(event.startTime) })}</span>
+          <span>
+            {event.startTime
+              ? t("events.card.start", { time: fmt.clock(event.startTime) })
+              : startTimeLabel(t, fmt, undefined, Boolean(event.endDate))}
+          </span>
         </div>
       </div>
 
@@ -180,8 +254,10 @@ export function EventCardCompact({
       </EventCover>
       <div className="flex flex-1 flex-col p-4">
         <div className="font-mono text-[10px] tracking-[0.14em] text-neon-lime">
-          {event.dow} {event.day} {event.month} ·{" "}
-          {distanceLabel(t, event.featuredDistance)}
+          {event.dow} {event.day} {event.month}
+          {event.end &&
+            ` – ${event.end.dow} ${event.end.day} ${event.end.month}`}{" "}
+          · {distanceLabel(t, event.featuredDistance)}
         </div>
         <h3 className="mt-2 font-display text-xl leading-tight font-black uppercase">
           <Link

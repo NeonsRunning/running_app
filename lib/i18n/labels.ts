@@ -1,4 +1,5 @@
 import type { Translate } from "./translate";
+import type { Formatters } from "./format";
 
 /**
  * Domain vocabulary that doubles as data.
@@ -42,3 +43,17 @@ export const aidOfferLabel = (t: Translate, v: string) =>
 
 export const genderLabel = (t: Translate, v: string) =>
   domainLabel(t, "gender", v);
+
+/**
+ * A start time as runners read it. A race without one either runs any time
+ * across its dates (it has an end date) or has not announced its start yet.
+ */
+export function startTimeLabel(
+  t: Translate,
+  fmt: Formatters,
+  time: string | undefined,
+  multiDay: boolean,
+): string {
+  if (time) return fmt.clock(time);
+  return t(multiDay ? "labels.start.anytime" : "labels.start.tba");
+}
