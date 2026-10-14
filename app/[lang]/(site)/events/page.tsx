@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { EventDiscovery } from "@/components/events/discovery";
-import { listPublishedEvents } from "@/lib/events/queries";
+import { searchEvents } from "@/lib/events/queries";
+import { EMPTY_SEARCH, type EventSearch } from "@/lib/events/search";
+import { DISTANCES, isOneOf } from "@/lib/events/vocabulary";
 import { getLocale, getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,12 +18,19 @@ export default async function EventsPage(props: PageProps<"/[lang]/events">) {
   const params = await props.searchParams;
   const first = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;
+  const distance = first(params.distance);
 
+  const search: EventSearch = {
+    ...EMPTY_SEARCH,
+    query: first(params.q) ?? "",
+    distances: distance && isOneOf(DISTANCES, distance) ? [distance] : [],
+  };
+
+  // The first page renders with the HTML; the client fetches the rest.
   return (
     <EventDiscovery
-      events={await listPublishedEvents(locale)}
-      initialQuery={first(params.q) ?? ""}
-      initialDistance={first(params.distance)}
+      initialSearch={search}
+      initialPage={await searchEvents(search, 0, locale)}
     />
   );
 }

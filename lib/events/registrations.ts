@@ -284,8 +284,6 @@ export async function startRegistrationPaymentAction(
 
   if (!intent.client_secret) return { ok: false, error: "paymentsUnavailable" };
 
-  // The hold counts as a taken spot.
-  revalidatePath("/", "layout");
   return {
     ok: true,
     registrationId: reg.id,

@@ -1,19 +1,31 @@
 "use client";
 
 import { Link } from "@/components/i18n/link";
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Chip, Input, Radio, SegmentedControl } from "@/components/ui/field";
 import { Eyebrow, StatusBadge } from "@/components/ui/badge";
-import { EmptyState, Pagination } from "@/components/ui/misc";
+import { EmptyState } from "@/components/ui/misc";
 import { SkeletonEventCard } from "@/components/ui/skeleton";
-import { useFormat, useT } from "@/components/i18n/provider";
+import { useFormat, useLocale, useT } from "@/components/i18n/provider";
 import {
   difficultyLabel,
   distanceLabel,
   eventTypeLabel,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
+import {
+  searchToParams,
+  type EventPage,
+  type EventSearch,
+  type EventSort,
+} from "@/lib/events/search";
 import { municipalityOf, PR_MAP } from "@/lib/pr-map";
 import type { Municipality } from "@/lib/pr-municipalities";
 import type {
@@ -28,10 +40,10 @@ import { EventCardCompact, EventRow } from "./event-card";
 /**
  * Event discovery: search, filters, sort, and the list/map views.
  *
- * Filtering and sorting run on the client over every upcoming published race,
- * which is small enough that one pass per keystroke beats a round-trip. Every control
- * that narrows the set also resets to page 1, so results never open on a page
- * the narrowed set no longer has.
+ * Search, filters and sort run in the database (`search_events()`), which
+ * hands back 24 races a call. The first page comes with the server render;
+ * the rest load from `GET /api/events` as the runner scrolls toward the end
+ * of the list. Changing any control starts the list over from the top.
  */
 const DISTANCES: Distance[] = [
   "1 Mile",
@@ -70,16 +82,7 @@ const SORTS = [
   { value: "popular", key: "events.discovery.sortPopular" },
   { value: "distance", key: "events.discovery.sortDistance" },
   { value: "price", key: "events.discovery.sortPrice" },
-] as const;
-
-type Sort = (typeof SORTS)[number]["value"];
-
-/** Minutes past midnight for a "7:30 AM"-style start time, for same-day ties. */
-function minutesOf(time: string | undefined): number {
-  const [, h, m, meridiem] = time?.match(/(\d+):(\d+)\s*(AM|PM)/i) ?? [];
-  if (!h) return 0;
-  return ((Number(h) % 12) + (meridiem.toUpperCase() === "PM" ? 12 : 0)) * 60 + Number(m);
-}
+] as const satisfies readonly { value: EventSort; key: string }[];
 
 const DATE_WINDOWS = [
   { value: "any", key: "events.discovery.dateAny" },
@@ -87,7 +90,11 @@ const DATE_WINDOWS = [
   { value: "90", key: "events.discovery.date90" },
 ] as const;
 
-const PAGE_SIZE = 4;
+/** How long typing has to pause before the search goes out. */
+const QUERY_DEBOUNCE_MS = 300;
+
+/** A page of results, and the search it answers. */
+type Shown = EventPage & { key: string };
 
 function toggle<T>(list: T[], value: T): T[] {
   return list.includes(value)
@@ -96,22 +103,21 @@ function toggle<T>(list: T[], value: T): T[] {
 }
 
 export function EventDiscovery({
-  events,
-  initialQuery = "",
-  initialDistance,
+  initialSearch,
+  initialPage,
 }: {
-  events: RunningEvent[];
-  initialQuery?: string;
-  initialDistance?: string;
+  initialSearch: EventSearch;
+  /** The first page of `initialSearch`, from the server render. */
+  initialPage: EventPage;
 }) {
   const t = useT();
   const fmt = useFormat();
+  const locale = useLocale();
 
-  const [query, setQuery] = useState(initialQuery);
+  const [query, setQuery] = useState(initialSearch.query);
+  const [settledQuery, setSettledQuery] = useState(initialSearch.query);
   const [distances, setDistances] = useState<Distance[]>(
-    initialDistance && DISTANCES.includes(initialDistance as Distance)
-      ? [initialDistance as Distance]
-      : [],
+    initialSearch.distances,
   );
   const [types, setTypes] = useState<EventType[]>([]);
   const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
@@ -120,81 +126,122 @@ export function EventDiscovery({
   // 95 is the slider ceiling: at the top of the range the price filter is off,
   // which is also how `activeFilterCount` decides not to count it.
   const [maxPrice, setMaxPrice] = useState(95);
-  const [sort, setSort] = useState<Sort>("soonest");
+  const [sort, setSort] = useState<EventSort>("soonest");
   const [view, setView] = useState<"list" | "map">("list");
-  const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  const search = useMemo<EventSearch>(
+    () => ({
+      query: settledQuery,
+      distances,
+      types,
+      difficulties,
+      statuses,
+      maxPrice: maxPrice < 95 ? maxPrice : undefined,
+      withinDays: dateWindow === "any" ? undefined : Number(dateWindow),
+      sort,
+    }),
+    [settledQuery, distances, types, difficulties, statuses, maxPrice, dateWindow, sort],
+  );
+  const searchKey = searchToParams(search, 0).toString();
 
-    const filtered = events.filter((e) => {
-      if (q) {
-        const haystack =
-          `${e.name} ${e.city} ${e.region} ${e.type} ${e.venue}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      if (
-        distances.length &&
-        !e.categories.some((c) => distances.includes(c.name))
-      ) {
-        return false;
-      }
-      if (types.length && !types.includes(e.type)) return false;
-      if (difficulties.length && !difficulties.includes(e.difficulty))
-        return false;
-      if (statuses.length && !statuses.includes(e.registrationStatus))
-        return false;
-      if (maxPrice < 95 && e.fromPrice > maxPrice) return false;
-      if (dateWindow !== "any") {
-        const days = Number(dateWindow);
-        const delta =
-          (new Date(`${e.date}T00:00:00`).getTime() - today.getTime()) /
-          86_400_000;
-        if (delta > days) return false;
-      }
-      return true;
-    });
+  const [shown, setShown] = useState<Shown>(() => ({
+    ...initialPage,
+    key: searchToParams(initialSearch, 0).toString(),
+  }));
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // Bumped by "try again" when a fresh search failed, to send it once more.
+  const [attempt, setAttempt] = useState(0);
+  // The search most recently sent, so a slow answer to an older one is dropped.
+  const latestKey = useRef(shown.key);
 
-    const sorted = [...filtered];
-    switch (sort) {
-      case "soonest":
-        sorted.sort(
-          (a, b) =>
-            a.date.localeCompare(b.date) ||
-            minutesOf(a.startTime) - minutesOf(b.startTime),
-        );
-        break;
-      case "popular":
-        sorted.sort((a, b) => b.registered - a.registered);
-        break;
-      case "price":
-        sorted.sort((a, b) => a.fromPrice - b.fromPrice);
-        break;
-      case "distance":
-        sorted.sort(
-          (a, b) =>
-            Math.max(...b.categories.map((c) => c.distanceKm)) -
-            Math.max(...a.categories.map((c) => c.distanceKm)),
-        );
-        break;
-      default:
-        sorted.sort((a, b) => b.popularity - a.popularity);
-    }
-    return sorted;
-  }, [
-    events,
-    query,
-    distances,
-    types,
-    difficulties,
-    statuses,
-    maxPrice,
-    dateWindow,
-    sort,
-  ]);
+  // What is on screen answers an older search while the new one loads.
+  const replacing = searchKey !== shown.key && !failed;
+  const results = shown.events;
+  const hasMore = !replacing && results.length < shown.total;
+
+  async function fetchPage(offset: number, signal?: AbortSignal) {
+    const params = searchToParams(search, offset);
+    params.set("lang", locale);
+    const res = await fetch(`/api/events?${params}`, { signal });
+    if (!res.ok) throw new Error(`GET /api/events: ${res.status}`);
+    return (await res.json()) as EventPage;
+  }
+
+  // Typing settles before it searches; every other control applies at once.
+  useEffect(() => {
+    const id = setTimeout(() => setSettledQuery(query), QUERY_DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const startOver = useEffectEvent((signal: AbortSignal) => {
+    const key = searchKey;
+    latestKey.current = key;
+    setFailed(false);
+    fetchPage(0, signal)
+      .then((page) => {
+        if (latestKey.current === key) setShown({ ...page, key });
+      })
+      .catch(() => {
+        if (!signal.aborted && latestKey.current === key) setFailed(true);
+      });
+  });
+
+  useEffect(() => {
+    if (searchKey === latestKey.current && attempt === 0) return;
+    const controller = new AbortController();
+    startOver(controller.signal);
+    return () => controller.abort();
+  }, [searchKey, attempt]);
+
+  function loadMore() {
+    if (loadingMore || !hasMore || failed) return;
+    const key = shown.key;
+    setLoadingMore(true);
+    fetchPage(results.length)
+      .then((page) =>
+        setShown((s) => {
+          if (s.key !== key) return s;
+          const seen = new Set(s.events.map((e) => e.id));
+          const events = [
+            ...s.events,
+            ...page.events.filter((e) => !seen.has(e.id)),
+          ];
+          // An empty page means races closed since the count; stop here.
+          return {
+            key,
+            events,
+            total: page.events.length ? page.total : events.length,
+          };
+        }),
+      )
+      .catch(() => setFailed(true))
+      .finally(() => setLoadingMore(false));
+  }
+
+  function retry() {
+    setFailed(false);
+    if (searchKey !== shown.key) setAttempt((n) => n + 1);
+  }
+
+  // Load the next page while the end of the list is still a screen away.
+  // Re-observed after each page, so a short page that leaves the sentinel in
+  // view still asks for the one after it.
+  const sentinel = useRef<HTMLDivElement>(null);
+  const onSentinel = useEffectEvent(loadMore);
+  useEffect(() => {
+    const el = sentinel.current;
+    if (!el || !hasMore || failed) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) onSentinel();
+      },
+      { rootMargin: "800px 0px" },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, failed, results.length, view]);
 
   const activeFilterCount =
     distances.length +
@@ -204,13 +251,6 @@ export function EventDiscovery({
     (dateWindow !== "any" ? 1 : 0) +
     (maxPrice < 95 ? 1 : 0);
 
-  const pageCount = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
-  const safePage = Math.min(page, pageCount);
-  const pageItems = results.slice(
-    (safePage - 1) * PAGE_SIZE,
-    safePage * PAGE_SIZE,
-  );
-
   function clearAll() {
     setDistances([]);
     setTypes([]);
@@ -218,7 +258,6 @@ export function EventDiscovery({
     setStatuses([]);
     setDateWindow("any");
     setMaxPrice(95);
-    setPage(1);
   }
 
   const filterPanel = (
@@ -251,7 +290,6 @@ export function EventDiscovery({
               active={distances.includes(d)}
               onClick={() => {
                 setDistances((v) => toggle(v, d));
-                setPage(1);
               }}
             >
               {distanceLabel(t, d)}
@@ -272,7 +310,6 @@ export function EventDiscovery({
               checked={dateWindow === w.value}
               onChange={() => {
                 setDateWindow(w.value);
-                setPage(1);
               }}
             />
           ))}
@@ -289,7 +326,6 @@ export function EventDiscovery({
               active={types.includes(type)}
               onClick={() => {
                 setTypes((v) => toggle(v, type));
-                setPage(1);
               }}
             >
               {eventTypeLabel(t, type)}
@@ -316,7 +352,6 @@ export function EventDiscovery({
           value={maxPrice}
           onChange={(e) => {
             setMaxPrice(Number(e.target.value));
-            setPage(1);
           }}
           className="mt-4 w-full accent-[#FFF200]"
         />
@@ -332,7 +367,6 @@ export function EventDiscovery({
               active={difficulties.includes(d)}
               onClick={() => {
                 setDifficulties((v) => toggle(v, d));
-                setPage(1);
               }}
             >
               {difficultyLabel(t, d)}
@@ -353,7 +387,6 @@ export function EventDiscovery({
               active={statuses.includes(s.value)}
               onClick={() => {
                 setStatuses((v) => toggle(v, s.value));
-                setPage(1);
               }}
             >
               {t(s.key)}
@@ -381,13 +414,17 @@ export function EventDiscovery({
               value={query}
               onChange={(e) => {
                 setQuery(e.target.value);
-                setPage(1);
               }}
               placeholder={t("events.discovery.searchPlaceholder")}
               aria-label={t("events.discovery.searchAria")}
               className="border-r-0"
             />
-            <Button variant="secondary" size="lg" className="shrink-0 px-7">
+            <Button
+              variant="secondary"
+              size="lg"
+              className="shrink-0 px-7"
+              onClick={() => setSettledQuery(query)}
+            >
               {t("events.discovery.search")}
             </Button>
           </div>
@@ -404,8 +441,8 @@ export function EventDiscovery({
           {/* Toolbar ---------------------------------------------------- */}
           <div className="flex flex-wrap items-center gap-4 border-b-2 border-line px-4 py-4 sm:px-6">
             <span className="font-mono text-[12px] tracking-[0.14em] text-fg-dim uppercase">
-              <b className="text-fg">{fmt.number(results.length)}</b>{" "}
-              {results.length === 1
+              <b className="text-fg">{fmt.number(shown.total)}</b>{" "}
+              {shown.total === 1
                 ? t("events.discovery.raceCount_one")
                 : t("events.discovery.raceCount_other")}
             </span>
@@ -437,7 +474,7 @@ export function EventDiscovery({
               <select
                 id="sort"
                 value={sort}
-                onChange={(e) => setSort(e.target.value as Sort)}
+                onChange={(e) => setSort(e.target.value as EventSort)}
                 className="border-2 border-line-strong bg-carbon px-3 py-2 text-xs font-bold tracking-wider uppercase focus:border-neon-lime focus:outline-none"
               >
                 {SORTS.map((s) => (
@@ -467,7 +504,7 @@ export function EventDiscovery({
               <div className="p-5">
                 <Button block size="lg" onClick={() => setFiltersOpen(false)}>
                   {t("events.discovery.showResults", {
-                    count: fmt.number(results.length),
+                    count: fmt.number(shown.total),
                   })}
                 </Button>
               </div>
@@ -475,7 +512,7 @@ export function EventDiscovery({
           ) : null}
 
           {/* Results ---------------------------------------------------- */}
-          {results.length === 0 ? (
+          {results.length === 0 && !replacing && !failed ? (
             <div className="p-4 sm:p-8">
               <EmptyState
                 icon="🔍"
@@ -487,28 +524,49 @@ export function EventDiscovery({
                 }}
               />
             </div>
-          ) : view === "map" ? (
-            <MapView events={results} />
           ) : (
-            <>
-              <div className="hidden sm:block">
-                {pageItems.map((event) => (
-                  <EventRow key={event.id} event={event} />
-                ))}
+            <div
+              aria-busy={replacing || loadingMore}
+              className={cn(
+                "transition-opacity",
+                replacing && "pointer-events-none opacity-50",
+              )}
+            >
+              {view === "map" ? (
+                <MapView events={results} />
+              ) : (
+                <>
+                  <div className="hidden sm:block">
+                    {results.map((event) => (
+                      <EventRow key={event.id} event={event} />
+                    ))}
+                  </div>
+                  <div className="grid gap-4 p-4 sm:hidden">
+                    {results.map((event) => (
+                      <EventCardCompact key={event.id} event={event} />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Next page ------------------------------------------- */}
+              <div ref={sentinel} aria-live="polite">
+                {failed ? (
+                  <div className="flex flex-wrap items-center gap-4 border-t-2 border-line px-4 py-6 sm:px-6">
+                    <span className="text-sm text-fg-dim">
+                      {t("events.discovery.loadFailed")}
+                    </span>
+                    <Button variant="outline" size="sm" onClick={retry}>
+                      {t("events.discovery.retry")}
+                    </Button>
+                  </div>
+                ) : loadingMore ? (
+                  <div className="border-t-2 border-line px-4 py-6 font-mono text-[11px] tracking-[0.14em] text-fg-dim uppercase sm:px-6">
+                    {t("events.discovery.loadingMore")}
+                  </div>
+                ) : null}
               </div>
-              <div className="grid gap-4 p-4 sm:hidden">
-                {pageItems.map((event) => (
-                  <EventCardCompact key={event.id} event={event} />
-                ))}
-              </div>
-              <div className="flex justify-center border-t-2 border-line px-4 py-6 sm:justify-start sm:px-6">
-                <Pagination
-                  page={safePage}
-                  pageCount={pageCount}
-                  onChange={setPage}
-                />
-              </div>
-            </>
+            </div>
           )}
         </div>
       </div>
