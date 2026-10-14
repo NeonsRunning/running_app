@@ -2,9 +2,10 @@ import { cache } from "react";
 import { eventImageUrl } from "@/lib/events/images";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
-import { getT } from "@/lib/i18n/server";
+import { getT, getTranslator } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { initialsOf } from "@/lib/profile/queries";
+import { EVENTS_PAGE_SIZE, type EventPage, type EventSearch } from "./search";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
@@ -235,6 +236,7 @@ function toOrganizer(row: PublishedRow): Organizer {
 async function selectEvents(where: {
   slug?: string;
   from?: string;
+  ids?: string[];
 }): Promise<PublishedRow[]> {
   if (!hasSupabaseEnv()) return [];
 
@@ -246,6 +248,7 @@ async function selectEvents(where: {
     .select(EVENT_COLUMNS)
     .eq("status", "published");
   if (where.slug) query = query.eq("slug", where.slug);
+  if (where.ids) query = query.in("id", where.ids);
   // Listed until its last day has passed, not just its first.
   if (where.from) query = query.gte("last_day", where.from);
 
@@ -371,6 +374,66 @@ export async function listPublishedEvents(
   ]);
   const counts = await registrationCounts(rows.map((r) => r.id));
   return rows.map((r) => toEvent(r, counts, locale, t));
+}
+
+/**
+ * One page of the /events search: `search_events()` filters, sorts and picks
+ * the ids, then the rows are read and put back in its order. An empty page
+ * on any failure, like the rest of the listing.
+ */
+export async function searchEvents(
+  search: EventSearch,
+  offset: number,
+  locale: Locale,
+): Promise<EventPage> {
+  const empty = { events: [], total: 0 };
+  if (!hasSupabaseEnv()) return empty;
+
+  const today = todayIso();
+  let until: string | undefined;
+  if (search.withinDays !== undefined) {
+    const d = new Date(`${today}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + search.withinDays);
+    until = d.toISOString().slice(0, 10);
+  }
+  const some = <T>(list: T[]) => (list.length ? list : undefined);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("search_events", {
+    p_today: today,
+    p_query: search.query.trim() || undefined,
+    p_distances: some(search.distances),
+    p_types: some(search.types),
+    p_difficulties: some(search.difficulties),
+    p_statuses: some(search.statuses),
+    p_max_price: search.maxPrice,
+    p_until: until,
+    p_sort: search.sort,
+    p_limit: EVENTS_PAGE_SIZE,
+    p_offset: offset,
+  });
+  if (error) {
+    console.error("search_events() failed:", error.message);
+    return empty;
+  }
+
+  const ids = (data ?? []).map((r) => r.id);
+  const total = Number(data?.[0]?.total ?? 0);
+  if (ids.length === 0) return { events: [], total };
+
+  const [rows, t, counts] = await Promise.all([
+    selectEvents({ ids }),
+    getTranslator(locale),
+    registrationCounts(ids),
+  ]);
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  return {
+    events: ids.flatMap((id) => {
+      const row = byId.get(id);
+      return row ? [toEvent(row, counts, locale, t)] : [];
+    }),
+    total,
+  };
 }
 
 /** One race and the organizer behind it, or null. */

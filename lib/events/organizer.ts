@@ -5,6 +5,7 @@ import type { AidStation, ScheduleItem } from "@/lib/types";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "./form";
 import { SERVICE_FEE } from "./pricing";
 import { todayIso } from "./queries";
+import { EVENTS_PAGE_SIZE } from "./search";
 import type { Country } from "./vocabulary";
 
 /**
@@ -18,6 +19,11 @@ import type { Country } from "./vocabulary";
 
 type CategoryRow = Tables<"event_categories">;
 type EventRow = Tables<"events"> & { event_categories: CategoryRow[] };
+/** What the dashboard's totals need of every event. */
+type SummaryRow = Pick<
+  Tables<"events">,
+  "id" | "status" | "last_day" | "registration_closes" | "capacity" | "event_date"
+> & { event_categories: Pick<CategoryRow, "capacity">[] };
 type RegistrationRow = Pick<
   Tables<"registrations">,
   "event_id" | "category_id" | "amount" | "created_at" | "gender" | "birth_date"
@@ -50,7 +56,15 @@ export type Dashboard = {
   /** Monthly revenue, oldest first, labelled "Jan"…"Dec". */
   revenueSeries: { label: string; value: number }[];
   demographics: { label: string; women: number; men: number }[];
+  /** All the organizer's events, drafts included. */
+  eventCount: number;
+};
+
+/** One page of the dashboard's event cards. */
+export type DashboardEventPage = {
   events: DashboardEvent[];
+  /** The organizer's events across every page. */
+  total: number;
 };
 
 const WEEKS = 12;
@@ -87,7 +101,7 @@ function ageGroup(birthDate: string, on: string): (typeof AGE_GROUPS)[number] {
 }
 
 function dashboardStatus(
-  event: EventRow,
+  event: SummaryRow,
   registered: number,
   capacity: number,
   today: string,
@@ -109,8 +123,74 @@ const EMPTY_DASHBOARD: Dashboard = {
   registrationsSeries: [],
   revenueSeries: [],
   demographics: [],
-  events: [],
+  eventCount: 0,
 };
+
+/** Seats on offer: the event's own cap, else the sum of its categories'. */
+function capacityOf(event: SummaryRow): number {
+  return (
+    event.capacity ?? event.event_categories.reduce((sum, c) => sum + c.capacity, 0)
+  );
+}
+
+/**
+ * The organizer's event cards, 24 at a time, in date order with undated
+ * drafts first. The dashboard renders the first page; the rest come from
+ * `GET /api/organizer/events` as the organizer scrolls.
+ */
+export async function getOrganizerEvents(
+  organizerId: string,
+  offset: number,
+): Promise<DashboardEventPage> {
+  if (!hasSupabaseEnv()) return { events: [], total: 0 };
+
+  const supabase = await createClient();
+  const { data, count, error } = await supabase
+    .from("events")
+    .select("*, event_categories (*)", { count: "exact" })
+    .eq("organizer_id", organizerId)
+    .order("event_date", { ascending: true, nullsFirst: true })
+    // A total order, so consecutive pages never repeat or skip an event.
+    .order("id")
+    .range(offset, offset + EVENTS_PAGE_SIZE - 1);
+  if (error || !data) return { events: [], total: 0 };
+  const events = data as EventRow[];
+
+  const regs = new Map<string, { registered: number; revenue: number }>();
+  if (events.length) {
+    const { data: rows } = await supabase
+      .from("registrations")
+      .select("event_id, amount")
+      .in("event_id", events.map((e) => e.id))
+      .eq("status", "confirmed");
+    for (const r of rows ?? []) {
+      const sum = regs.get(r.event_id) ?? { registered: 0, revenue: 0 };
+      sum.registered += 1;
+      sum.revenue += net(r.amount);
+      regs.set(r.event_id, sum);
+    }
+  }
+
+  const today = todayIso();
+  return {
+    events: events.map((e) => {
+      const { registered, revenue } = regs.get(e.id) ?? { registered: 0, revenue: 0 };
+      const capacity = capacityOf(e);
+      return {
+        id: e.id,
+        slug: e.slug,
+        name: e.name,
+        status: dashboardStatus(e, registered, capacity, today),
+        date: e.event_date,
+        city: e.city,
+        registered,
+        capacity,
+        revenue,
+      };
+    }),
+    total: count ?? events.length,
+  };
+}
 
 export async function getOrganizerDashboard(
   organizerId: string,
@@ -118,12 +198,15 @@ export async function getOrganizerDashboard(
   if (!hasSupabaseEnv()) return EMPTY_DASHBOARD;
 
   const supabase = await createClient();
+  // Every event, but only the columns the totals read: the cards themselves
+  // load a page at a time through `getOrganizerEvents()`.
   const { data: eventData } = await supabase
     .from("events")
-    .select("*, event_categories (*)")
-    .eq("organizer_id", organizerId)
-    .order("event_date", { ascending: true, nullsFirst: true });
-  const events = (eventData ?? []) as EventRow[];
+    .select(
+      "id, status, last_day, registration_closes, capacity, event_date, event_categories (capacity)",
+    )
+    .eq("organizer_id", organizerId);
+  const events = (eventData ?? []) as SummaryRow[];
 
   let registrations: RegistrationRow[] = [];
   if (events.length) {
@@ -145,22 +228,9 @@ export async function getOrganizerDashboard(
     byEvent.set(r.event_id, [...(byEvent.get(r.event_id) ?? []), r]);
   }
 
-  const cards: DashboardEvent[] = events.map((e) => {
-    const regs = byEvent.get(e.id) ?? [];
-    const capacity =
-      e.capacity ?? e.event_categories.reduce((sum, c) => sum + c.capacity, 0);
-    return {
-      id: e.id,
-      slug: e.slug,
-      name: e.name,
-      status: dashboardStatus(e, regs.length, capacity, today),
-      date: e.event_date,
-      city: e.city,
-      registered: regs.length,
-      capacity,
-      revenue: regs.reduce((sum, r) => sum + net(r.amount), 0),
-    };
-  });
+  const statuses = events.map((e) =>
+    dashboardStatus(e, byEvent.get(e.id)?.length ?? 0, capacityOf(e), today),
+  );
 
   /* Weekly sign-ups, last 12 ISO weeks ending this one -------------------- */
   const weekStarts = Array.from({ length: WEEKS }, (_, i) => {
@@ -211,14 +281,14 @@ export async function getOrganizerDashboard(
   return {
     totals: {
       registrations: registrations.length,
-      revenue: Math.round(cards.reduce((sum, c) => sum + c.revenue, 0)),
-      activeEvents: cards.filter((c) => c.status === "Live" || c.status === "Closing").length,
-      drafts: cards.filter((c) => c.status === "Draft").length,
+      revenue: Math.round(registrations.reduce((sum, r) => sum + net(r.amount), 0)),
+      activeEvents: statuses.filter((s) => s === "Live" || s === "Closing").length,
+      drafts: statuses.filter((s) => s === "Draft").length,
     },
     registrationsSeries,
     revenueSeries,
     demographics,
-    events: cards,
+    eventCount: events.length,
   };
 }
 

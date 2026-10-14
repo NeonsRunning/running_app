@@ -9,18 +9,21 @@ import { cn } from "@/lib/cn";
 
 /**
  * Delete an event from its dashboard card, after a confirmation. The action
- * revalidates the layout, so the card disappears on its own.
+ * revalidates the layout for the totals; `onDeleted` lets a list that loaded
+ * its cards on the client drop the card itself.
  */
 export function DeleteEventButton({
   id,
   name,
   live,
   className,
+  onDeleted,
 }: {
   id: string;
   name: string;
   live: boolean;
   className?: string;
+  onDeleted?: () => void;
 }) {
   const t = useT();
   const { toast } = useToast();
@@ -30,6 +33,7 @@ export function DeleteEventButton({
   function remove() {
     startTransition(async () => {
       const result = await deleteEventAction(id);
+      if (result.ok) onDeleted?.();
       toast(
         result.ok
           ? {

@@ -396,6 +396,22 @@ export type Database = {
         Args: { p_event_ids: string[] };
         Returns: { category_id: string; registered: number }[];
       };
+      search_events: {
+        Args: {
+          p_today: string;
+          p_query?: string;
+          p_distances?: Database["public"]["Enums"]["race_distance"][];
+          p_types?: Database["public"]["Enums"]["event_type"][];
+          p_difficulties?: Database["public"]["Enums"]["event_difficulty"][];
+          p_statuses?: string[];
+          p_max_price?: number;
+          p_until?: string;
+          p_sort?: string;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: { id: string; total: number }[];
+      };
       save_event: {
         Args: {
           p_id: string | null;
