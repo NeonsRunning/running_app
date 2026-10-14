@@ -18,13 +18,14 @@ import {
   aidOfferLabel,
   difficultyLabel,
   distanceLabel,
+  startTimeLabel,
   waveLabel,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
 import type { IncludedIcon, Organizer, RunningEvent } from "@/lib/types";
 
 /**
- * The six tabs on an event page. Which tab is open is component state rather
+ * The five tabs on an event page. Which tab is open is component state rather
  * than a URL parameter: it is a reading position within one event, and the
  * page above it is server-rendered per event either way.
  */
@@ -33,7 +34,6 @@ const TAB_ITEMS = [
   { value: "details", key: "events.tabs.details" },
   { value: "course", key: "events.tabs.course" },
   { value: "schedule", key: "events.tabs.schedule" },
-  { value: "location", key: "events.tabs.location" },
   { value: "organizer", key: "events.tabs.organizer" },
 ] as const;
 
@@ -153,9 +153,13 @@ export function EventDetailTabs({
           />
           <SpecCell
             label={t("events.tabs.specStartTime")}
-            value={t("events.tabs.specStartTimeValue", {
-              time: fmt.clock(event.startTime),
-            })}
+            value={
+              event.startTime
+                ? t("events.tabs.specStartTimeValue", {
+                    time: fmt.clock(event.startTime),
+                  })
+                : startTimeLabel(t, fmt, undefined, Boolean(event.endDate))
+            }
             className="bg-ink sm:px-8 lg:px-10"
           />
           <SpecCell
@@ -199,7 +203,12 @@ export function EventDetailTabs({
                   </p>
                   <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
                     {t("events.tabs.categoryMeta", {
-                      time: fmt.clock(c.startTime),
+                      time: startTimeLabel(
+                        t,
+                        fmt,
+                        c.startTime,
+                        Boolean(event.endDate),
+                      ),
                       wave: waveLabel(t, c.wave),
                       km: fmt.number(c.distanceKm),
                     })}
@@ -223,7 +232,11 @@ export function EventDetailTabs({
 
       {/* ---------------------------------------------------------------- */}
       <TabPanel value="course" active={tab === "course"}>
-        <CourseMap event={event} />
+        {event.routeImage ? (
+          <RouteImage event={event} src={event.routeImage} />
+        ) : (
+          <CourseMap event={event} />
+        )}
         <div className="grid gap-0.5 bg-line sm:grid-cols-2 lg:grid-cols-4">
           <SpecCell
             label={t("events.tabs.specElevation")}
@@ -245,6 +258,22 @@ export function EventDetailTabs({
             value={event.surface}
             className="bg-ink"
           />
+        </div>
+        <div className="grid gap-0.5 border-t-2 border-line bg-line sm:grid-cols-3">
+          <div className="bg-ink px-5 py-6 sm:px-7">
+            <Eyebrow>{t("events.tabs.address")}</Eyebrow>
+            <p className="mt-2.5 text-[15px] leading-relaxed">{event.address}</p>
+          </div>
+          <div className="bg-ink px-5 py-6 sm:px-7">
+            <Eyebrow>{t("events.tabs.parking")}</Eyebrow>
+            <p className="mt-2.5 text-[15px] leading-relaxed">{event.parking}</p>
+          </div>
+          <div className="bg-ink px-5 py-6 sm:px-7">
+            <Eyebrow>{t("events.tabs.directions")}</Eyebrow>
+            <p className="mt-2.5 text-[15px] leading-relaxed">
+              {event.directions}
+            </p>
+          </div>
         </div>
         <div className="px-5 py-9 sm:px-8 lg:px-10">
           <Eyebrow>{t("events.tabs.aidStations")}</Eyebrow>
@@ -295,34 +324,6 @@ export function EventDetailTabs({
               </li>
             ))}
           </ol>
-        </div>
-      </TabPanel>
-
-      {/* ---------------------------------------------------------------- */}
-      <TabPanel value="location" active={tab === "location"}>
-        <div className="bg-grid-map relative h-64 overflow-hidden border-b-2 border-line bg-carbon sm:h-80">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-neon-yellow px-3 py-2 text-xs font-black text-ink">
-            {t("events.tabs.startFinish")}
-          </div>
-          <p className="absolute bottom-5 left-5 font-mono text-[11px] tracking-[0.16em] text-fg-faint uppercase">
-            {event.venue}
-          </p>
-        </div>
-        <div className="grid gap-0.5 bg-line sm:grid-cols-3">
-          <div className="bg-ink px-5 py-6 sm:px-7">
-            <Eyebrow>{t("events.tabs.address")}</Eyebrow>
-            <p className="mt-2.5 text-[15px] leading-relaxed">{event.address}</p>
-          </div>
-          <div className="bg-ink px-5 py-6 sm:px-7">
-            <Eyebrow>{t("events.tabs.parking")}</Eyebrow>
-            <p className="mt-2.5 text-[15px] leading-relaxed">{event.parking}</p>
-          </div>
-          <div className="bg-ink px-5 py-6 sm:px-7">
-            <Eyebrow>{t("events.tabs.directions")}</Eyebrow>
-            <p className="mt-2.5 text-[15px] leading-relaxed">
-              {event.directions}
-            </p>
-          </div>
         </div>
       </TabPanel>
 
@@ -400,6 +401,37 @@ export function EventDetailTabs({
         </div>
       </TabPanel>
     </div>
+  );
+}
+
+/**
+ * The organizer's own route map. Shown whole rather than cropped, since the
+ * edges of a map matter; it links to the full-size file for zooming.
+ */
+function RouteImage({ event, src }: { event: RunningEvent; src: string }) {
+  const t = useT();
+  const fmt = useFormat();
+
+  return (
+    <figure className="border-b-2 border-line bg-carbon">
+      <a href={src} target="_blank" rel="noopener" className="block">
+        {/* A Supabase Storage URL, like the cover; see `EventCover`. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={t("events.tabs.routeImageAlt", { name: event.name })}
+          loading="lazy"
+          decoding="async"
+          className="mx-auto max-h-[36rem] w-full object-contain"
+        />
+      </a>
+      <figcaption className="flex flex-wrap justify-between gap-2 border-t-2 border-line px-5 py-3 font-mono text-[11px] tracking-[0.16em] text-fg-faint uppercase">
+        <span>
+          {t("events.tabs.routeMap", { gain: fmt.number(event.elevationGain) })}
+        </span>
+        <span>{t("events.tabs.routeImageOpen")}</span>
+      </figcaption>
+    </figure>
   );
 }
 

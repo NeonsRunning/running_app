@@ -11,7 +11,11 @@ import { daysUntil } from "@/lib/data";
 import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
-import { distanceLabel, eventTypeLabel } from "@/lib/i18n/labels";
+import {
+  distanceLabel,
+  eventTypeLabel,
+  startTimeLabel,
+} from "@/lib/i18n/labels";
 
 export async function generateMetadata(
   props: PageProps<"/[lang]/events/[slug]">,
@@ -93,9 +97,11 @@ export default async function EventDetailPage(
               {fmt.longDate(event.date)}
             </span>
             <span>
-              {t("events.detail.startSuffix", {
-                time: fmt.clock(event.startTime),
-              })}
+              {event.startTime
+                ? t("events.detail.startSuffix", {
+                    time: fmt.clock(event.startTime),
+                  })
+                : startTimeLabel(t, fmt, undefined, Boolean(event.endDate))}
             </span>
           </div>
         </div>
@@ -115,7 +121,12 @@ export default async function EventDetailPage(
         />
         <SpecCell
           label={t("events.detail.specStartTime")}
-          value={fmt.clock(event.startTime)}
+          value={startTimeLabel(
+            t,
+            fmt,
+            event.startTime,
+            Boolean(event.endDate),
+          )}
           className="bg-ink"
         />
         <SpecCell

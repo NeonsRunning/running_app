@@ -78,9 +78,6 @@ export default async function LandingPage() {
               <Button href="/events" size="xl">
                 {t("home.exploreEvents")}
               </Button>
-              <Button href="/results" variant="outline" size="xl">
-                {t("home.viewResults")}
-              </Button>
             </div>
           </div>
 

@@ -14,7 +14,11 @@ import {
 } from "@/components/register/payment-fields";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
-import { distanceLabel, waveLabel } from "@/lib/i18n/labels";
+import {
+  distanceLabel,
+  startTimeLabel,
+  waveLabel,
+} from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
 import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import {
@@ -470,7 +474,12 @@ export function RegistrationFlow({
                           </span>
                           <span className="mt-1 block font-mono text-[11px] tracking-[0.14em] text-fg-dim uppercase">
                             {t("register.step1.categoryMeta", {
-                              time: fmt.clock(c.startTime),
+                              time: startTimeLabel(
+                                t,
+                                fmt,
+                                c.startTime,
+                                Boolean(event.endDate),
+                              ),
                               wave: waveLabel(t, c.wave),
                               km: fmt.number(c.distanceKm),
                             })}
@@ -978,7 +987,13 @@ export function RegistrationFlow({
               <p className="mt-3 text-[15px] leading-relaxed text-fg-muted">
                 {fmt.longDate(event.date)}
                 <br />
-                {fmt.clock(category.startTime)} · {event.venue}
+                {startTimeLabel(
+                  t,
+                  fmt,
+                  category.startTime,
+                  Boolean(event.endDate),
+                )}{" "}
+                · {event.venue}
               </p>
             </div>
           </div>
@@ -1094,7 +1109,8 @@ function Confirmation({
             {event.name}
           </p>
           <p className="mt-1.5 font-mono text-[13px] tracking-[0.14em] text-fg-muted uppercase">
-            {fmt.longDate(event.date)} · {fmt.clock(event.startTime)}
+            {fmt.longDate(event.date)} ·{" "}
+            {startTimeLabel(t, fmt, event.startTime, Boolean(event.endDate))}
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

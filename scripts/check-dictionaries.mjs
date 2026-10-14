@@ -39,6 +39,9 @@ const DYNAMIC_PREFIXES = [
   "publish.checklist.",
   "publish.errors.",
   "publish.countries.",
+  // `ImageStep` labels, one section per image field.
+  "publish.image.",
+  "publish.routeImage.",
   "register.steps.",
   "register.errors.",
   "footer.",

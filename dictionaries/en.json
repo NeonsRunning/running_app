@@ -135,6 +135,10 @@
       "open": "Open",
       "seeded-heats": "Seeded heats"
     },
+    "start": {
+      "anytime": "Any time",
+      "tba": "Time TBA"
+    },
     "aidOffer": {
       "water": "Water",
       "electrolyte": "Electrolyte",
@@ -294,7 +298,6 @@
       "details": "Race details",
       "course": "Course",
       "schedule": "Schedule",
-      "location": "Location",
       "organizer": "Organizer",
       "about": "About this race",
       "included": "What’s included",
@@ -320,7 +323,6 @@
       "kmMarkersValue": "Every 1 km",
       "specSurface": "Surface",
       "aidStations": "Aid stations",
-      "startFinish": "START / FINISH",
       "address": "Address",
       "parking": "Parking",
       "directions": "Directions",
@@ -333,6 +335,8 @@
       "finish": "FINISH",
       "aid": "AID {n} · {km}K",
       "routeMap": "Route map · {gain} m gain",
+      "routeImageAlt": "Route map for {name}",
+      "routeImageOpen": "Open full size ↗",
       "aidStationLabel": "Aid station {n}"
     }
   },
@@ -1143,6 +1147,8 @@
       "registration": "Registration",
       "extras": "Extras",
       "details": "Event details",
+      "image": "Cover image",
+      "route": "Route map",
       "review": "Review"
     },
     "untitled": "Untitled race",
@@ -1160,7 +1166,11 @@
     "eventDescriptionPlaceholder": "Describe the course, the atmosphere and what runners should expect.",
     "eventType": "Event type",
     "eventDate": "Event date",
+    "endDate": "End date",
+    "endDateHint": "Leave empty for a one-day race. The event stays listed until this day ends.",
     "startTime": "Start time",
+    "startTimeHint": "Leave empty if the start time is not set yet.",
+    "startTimeHintMultiDay": "Leave empty if runners can start any time between the two dates.",
     "registrationOpens": "Registration opens",
     "registrationCloses": "Registration closes",
     "venueName": "Venue name",
@@ -1171,7 +1181,7 @@
     "region": "Region",
     "postalCode": "Postal code",
     "country": "Country",
-    "categoriesIntro": "Add every distance you are offering. Each gets its own price, cap and start time.",
+    "categoriesIntro": "Add every distance you are offering. Each gets its own price and cap. Leave a start time empty and that distance starts with the event.",
     "category": "Category {n}",
     "remove": "Remove",
     "distanceKm": "Distance (km)",
@@ -1221,7 +1231,6 @@
     "termsLink": "organizer terms",
     "back": "Back",
     "continue": "Continue",
-    "cancel": "Cancel",
     "backToDashboard": "Organizer dashboard",
     "stepHasErrors": "This step has errors",
     "countries": {
@@ -1238,6 +1247,26 @@
     "directions": "Directions",
     "directionsPlaceholder": "How to get here by car, bus or train.",
     "previewDatePending": "Date and city pending",
+    "image": {
+      "intro": "The photo runners see on your event card and listing. Optional — without one, the event gets the NEONS cover.",
+      "choose": "Choose an image",
+      "drop": "or drag it here",
+      "hint": "JPG, PNG, WebP or iPhone HEIC, up to 40 MB. It’s resized and converted to WebP for you. A landscape photo looks best.",
+      "converting": "Preparing image…",
+      "uploading": "Uploading…",
+      "replace": "Replace image",
+      "remove": "Remove image"
+    },
+    "routeImage": {
+      "intro": "A map of the course, shown on your event’s Route tab. Optional — without one, the tab shows a simple course diagram.",
+      "choose": "Choose a route map",
+      "drop": "or drag it here",
+      "hint": "JPG, PNG, WebP or iPhone HEIC, up to 40 MB. It’s resized and converted to WebP for you. A screenshot or export from Strava, Garmin or Google Maps works well.",
+      "converting": "Preparing image…",
+      "uploading": "Uploading…",
+      "replace": "Replace map",
+      "remove": "Remove map"
+    },
     "checkDone": "done",
     "checkPending": "pending",
     "errors": {
@@ -1248,8 +1277,9 @@
       "dateRequired": "Pick a date.",
       "dateInvalid": "Enter a valid date.",
       "dateInPast": "The event date can’t be in the past.",
-      "timeRequired": "Pick a start time.",
-      "closesAfterEvent": "Registration has to close on or before race day.",
+      "endBeforeStart": "The end date can’t be before the event date.",
+      "timeInvalid": "Enter a valid start time.",
+      "closesAfterEvent": "Registration has to close by the last day of the race.",
       "opensAfterCloses": "Registration has to open before it closes.",
       "venueRequired": "Enter the venue name.",
       "cityRequired": "Enter the city.",
@@ -1257,7 +1287,7 @@
       "tooLong": "This is too long — shorten it.",
       "categoriesRequired": "Add at least one race category.",
       "categoriesTooMany": "An event can offer at most 7 categories.",
-      "categoryIncomplete": "Every category needs a distance in km, a price, a participant cap and a start time.",
+      "categoryIncomplete": "Every category needs a distance in km, a price and a participant cap.",
       "categoryDuplicate": "Each distance can only be offered once.",
       "numberInvalid": "Enter a whole number.",
       "priceInvalid": "Enter a price from 0 to 1,000, like 22 or 22.50.",
@@ -1274,7 +1304,12 @@
       "capacityBelowRegistered": "A category’s cap can’t go below the runners already registered in it.",
       "categoryHasRegistrations": "Runners are registered in a category you removed. Put it back, or change its details instead.",
       "eventHasRegistrations": "Runners are registered for this event, so it can’t be deleted.",
-      "deleteFailed": "Couldn’t delete the event — try again in a moment."
+      "deleteFailed": "Couldn’t delete the event — try again in a moment.",
+      "imageType": "Use a photo: JPG, PNG, WebP or HEIC.",
+      "imageTooLarge": "That image is too large — pick one under 40 MB.",
+      "imageUnreadable": "Couldn’t read that image. Try another photo, or save it as JPG first.",
+      "imageUploadFailed": "Couldn’t upload the image — try again in a moment.",
+      "imageInvalid": "That image can’t be used. Upload it again."
     },
     "editEvent": "Edit event",
     "editMetaTitle": "Edit event",

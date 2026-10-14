@@ -75,7 +75,9 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       await Promise.all([
         admin
           .from("events")
-          .select("name, slug, event_date, venue, city, donation_recipient")
+          .select(
+            "name, slug, event_date, end_date, start_time, venue, city, donation_recipient",
+          )
           .eq("id", claimed.event_id)
           .single(),
         admin
@@ -147,7 +149,13 @@ async function composeEmail({
   registration: Registration;
   event: Pick<
     Tables<"events">,
-    "name" | "event_date" | "venue" | "city" | "donation_recipient"
+    | "name"
+    | "event_date"
+    | "end_date"
+    | "start_time"
+    | "venue"
+    | "city"
+    | "donation_recipient"
   >;
   category: Pick<Tables<"event_categories">, "distance" | "start_time">;
   locale: Locale;
@@ -172,6 +180,12 @@ async function composeEmail({
   ].filter((v): v is string => v !== null);
 
   const location = [event.venue, event.city].filter(Boolean).join(", ");
+  // A category without its own time starts with the event; an event without
+  // one runs any time across its dates, or has not announced it yet.
+  const startTime = category.start_time ?? event.start_time;
+  const start = startTime
+    ? formatClock(clock(startTime), locale)
+    : t(event.end_date ? "labels.start.anytime" : "labels.start.tba");
 
   /** Label and value, in the order they read. Missing values are left out. */
   const rows: [string, string][] = [
@@ -180,7 +194,7 @@ async function composeEmail({
     ...(event.event_date
       ? [[t(k("date")), formatLongDate(event.event_date, locale)] as [string, string]]
       : []),
-    [t(k("start")), formatClock(clock(category.start_time), locale)],
+    [t(k("start")), start],
     ...(location ? [[t(k("location")), location] as [string, string]] : []),
     ...(extras.length ? [[t(k("extras")), extras.join(" · ")] as [string, string]] : []),
     [t(k("total")), formatMoney(Number(registration.amount), locale)],

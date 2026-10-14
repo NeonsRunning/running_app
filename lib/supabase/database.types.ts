@@ -122,6 +122,8 @@ export type Database = {
           description: string;
           type: Database["public"]["Enums"]["event_type"] | null;
           event_date: string | null;
+          end_date: string | null;
+          last_day: string | null;
           start_time: string | null;
           registration_opens: string | null;
           registration_closes: string | null;
@@ -149,6 +151,8 @@ export type Database = {
           schedule: Json;
           parking: string;
           directions: string;
+          image_path: string | null;
+          route_image_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -162,6 +166,7 @@ export type Database = {
           description?: string;
           type?: Database["public"]["Enums"]["event_type"] | null;
           event_date?: string | null;
+          end_date?: string | null;
           start_time?: string | null;
           registration_opens?: string | null;
           registration_closes?: string | null;
@@ -189,6 +194,8 @@ export type Database = {
           schedule?: Json;
           parking?: string;
           directions?: string;
+          image_path?: string | null;
+          route_image_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -202,6 +209,7 @@ export type Database = {
           description?: string;
           type?: Database["public"]["Enums"]["event_type"] | null;
           event_date?: string | null;
+          end_date?: string | null;
           start_time?: string | null;
           registration_opens?: string | null;
           registration_closes?: string | null;
@@ -229,6 +237,8 @@ export type Database = {
           schedule?: Json;
           parking?: string;
           directions?: string;
+          image_path?: string | null;
+          route_image_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -250,7 +260,7 @@ export type Database = {
           distance_km: number;
           price: number;
           capacity: number;
-          start_time: string;
+          start_time: string | null;
           position: number;
           created_at: string;
         };
@@ -261,7 +271,7 @@ export type Database = {
           distance_km: number;
           price: number;
           capacity: number;
-          start_time: string;
+          start_time?: string | null;
           position?: number;
           created_at?: string;
         };
@@ -272,7 +282,7 @@ export type Database = {
           distance_km?: number;
           price?: number;
           capacity?: number;
-          start_time?: string;
+          start_time?: string | null;
           position?: number;
           created_at?: string;
         };

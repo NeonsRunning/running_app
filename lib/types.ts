@@ -33,7 +33,8 @@ export type RaceCategory = {
   name: Distance;
   distanceKm: number;
   price: number;
-  startTime: string;
+  /** Absent when the race has no start time; see `startTimeLabel`. */
+  startTime?: string;
   wave: string;
   capacity: number;
   registered: number;
@@ -73,6 +74,10 @@ export type RunningEvent = {
   tagline: string;
   description: string[];
   type: EventType;
+  /** Cover image URL; absent for races without one, which get the gradient. */
+  image?: string;
+  /** Route map image URL; absent when the Route tab shows the schematic. */
+  routeImage?: string;
   city: string;
   region: string;
   venue: string;
@@ -82,7 +87,12 @@ export type RunningEvent = {
   day: string;
   month: string;
   year: string;
-  startTime: string;
+  /** Last day of a multi-day race, ISO; absent for a one-day one. */
+  endDate?: string;
+  /** The last day, split like `dow`/`day`/`month`; absent for a one-day race. */
+  end?: { dow: string; day: string; month: string };
+  /** Absent when runners start any time across the dates, or it is not announced. */
+  startTime?: string;
   registrationCloses: string;
   /** Formatted like `registrationCloses`; absent when sign-ups open on publish. */
   registrationOpens?: string;
