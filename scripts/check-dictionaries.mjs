@@ -42,8 +42,12 @@ const DYNAMIC_PREFIXES = [
   // `ImageStep` labels, one section per image field.
   "publish.image.",
   "publish.routeImage.",
+  "publish.medalImage.",
   "register.steps.",
   "register.errors.",
+  "adminPayments.errors.",
+  "eventPayments.errors.",
+  "eventRegistrations.errors.",
   "footer.",
   "account.",
   "tabs.",

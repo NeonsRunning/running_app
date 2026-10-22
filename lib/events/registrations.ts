@@ -2,6 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import type Stripe from "stripe";
+import {
+  MAX_REFERENCE_LENGTH,
+  athMovilConfigured,
+  paymentCode,
+} from "@/lib/ath-movil/config";
 import { getStripe, hasStripeEnv, toCents } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isLocale } from "@/lib/i18n/config";
@@ -24,6 +29,11 @@ import { SHIRT_SIZES, isOneOf } from "./vocabulary";
  * with Stripe.js against it. `completeRegistrationPaymentAction` then asks
  * Stripe whether it was paid and, if so, confirms the sign-up and hands back
  * the bib. Card details only ever travel between the browser and Stripe.
+ *
+ * The runner can pay with ATH Móvil instead. The spot is reserved the same
+ * way; `submitAthMovilPaymentAction` then records the reference from their
+ * ATH Móvil receipt and holds the spot until a platform admin finds the
+ * payment and approves it (see `lib/ath-movil/config.ts`).
  */
 
 export type RegistrationInput = {
@@ -48,14 +58,36 @@ export type RegistrationInput = {
 /** A confirmed sign-up: what the confirmation screen shows. */
 export type ConfirmedSignUp = { bib: number; amount: number; email: string };
 
+/** An ATH Móvil payment waiting for an admin: what the runner is shown. */
+export type AthMovilSubmission = {
+  amount: number;
+  email: string;
+  reference: string;
+  code: string;
+};
+
 export type PaymentStart =
-  /** Ready to pay: mount Stripe's Payment Element with this secret. */
-  | { ok: true; registrationId: string; clientSecret: string; amount: number }
+  /**
+   * The spot is held. `clientSecret` mounts Stripe's Payment Element; null
+   * when card payments are not configured and only ATH Móvil is offered.
+   */
+  | {
+      ok: true;
+      registrationId: string;
+      clientSecret: string | null;
+      amount: number;
+    }
   /** An earlier payment for this race already went through. */
   | { ok: true; confirmed: ConfirmedSignUp }
   | { ok: false; error: string };
 
 export type PaymentCompletion =
+  | { ok: true; confirmed: ConfirmedSignUp }
+  | { ok: false; error: string };
+
+export type AthMovilResult =
+  | { ok: true; submitted: AthMovilSubmission }
+  /** A card payment for this sign-up went through first. */
   | { ok: true; confirmed: ConfirmedSignUp }
   | { ok: false; error: string };
 
@@ -82,6 +114,7 @@ const KNOWN_ERRORS = new Set([
   "extrasChanged",
   "shirtSizeUnavailable",
   "donationInvalid",
+  "paymentUnderReview",
 ]);
 
 const GENDER: Record<string, "f" | "m" | "x"> = {
@@ -158,7 +191,10 @@ function confirmedSignUp(row: {
 export async function startRegistrationPaymentAction(
   input: RegistrationInput,
 ): Promise<PaymentStart> {
-  if (!hasStripeEnv()) return { ok: false, error: "paymentsUnavailable" };
+  const stripeReady = hasStripeEnv();
+  if (!stripeReady && !athMovilConfigured()) {
+    return { ok: false, error: "paymentsUnavailable" };
+  }
 
   const trim = (v: string) => (typeof v === "string" ? v.trim() : "");
   const details = {
@@ -200,8 +236,6 @@ export async function startRegistrationPaymentAction(
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "sessionExpired" };
 
-  const stripe = getStripe();
-
   // A payment already opened for this race. If it went through — another
   // tab, or the confirmation never came back — finish that sign-up instead
   // of repricing it.
@@ -220,8 +254,8 @@ export async function startRegistrationPaymentAction(
     : { data: null };
 
   let intent: Stripe.PaymentIntent | null = null;
-  if (existing?.status === "pending" && existing.payment_intent_id) {
-    intent = await stripe.paymentIntents
+  if (stripeReady && existing?.status === "pending" && existing.payment_intent_id) {
+    intent = await getStripe().paymentIntents
       .retrieve(existing.payment_intent_id)
       .catch(() => null);
     if (intent?.status === "succeeded") {
@@ -252,6 +286,13 @@ export async function startRegistrationPaymentAction(
   });
 
   const amount = Number(reg.amount);
+
+  // ATH Móvil only: the held spot is all the payment step needs.
+  if (!stripeReady) {
+    return { ok: true, registrationId: reg.id, clientSecret: null, amount };
+  }
+
+  const stripe = getStripe();
   const cents = toCents(amount);
 
   try {
@@ -339,4 +380,92 @@ export async function completeRegistrationPaymentAction(
 
   revalidatePath("/", "layout");
   return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+}
+
+/**
+ * The runner says they sent the ATH Móvil payment. Records the reference from
+ * their receipt and holds the spot until an admin reviews it.
+ *
+ * A card payment opened for the same sign-up is cancelled first, so the
+ * runner cannot pay twice. If it already went through, that sign-up is
+ * confirmed instead and nothing is submitted.
+ */
+export async function submitAthMovilPaymentAction(
+  registrationId: string,
+  reference: string,
+): Promise<AthMovilResult> {
+  if (!UUID.test(registrationId)) return { ok: false, error: "registrationFailed" };
+  if (!athMovilConfigured()) return { ok: false, error: "paymentsUnavailable" };
+
+  const ref = typeof reference === "string" ? reference.trim() : "";
+  if (!ref || ref.length > MAX_REFERENCE_LENGTH) {
+    return { ok: false, error: "referenceInvalid" };
+  }
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: "sessionExpired" };
+
+  const { data: reg } = await supabase
+    .from("registrations")
+    .select("status, bib, amount, email, payment_intent_id")
+    .eq("id", registrationId)
+    .eq("runner_id", userData.user.id)
+    .maybeSingle();
+  if (!reg) return { ok: false, error: "registrationFailed" };
+  if (reg.status === "confirmed") {
+    return { ok: true, confirmed: confirmedSignUp(reg) };
+  }
+
+  if (reg.payment_intent_id && hasStripeEnv()) {
+    const stripe = getStripe();
+    try {
+      let intent = await stripe.paymentIntents.retrieve(reg.payment_intent_id);
+      if (PAYABLE.has(intent.status)) {
+        intent = await stripe.paymentIntents
+          .cancel(intent.id)
+          // Lost a race with the card form: read where it ended up.
+          .catch(() => stripe.paymentIntents.retrieve(intent.id));
+      }
+      if (intent.status === "succeeded") {
+        const settled = await settlePayment(intent);
+        if (!settled.ok) return settled;
+        revalidatePath("/", "layout");
+        return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+      }
+      if (intent.status !== "canceled") {
+        return { ok: false, error: "paymentProcessing" };
+      }
+    } catch (err) {
+      console.error("Closing the card payment failed:", err);
+      return { ok: false, error: "registrationFailed" };
+    }
+  }
+
+  const { data: submitted, error } = await supabase.rpc(
+    "submit_ath_movil_payment",
+    { p_registration_id: registrationId, p_reference: ref },
+  );
+  if (error || !submitted) {
+    const key = error?.code === "P0001" ? error.message : "";
+    const known = new Set([
+      "sessionExpired",
+      "referenceInvalid",
+      "alreadyRegistered",
+      "paymentUnderReview",
+      "soldOut",
+    ]);
+    return { ok: false, error: known.has(key) ? key : "registrationFailed" };
+  }
+
+  revalidatePath("/", "layout");
+  return {
+    ok: true,
+    submitted: {
+      amount: Number(submitted.amount),
+      email: submitted.email,
+      reference: submitted.payment_reference ?? ref,
+      code: paymentCode(submitted.id),
+    },
+  };
 }

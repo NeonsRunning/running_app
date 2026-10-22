@@ -24,6 +24,7 @@ const PROTECTED = [
   SELF_PROFILE_PATH,
   "/notifications",
   "/organizer",
+  "/admin",
   "/publish",
 ] as const;
 

@@ -89,10 +89,15 @@ function isoWeek(date: Date): number {
   return Math.ceil(((d.getTime() - yearStart) / 86400000 + 1) / 7);
 }
 
-function ageGroup(birthDate: string, on: string): (typeof AGE_GROUPS)[number] {
+/** Age in whole years on an ISO date. */
+function ageOn(birthDate: string, on: string): number {
   const [by, bm, bd] = birthDate.split("-").map(Number);
   const [ey, em, ed] = on.split("-").map(Number);
-  const age = ey - by - (em < bm || (em === bm && ed < bd) ? 1 : 0);
+  return ey - by - (em < bm || (em === bm && ed < bd) ? 1 : 0);
+}
+
+function ageGroup(birthDate: string, on: string): (typeof AGE_GROUPS)[number] {
+  const age = ageOn(birthDate, on);
   if (age < 20) return "Under 20";
   if (age < 30) return "20–29";
   if (age < 40) return "30–39";
@@ -390,8 +395,71 @@ export async function getEventForm(
     directions: event.directions,
     imagePath: event.image_path ?? "",
     routeImagePath: event.route_image_path ?? "",
+    medalImagePath: event.medal_image_path ?? "",
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* An event's registrations                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type EventRegistrationRow = {
+  id: string;
+  bib: number | null;
+  runnerName: string;
+  email: string;
+  phone: string;
+  categoryId: string;
+  gender: Tables<"registrations">["gender"];
+  /** On race day, or today for an undated event. */
+  age: number;
+  shirtSize: string | null;
+  club: string | null;
+  amount: number;
+  paymentMethod: Tables<"registrations">["payment_method"];
+  /** When the payment was confirmed; the sign-up time if it never recorded one. */
+  paidAt: string;
+};
+
+/**
+ * One event's completed registrations — paid, bib assigned — in bib order.
+ * Read through RLS, so it is empty for anyone but the event's organizer.
+ */
+export async function getEventRegistrations(
+  eventId: string,
+  eventDate: string | null,
+): Promise<EventRegistrationRow[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("registrations")
+    .select(
+      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, amount, payment_method, paid_at, created_at",
+    )
+    .eq("event_id", eventId)
+    .eq("status", "confirmed")
+    .order("bib", { ascending: true, nullsFirst: false })
+    .order("created_at");
+  if (error || !data) return [];
+
+  const raceDay = eventDate ?? todayIso();
+  return data.map((r) => ({
+    id: r.id,
+    bib: r.bib,
+    runnerName: `${r.first_name} ${r.last_name}`,
+    email: r.email,
+    phone: r.phone,
+    categoryId: r.category_id,
+    gender: r.gender,
+    age: ageOn(r.birth_date, raceDay),
+    shirtSize: r.shirt_size,
+    club: r.club,
+    amount: Number(r.amount),
+    paymentMethod: r.payment_method,
+    paidAt: r.paid_at ?? r.created_at,
+  }));
 }

@@ -268,6 +268,50 @@ Or paste `supabase/migrations/20260824120000_profiles.sql` into the SQL editor
 in the dashboard. It is idempotent in the part that matters: accounts that
 existed before it ran are backfilled at the end.
 
+## ATH Móvil payments
+
+Next to Stripe, runners can pay with ATH Móvil. There is no API behind it: the
+money goes to the platform's ATH Móvil Business account and the event's
+organizer confirms each payment by hand.
+
+```
+lib/ath-movil/config.ts              path, QR, payment code
+lib/ath-movil/review.ts              approve / reject (server action)
+components/register/ath-movil-payment.tsx  instructions and "under review" screen
+components/organizer/event-payments.tsx    the organizer's table on the event page
+app/[lang]/(site)/admin/payments     the admins' cross-event queue
+supabase/migrations/20261026120000_ath_movil_payments.sql
+supabase/migrations/20261027120000_organizer_payment_review.sql
+```
+
+1. **Pay.** The payment step shows the QR code, the business path, the exact
+   amount and a short code (`NR-3F9A1C`) for the payment message. The runner
+   sends the money, types in the reference from their ATH Móvil receipt and
+   taps "I’ve sent the payment".
+2. **Wait.** `submit_ath_movil_payment()` holds the spot until it is reviewed
+   (`hold_expires_at = 'infinity'`, so every capacity check counts it). The
+   runner is told to allow up to 48 hours; the register page reopens on the
+   "payment under review" screen.
+3. **Review.** The event's organizer sees a **Pending payments** table on the
+   event page (`/events/[slug]`; nobody else does). They find each payment in
+   the ATH Móvil Business app and confirm it — the bib is assigned and the
+   usual confirmation email goes out — or reject it, which releases the spot
+   and lets the runner pay again. Card payments never appear there: Stripe
+   confirms them. Platform admins can review any event's payments from
+   **Payment Review** in the account menu (`/admin/payments`).
+
+Turn it on with `NEXT_PUBLIC_ATH_MOVIL_PATH` (and optionally
+`NEXT_PUBLIC_ATH_MOVIL_QR_URL`; see `.env.example`). Platform admins are
+granted in the SQL editor:
+
+```sql
+insert into public.platform_admins (user_id)
+select id from auth.users where email = 'someone@example.com';
+```
+
+A card payment that lands for a sign-up whose ATH Móvil payment is already
+under review is refunded automatically.
+
 ## Email
 
 A paid registration sends the runner a confirmation — bib, race, distance,

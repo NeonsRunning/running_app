@@ -122,6 +122,8 @@ export function EventDetailTabs({
           </section>
         ) : null}
 
+        <FinisherMedal event={event} />
+
         <section className="px-5 py-9 sm:px-8 lg:px-10">
           <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
             {t("events.tabs.participants")}
@@ -401,6 +403,46 @@ export function EventDetailTabs({
         </div>
       </TabPanel>
     </div>
+  );
+}
+
+/** Stand-in for a race whose organizer has not added the medal yet. */
+const MEDAL_PLACEHOLDER = "/medals/placeholder.svg";
+
+/**
+ * The medal every finisher takes home. Shown whole, like the route map;
+ * without an image from the organizer, a placeholder says so.
+ */
+function FinisherMedal({ event }: { event: RunningEvent }) {
+  const t = useT();
+  const src = event.medalImage ?? MEDAL_PLACEHOLDER;
+
+  return (
+    <section className="border-b-2 border-line px-5 py-9 sm:px-8 lg:px-10">
+      <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+        {t("events.tabs.medal")}
+      </h2>
+      <figure className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-8">
+        {/* A Supabase Storage URL, like the cover; see `EventCover`. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={
+            event.medalImage
+              ? t("events.tabs.medalAlt", { name: event.name })
+              : t("events.tabs.medalPlaceholderAlt")
+          }
+          loading="lazy"
+          decoding="async"
+          className="aspect-square w-full max-w-64 border-2 border-line bg-carbon object-contain p-4"
+        />
+        <figcaption className="max-w-[50ch] text-[15px] leading-relaxed text-fg-dim">
+          {event.medalImage
+            ? t("events.tabs.medalCaption")
+            : t("events.tabs.medalPending")}
+        </figcaption>
+      </figure>
+    </section>
   );
 }
 

@@ -35,7 +35,11 @@ const SHOW_NOTIFICATIONS = false;
  * Icons are decorative — the label beside them carries the meaning, and
  * `Icon` marks them `aria-hidden`.
  */
-function accountMenu(session: { id: string; isOrganizer: boolean }) {
+function accountMenu(session: {
+  id: string;
+  isOrganizer: boolean;
+  isAdmin: boolean;
+}) {
   return [
     { href: `/runners/${session.id}`, key: "account.profile", Icon: UserIcon },
     // Results is held back for a later release.
@@ -46,6 +50,16 @@ function accountMenu(session: { id: string; isOrganizer: boolean }) {
           {
             href: "/organizer",
             key: "account.organizerDashboard",
+            Icon: DashboardIcon,
+          },
+        ]
+      : []),
+    // Platform admins review ATH Móvil payments.
+    ...(session.isAdmin
+      ? [
+          {
+            href: "/admin/payments",
+            key: "account.paymentReview",
             Icon: DashboardIcon,
           },
         ]
@@ -285,6 +299,14 @@ export function SiteHeader() {
                     className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                   >
                     {t("nav.organizerDashboard")}
+                  </Link>
+                ) : null}
+                {session.isAdmin ? (
+                  <Link
+                    href="/admin/payments"
+                    className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
+                  >
+                    {t("account.paymentReview")}
                   </Link>
                 ) : null}
                 <SignOutButton className="border-b-2 border-line px-5 py-4 text-left text-base font-extrabold tracking-widest text-danger uppercase hover:bg-graphite">

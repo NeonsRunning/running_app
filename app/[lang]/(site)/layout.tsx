@@ -3,7 +3,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { SessionProvider } from "@/components/layout/session";
 import { SavedEventsProvider } from "@/components/events/saved-events";
-import { getAccount, toSession } from "@/lib/auth/session";
+import { getAccount, isPlatformAdmin, toSession } from "@/lib/auth/session";
 import { getNotifications } from "@/lib/data";
 import { getSavedSlugs } from "@/lib/events/queries";
 import { getLocale } from "@/lib/i18n/server";
@@ -27,10 +27,14 @@ export default async function SiteLayout({ children }: LayoutProps<"/[lang]">) {
     ? getNotifications(locale).filter((n) => n.unread).length
     : 0;
 
-  const saved = account ? await getSavedSlugs(account.user.id) : [];
+  const [saved, isAdmin] = account
+    ? await Promise.all([getSavedSlugs(account.user.id), isPlatformAdmin()])
+    : [[], false];
 
   return (
-    <SessionProvider value={toSession(account, { unreadNotifications })}>
+    <SessionProvider
+      value={toSession(account, { unreadNotifications, isAdmin })}
+    >
       {/* Keyed by account so signing in or out starts from that account's
           saves rather than whatever the last one left in state. */}
       <SavedEventsProvider key={account?.user.id ?? "guest"} initial={saved}>

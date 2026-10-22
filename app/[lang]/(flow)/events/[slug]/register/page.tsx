@@ -6,7 +6,11 @@ import {
 } from "@/components/register/registration-flow";
 import { requireAccount } from "@/lib/auth/session";
 import { reconcilePendingPayment } from "@/lib/events/payments";
-import { findEvent, getOwnRegistration } from "@/lib/events/queries";
+import {
+  findEvent,
+  getAthMovilStatus,
+  getOwnRegistration,
+} from "@/lib/events/queries";
 import { localizePath } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { getProfileDetails } from "@/lib/profile/queries";
@@ -54,9 +58,10 @@ export default async function RegisterPage(
   // Back from a payment that redirected, or one the payment step never heard
   // back about: confirm it first, so the page opens on the bib.
   await reconcilePendingPayment(user.id, event.id);
-  const [details, existing] = await Promise.all([
+  const [details, existing, athMovil] = await Promise.all([
     getProfileDetails(user.id),
     getOwnRegistration(user.id, event.id),
+    getAthMovilStatus(user.id, event.id),
   ]);
 
   // Open with what the runner already told us; they can change any of it.
@@ -79,6 +84,7 @@ export default async function RegisterPage(
       initialRunner={runner}
       initialShirtSize={details?.shirtSize ?? null}
       existing={existing}
+      athMovil={athMovil}
     />
   );
 }

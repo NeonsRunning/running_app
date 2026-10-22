@@ -164,6 +164,7 @@ async function composeEmail({
   const t = await getTranslator(locale);
   const k = (key: string) => `emails.registrationConfirmed.${key}`;
   const bib = String(registration.bib ?? "");
+  const athMovil = registration.payment_method === "ath_movil";
 
   const extras = [
     registration.shirt_size
@@ -197,14 +198,20 @@ async function composeEmail({
     [t(k("start")), start],
     ...(location ? [[t(k("location")), location] as [string, string]] : []),
     ...(extras.length ? [[t(k("extras")), extras.join(" · ")] as [string, string]] : []),
-    [t(k("total")), formatMoney(Number(registration.amount), locale)],
+    [
+      t(k(athMovil ? "totalAthMovil" : "total")),
+      formatMoney(Number(registration.amount), locale),
+    ],
   ];
 
   const subject = t(k("subject"), { event: event.name });
   const heading = t(k("heading"), { name: registration.first_name });
   const intro = t(k("intro"), { event: event.name });
   const cta = t(k("cta"));
-  const footer = t(k("footer"), { event: event.name });
+  // No card receipt follows an ATH Móvil payment; the app keeps its own.
+  const footer = t(k(athMovil ? "footerAthMovil" : "footer"), {
+    event: event.name,
+  });
 
   const text = [
     heading,

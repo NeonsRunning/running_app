@@ -27,6 +27,7 @@
     "pagination": "Paginación",
     "prev": "← Anterior",
     "nextPage": "Siguiente →",
+    "pageRange": "{from}–{to} de {total}",
     "viewAllArrow": "Ver todo",
     "closeDialog": "Cerrar diálogo",
     "dismissNotification": "Descartar notificación",
@@ -54,7 +55,8 @@
     "profile": "Mi perfil",
     "results": "Resultados",
     "settings": "Ajustes",
-    "organizerDashboard": "Panel de organizador"
+    "organizerDashboard": "Panel de organizador",
+    "paymentReview": "Revisión de Pagos"
   },
   "tabs": {
     "home": "Inicio",
@@ -340,6 +342,11 @@
       "routeMap": "Mapa de ruta · {gain} m de desnivel",
       "routeImageAlt": "Mapa de ruta de {name}",
       "routeImageOpen": "Ver en tamaño completo ↗",
+      "medal": "Medalla del evento",
+      "medalAlt": "Medalla del evento {name}",
+      "medalPlaceholderAlt": "Medalla del evento de muestra",
+      "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
+      "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}"
     }
   },
@@ -401,7 +408,9 @@
       "paymentsUnavailable": "El pago en línea no está disponible en este momento. Inténtalo más tarde.",
       "paymentIncomplete": "Tu pago no se procesó. Revisa los datos de pago e inténtalo de nuevo.",
       "paymentProcessing": "Tu pago aún se está procesando. Tu inscripción se confirma en cuanto se acredite — vuelve a esta página en un rato.",
-      "paymentRefunded": "No pudimos asociar tu pago a tu inscripción, así que te lo devolvimos completo. Vuelve a empezar, por favor."
+      "paymentRefunded": "No pudimos asociar tu pago a tu inscripción, así que te lo devolvimos completo. Vuelve a empezar, por favor.",
+      "paymentUnderReview": "Estamos verificando tu pago por ATH Móvil para esta carrera. Te enviaremos un email en cuanto se confirme.",
+      "referenceInvalid": "Escribe el número de referencia de tu recibo de ATH Móvil (hasta 40 caracteres)."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
     "confirmToastBody": "Dorsal n.º 1048 confirmado para {event}.",
@@ -489,6 +498,39 @@
       "totalCharged": "Total cobrado",
       "registrationConfirmed": "Inscripción confirmada",
       "paymentReceived": "Pago recibido"
+    },
+    "paymentMethod": {
+      "group": "Método de pago",
+      "card": "Tarjeta",
+      "cardDetail": "Tarjeta de crédito o débito, Apple Pay o Google Pay. Confirmación inmediata.",
+      "athMovil": "ATH Móvil",
+      "athMovilDetail": "Paga desde la app de ATH Móvil. Se verifica manualmente en hasta 48 horas."
+    },
+    "athMovil": {
+      "body": "Envía la cantidad exacta desde la app de ATH Móvil y luego escribe el número de referencia de tu recibo.",
+      "qrAlt": "Código QR de ATH Móvil para {path}",
+      "sendExactly": "Envía exactamente",
+      "businessPath": "Negocio en ATH Móvil",
+      "yourCode": "Tu código",
+      "step1": "Abre ATH Móvil, elige pagar a un negocio y busca {path}.",
+      "step1Qr": "Abre ATH Móvil y escanea este código QR, o paga a un negocio y busca {path}.",
+      "step2": "Escribe exactamente {amount}: si la cantidad es distinta no podremos asociarla a tu inscripción.",
+      "step3": "Escribe {code} en el mensaje del pago para que podamos identificarlo.",
+      "step4": "Envía el pago y copia el número de referencia del recibo en el campo de abajo.",
+      "reference": "Referencia de ATH Móvil",
+      "referenceHint": "Aparece en el recibo de la app de ATH Móvil después de pagar.",
+      "referencePlaceholder": "p. ej. 1234567890…",
+      "referenceRequired": "Escribe el número de referencia de tu recibo de ATH Móvil.",
+      "reviewTitle": "La verificación de tu pago puede tardar hasta {hours} horas.",
+      "reviewBody": "Los pagos por ATH Móvil se revisan manualmente. Mientras tanto guardamos tu puesto, y tu número de corredor te llega por email cuando se confirme.",
+      "rejected": "No encontramos tu último pago por ATH Móvil, así que tu inscripción no se confirmó. Si se te cobró, escríbenos con tu recibo. Si no, vuelve a pagar abajo.",
+      "submit": "Ya Envié el Pago",
+      "submitShort": "Pago Enviado",
+      "pendingBadge": "Pago en revisión",
+      "pendingTitle": "Ya casi",
+      "pendingBody": "Recibimos los datos de tu pago por ATH Móvil y tu puesto está guardado. La verificación puede tardar hasta {hours} horas; te enviaremos tu número de corredor a {email} en cuanto se confirme.",
+      "amountSent": "Cantidad",
+      "pendingHelp": "¿Enviaste otra cantidad o algo no cuadra? Escríbenos con tu recibo de ATH Móvil y lo resolvemos."
     }
   },
   "emails": {
@@ -510,7 +552,9 @@
       "donationTo": "Donativo a {recipient}",
       "total": "Total cobrado",
       "cta": "Ver detalles de la carrera",
-      "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING. El recibo de tu tarjeta llega en un correo aparte."
+      "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING. El recibo de tu tarjeta llega en un correo aparte.",
+      "totalAthMovil": "Total pagado (ATH Móvil)",
+      "footerAthMovil": "Recibes este email porque te inscribiste en {event} en NEONS RUNNING. Tu recibo de ATH Móvil está en la app de ATH Móvil."
     }
   },
   "results": {
@@ -554,7 +598,8 @@
     "revenueInline": "Ingresos",
     "actions": {
       "edit": "Editar",
-      "view": "Ver evento"
+      "view": "Ver evento",
+      "registrations": "Inscripciones ({count})"
     },
     "drafts": "Borradores",
     "noRegistrations": "Todavía no hay inscripciones. Aquí verás inscripciones, ingresos y demografía a medida que los corredores se inscriban.",
@@ -1155,6 +1200,7 @@
       "details": "Detalles del evento",
       "image": "Imagen de portada",
       "route": "Mapa de ruta",
+      "medal": "Medalla del evento",
       "review": "Revisión"
     },
     "untitled": "Carrera sin título",
@@ -1273,6 +1319,16 @@
       "replace": "Cambiar mapa",
       "remove": "Quitar mapa"
     },
+    "medalImage": {
+      "intro": "La medalla que recibe todo participante al completar el evento, que se muestra en la página de tu evento. Opcional — sin ella, los corredores ven una medalla de muestra.",
+      "choose": "Elige una imagen de la medalla",
+      "drop": "o arrástrala aquí",
+      "hint": "JPG, PNG, WebP o HEIC de iPhone, hasta 40 MB. La ajustamos de tamaño y la convertimos a WebP por ti. Una foto o render sobre un fondo liso funciona mejor.",
+      "converting": "Preparando imagen…",
+      "uploading": "Subiendo…",
+      "replace": "Cambiar medalla",
+      "remove": "Quitar medalla"
+    },
     "checkDone": "listo",
     "checkPending": "pendiente",
     "errors": {
@@ -1342,5 +1398,101 @@
     "body": "Publicar y gestionar eventos está disponible para cuentas de organizador. Si organizas carreras, contacta al equipo y activaremos las herramientas en tu cuenta.",
     "contact": "Contactar al equipo",
     "browseEvents": "Ver eventos"
+  },
+  "adminPayments": {
+    "metaTitle": "Pagos por ATH Móvil",
+    "eyebrow": "Admin · ATH Móvil {path}",
+    "title": "Pagos por ATH Móvil",
+    "body": "Busca cada pago en la app ATH Móvil Business —por su referencia, el código del mensaje, o la cantidad y el nombre— y apruébalo para confirmar la inscripción y enviar al corredor su número. Rechaza un pago solo si no aparece: el puesto del corredor queda libre.",
+    "empty": "No hay pagos pendientes de revisión.",
+    "reference": "Referencia",
+    "code": "Código en el mensaje",
+    "submitted": "Enviado",
+    "approve": "Aprobar",
+    "reject": "Rechazar",
+    "rejectConfirm": "¿Rechazar este pago y liberar el puesto del corredor?",
+    "rejectYes": "Rechazar Pago",
+    "cancel": "Cancelar",
+    "working": "Guardando…",
+    "approvedTitle": "Inscripción confirmada",
+    "approvedBody": "{name} ya tiene su número; el email de confirmación va en camino.",
+    "rejectedTitle": "Pago rechazado",
+    "rejectedBody": "Se liberó el puesto de {name}. Puede volver a pagar desde la página de inscripción.",
+    "errors": {
+      "title": "No se pudo guardar la revisión",
+      "notAllowed": "Tu cuenta no puede revisar este pago.",
+      "alreadyReviewed": "Alguien ya revisó este pago.",
+      "reviewFailed": "Algo salió mal. Inténtalo de nuevo en un momento."
+    }
+  },
+  "eventPayments": {
+    "title": "Pagos pendientes",
+    "count": "{count} por confirmar",
+    "body": "Los pagos con tarjeta se confirman solos. Los de ATH Móvil esperan por ti: busca cada uno en la app ATH Móvil Business — por su referencia, el código del mensaje, o el monto y el nombre — y confírmalo para asignarle el número al corredor y enviárselo por email. Rechaza uno solo si el pago no aparece; el cupo del corredor se libera.",
+    "empty": "No hay pagos de ATH Móvil pendientes. Los nuevos aparecerán aquí cuando los corredores los envíen.",
+    "columns": {
+      "runner": "Corredor",
+      "distance": "Distancia",
+      "amount": "Monto",
+      "reference": "Referencia",
+      "code": "Código en el mensaje",
+      "submitted": "Enviado",
+      "actions": "Acciones"
+    },
+    "confirm": "Confirmar",
+    "reject": "Rechazar",
+    "rejectConfirm": "¿Liberar el cupo de este corredor?",
+    "rejectYes": "Rechazar Pago",
+    "cancel": "Cancelar",
+    "working": "Guardando…",
+    "confirmedTitle": "Inscripción confirmada",
+    "confirmedBody": "{name} ya tiene su número; el email de confirmación va en camino.",
+    "rejectedTitle": "Pago rechazado",
+    "rejectedBody": "Se liberó el cupo de {name}. Puede pagar de nuevo desde la página de inscripción.",
+    "errors": {
+      "title": "No se pudo guardar la revisión",
+      "notAllowed": "Solo el organizador de este evento puede confirmar sus pagos.",
+      "alreadyReviewed": "Este pago ya fue revisado.",
+      "reviewFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    }
+  },
+  "eventRegistrations": {
+    "title": "Inscripciones",
+    "count": "{count} completadas",
+    "empty": "Todavía no hay inscripciones completadas. Los corredores aparecen aquí cuando se confirma su pago.",
+    "noMatches": "Ninguna inscripción coincide con esa búsqueda.",
+    "searchPlaceholder": "Busca nombre, número, email, teléfono o club",
+    "searchAria": "Buscar inscripciones",
+    "exportCsv": "Exportar CSV",
+    "card": "Tarjeta",
+    "athMovil": "ATH Móvil",
+    "remove": "Eliminar",
+    "removing": "Eliminando…",
+    "removeAria": "Eliminar a {name} de este evento",
+    "removeTitle": "¿Eliminar a {name}?",
+    "removeDescription": "El número {bib} sale de la lista y el espacio vuelve a quedar disponible. Su pago no se reembolsa automáticamente — reembólsalo en Stripe o en la app ATH Móvil Business si hace falta. Esto no se puede deshacer.",
+    "removedTitle": "Corredor eliminado",
+    "removedBody": "{name} ya no está inscrito en este evento.",
+    "errors": {
+      "title": "No se pudo eliminar al corredor",
+      "notAllowed": "Solo el organizador de este evento puede eliminar a sus corredores.",
+      "alreadyRemoved": "Este corredor ya fue eliminado.",
+      "removeFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    },
+    "columns": {
+      "bib": "Número",
+      "runner": "Corredor",
+      "distance": "Distancia",
+      "gender": "Género",
+      "age": "Edad",
+      "shirt": "Camiseta",
+      "method": "Pagó con",
+      "amount": "Monto",
+      "paid": "Pagado el",
+      "email": "Email",
+      "phone": "Teléfono",
+      "club": "Club",
+      "actions": "Acciones"
+    }
   }
 }

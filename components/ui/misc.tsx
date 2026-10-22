@@ -103,12 +103,17 @@ export function Pagination({
 }) {
   const t = useT();
   if (pageCount <= 1) return null;
-  const pages = Array.from({ length: pageCount }, (_, i) => i + 1);
+  // First, last and the neighbours of the current page; gaps fold into "…".
+  const pages: (number | "gap")[] = [];
+  for (let p = 1; p <= pageCount; p++) {
+    if (p === 1 || p === pageCount || Math.abs(p - page) <= 1) pages.push(p);
+    else if (pages.at(-1) !== "gap") pages.push("gap");
+  }
 
   return (
     <nav
       aria-label={t("common.pagination")}
-      className={cn("flex items-center gap-2", className)}
+      className={cn("flex flex-wrap items-center gap-2", className)}
     >
       <button
         type="button"
@@ -118,7 +123,12 @@ export function Pagination({
       >
         {t("common.prev")}
       </button>
-      {pages.map((p) => (
+      {pages.map((p, i) =>
+        p === "gap" ? (
+          <span key={`gap-${i}`} aria-hidden className="px-1 text-fg-dim">
+            …
+          </span>
+        ) : (
         <button
           key={p}
           type="button"
@@ -133,7 +143,8 @@ export function Pagination({
         >
           {p}
         </button>
-      ))}
+        ),
+      )}
       <button
         type="button"
         onClick={() => onChange(Math.min(pageCount, page + 1))}

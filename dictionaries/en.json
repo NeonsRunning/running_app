@@ -27,6 +27,7 @@
     "pagination": "Pagination",
     "prev": "← Prev",
     "nextPage": "Next →",
+    "pageRange": "{from}–{to} of {total}",
     "viewAllArrow": "View all",
     "closeDialog": "Close dialog",
     "dismissNotification": "Dismiss notification",
@@ -54,7 +55,8 @@
     "profile": "My Profile",
     "results": "Results",
     "settings": "Settings",
-    "organizerDashboard": "Organizer Dashboard"
+    "organizerDashboard": "Organizer Dashboard",
+    "paymentReview": "Payment Review"
   },
   "tabs": {
     "home": "Home",
@@ -340,6 +342,11 @@
       "routeMap": "Route map · {gain} m gain",
       "routeImageAlt": "Route map for {name}",
       "routeImageOpen": "Open full size ↗",
+      "medal": "Event medal",
+      "medalAlt": "Event medal for {name}",
+      "medalPlaceholderAlt": "Placeholder event medal",
+      "medalCaption": "Every participant who completes the event receives this medal.",
+      "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}"
     }
   },
@@ -401,7 +408,9 @@
       "paymentsUnavailable": "Online payment isn’t available right now. Try again later.",
       "paymentIncomplete": "Your payment didn’t go through. Check your payment details and try again.",
       "paymentProcessing": "Your payment is still processing. Your registration is confirmed as soon as it clears — check back on this page shortly.",
-      "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again."
+      "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again.",
+      "paymentUnderReview": "Your ATH Móvil payment for this race is being verified. We’ll email you as soon as it’s confirmed.",
+      "referenceInvalid": "Enter the reference number from your ATH Móvil receipt (up to 40 characters)."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -489,6 +498,39 @@
       "totalCharged": "Total charged",
       "registrationConfirmed": "Registration confirmed",
       "paymentReceived": "Payment received"
+    },
+    "paymentMethod": {
+      "group": "Payment method",
+      "card": "Card",
+      "cardDetail": "Credit or debit card, Apple Pay or Google Pay. Confirmed instantly.",
+      "athMovil": "ATH Móvil",
+      "athMovilDetail": "Pay from the ATH Móvil app. Verified by hand within 48 hours."
+    },
+    "athMovil": {
+      "body": "Send the exact amount from the ATH Móvil app, then enter the reference number from your receipt.",
+      "qrAlt": "ATH Móvil QR code for {path}",
+      "sendExactly": "Send exactly",
+      "businessPath": "ATH Móvil business",
+      "yourCode": "Your code",
+      "step1": "Open ATH Móvil, choose to pay a business and search for {path}.",
+      "step1Qr": "Open ATH Móvil and scan this QR code, or pay a business and search for {path}.",
+      "step2": "Enter exactly {amount} — a different amount can’t be matched to your registration.",
+      "step3": "Write {code} in the payment message so we can match it to you.",
+      "step4": "Send the payment, then copy the reference number from the receipt into the box below.",
+      "reference": "ATH Móvil reference",
+      "referenceHint": "Shown on the receipt in the ATH Móvil app after you pay.",
+      "referencePlaceholder": "e.g. 1234567890…",
+      "referenceRequired": "Enter the reference number from your ATH Móvil receipt.",
+      "reviewTitle": "Allow up to {hours} hours to verify your payment.",
+      "reviewBody": "ATH Móvil payments are checked by hand. Your spot is held in the meantime, and your bib arrives by email once it’s confirmed.",
+      "rejected": "We couldn’t find your last ATH Móvil payment, so your registration wasn’t confirmed. If you were charged, contact us with your receipt. Otherwise, pay again below.",
+      "submit": "I’ve Sent the Payment",
+      "submitShort": "Payment Sent",
+      "pendingBadge": "Payment under review",
+      "pendingTitle": "Almost there",
+      "pendingBody": "We received your ATH Móvil payment details and your spot is held. Allow up to {hours} hours for us to verify the payment; we’ll email your bib to {email} as soon as it’s confirmed.",
+      "amountSent": "Amount",
+      "pendingHelp": "Paid a different amount, or something looks wrong? Contact us with your ATH Móvil receipt and we’ll sort it out."
     }
   },
   "emails": {
@@ -510,7 +552,9 @@
       "donationTo": "Donation to {recipient}",
       "total": "Total charged",
       "cta": "View race details",
-      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your card receipt arrives in a separate email."
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your card receipt arrives in a separate email.",
+      "totalAthMovil": "Total paid (ATH Móvil)",
+      "footerAthMovil": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your ATH Móvil receipt is in the ATH Móvil app."
     }
   },
   "results": {
@@ -554,7 +598,8 @@
     "revenueInline": "Revenue",
     "actions": {
       "edit": "Edit",
-      "view": "View listing"
+      "view": "View listing",
+      "registrations": "Registrations ({count})"
     },
     "drafts": "Drafts",
     "noRegistrations": "No registrations yet. Sign-ups, revenue and demographics appear here as runners register for your events.",
@@ -1155,6 +1200,7 @@
       "details": "Event details",
       "image": "Cover image",
       "route": "Route map",
+      "medal": "Event medal",
       "review": "Review"
     },
     "untitled": "Untitled race",
@@ -1273,6 +1319,16 @@
       "replace": "Replace map",
       "remove": "Remove map"
     },
+    "medalImage": {
+      "intro": "The medal every participant receives for completing the event, shown on your event page. Optional — without one, runners see a placeholder medal.",
+      "choose": "Choose a medal image",
+      "drop": "or drag it here",
+      "hint": "JPG, PNG, WebP or iPhone HEIC, up to 40 MB. It’s resized and converted to WebP for you. A photo or render on a plain background works best.",
+      "converting": "Preparing image…",
+      "uploading": "Uploading…",
+      "replace": "Replace medal",
+      "remove": "Remove medal"
+    },
     "checkDone": "done",
     "checkPending": "pending",
     "errors": {
@@ -1342,5 +1398,101 @@
     "body": "Publishing and managing events is open to organizer accounts. If you put on races, contact the team and we’ll switch the tools on for your account.",
     "contact": "Contact the team",
     "browseEvents": "Browse events"
+  },
+  "adminPayments": {
+    "metaTitle": "ATH Móvil payments",
+    "eyebrow": "Admin · ATH Móvil {path}",
+    "title": "ATH Móvil payments",
+    "body": "Find each payment in the ATH Móvil Business app — by its reference, the code in the message, or the amount and name — then approve it to confirm the registration and email the runner their bib. Reject one only if the payment isn’t there: the runner’s spot is released.",
+    "empty": "No payments waiting for review.",
+    "reference": "Reference",
+    "code": "Code in message",
+    "submitted": "Submitted",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectConfirm": "Reject this payment and release the runner’s spot?",
+    "rejectYes": "Reject Payment",
+    "cancel": "Cancel",
+    "working": "Saving…",
+    "approvedTitle": "Registration confirmed",
+    "approvedBody": "{name} has their bib; the confirmation email is on its way.",
+    "rejectedTitle": "Payment rejected",
+    "rejectedBody": "{name}’s spot was released. They can pay again from the register page.",
+    "errors": {
+      "title": "Couldn’t save the review",
+      "notAllowed": "Your account can’t review this payment.",
+      "alreadyReviewed": "Someone already reviewed this payment.",
+      "reviewFailed": "Something went wrong — try again in a moment."
+    }
+  },
+  "eventPayments": {
+    "title": "Pending payments",
+    "count": "{count} to confirm",
+    "body": "Card payments confirm themselves. ATH Móvil payments wait for you: find each one in the ATH Móvil Business app — by its reference, the code in the message, or the amount and name — then confirm it to give the runner their bib and email it to them. Reject one only if the payment isn’t there; the runner’s spot is released.",
+    "empty": "No ATH Móvil payments waiting. New ones show up here as runners send them.",
+    "columns": {
+      "runner": "Runner",
+      "distance": "Distance",
+      "amount": "Amount",
+      "reference": "Reference",
+      "code": "Code in message",
+      "submitted": "Submitted",
+      "actions": "Actions"
+    },
+    "confirm": "Confirm",
+    "reject": "Reject",
+    "rejectConfirm": "Release this runner’s spot?",
+    "rejectYes": "Reject Payment",
+    "cancel": "Cancel",
+    "working": "Saving…",
+    "confirmedTitle": "Registration confirmed",
+    "confirmedBody": "{name} has their bib; the confirmation email is on its way.",
+    "rejectedTitle": "Payment rejected",
+    "rejectedBody": "{name}’s spot was released. They can pay again from the register page.",
+    "errors": {
+      "title": "Couldn’t save the review",
+      "notAllowed": "Only this event’s organizer can confirm its payments.",
+      "alreadyReviewed": "This payment was already reviewed.",
+      "reviewFailed": "Something went wrong — try again in a moment."
+    }
+  },
+  "eventRegistrations": {
+    "title": "Registrations",
+    "count": "{count} completed",
+    "empty": "No completed registrations yet. Runners show up here once their payment is confirmed.",
+    "noMatches": "No registrations match that search.",
+    "searchPlaceholder": "Search name, bib, email, phone or club",
+    "searchAria": "Search registrations",
+    "exportCsv": "Export CSV",
+    "card": "Card",
+    "athMovil": "ATH Móvil",
+    "remove": "Remove",
+    "removing": "Removing…",
+    "removeAria": "Remove {name} from this event",
+    "removeTitle": "Remove {name}?",
+    "removeDescription": "Bib {bib} comes off the list and the spot goes back to the race. Their payment is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",
+    "removedTitle": "Runner removed",
+    "removedBody": "{name} is no longer registered for this event.",
+    "errors": {
+      "title": "Couldn’t remove the runner",
+      "notAllowed": "Only this event’s organizer can remove its runners.",
+      "alreadyRemoved": "This runner was already removed.",
+      "removeFailed": "Something went wrong — try again in a moment."
+    },
+    "columns": {
+      "bib": "Bib",
+      "runner": "Runner",
+      "distance": "Distance",
+      "gender": "Gender",
+      "age": "Age",
+      "shirt": "Shirt",
+      "method": "Paid with",
+      "amount": "Amount",
+      "paid": "Paid on",
+      "email": "Email",
+      "phone": "Phone",
+      "club": "Club",
+      "actions": "Actions"
+    }
   }
 }
