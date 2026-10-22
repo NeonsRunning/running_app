@@ -37,8 +37,16 @@ export type SettleResult =
       error: "paymentRefunded" | "soldOut" | "registrationFailed";
     };
 
-/** Errors `confirm_registration_payment()` raises for a payment to refund. */
-const REFUNDABLE = new Set(["registrationMissing", "amountMismatch", "soldOut"]);
+/**
+ * Errors `confirm_registration_payment()` raises for a payment to refund.
+ * `paymentUnderReview`: the runner already sent the money by ATH Móvil.
+ */
+const REFUNDABLE = new Set([
+  "registrationMissing",
+  "amountMismatch",
+  "soldOut",
+  "paymentUnderReview",
+]);
 
 async function refund(paymentIntentId: string) {
   try {

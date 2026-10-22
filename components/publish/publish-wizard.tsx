@@ -54,7 +54,7 @@ import { cn } from "@/lib/cn";
 import type { Distance, EventType } from "@/lib/types";
 
 /**
- * Nine-step wizard for listing an event, and for editing one.
+ * Ten-step wizard for listing an event, and for editing one.
  *
  * One form spans every step. Inactive steps are hidden rather than unmounted,
  * so an uncontrolled input keeps its value while the organizer moves around,
@@ -78,6 +78,7 @@ const STEPS = [
   "publish.steps.details",
   "publish.steps.image",
   "publish.steps.route",
+  "publish.steps.medal",
   "publish.steps.review",
 ] as const;
 
@@ -118,6 +119,7 @@ const FIELD_STEP: Record<string, number> = {
   directions: 5,
   image_path: 6,
   route_image_path: 7,
+  medal_image_path: 8,
 };
 
 /** A form row: the stored category plus a key that survives reordering. */
@@ -168,6 +170,10 @@ export function PublishWizard({
   const [savedRouteImagePath, setSavedRouteImagePath] = useState(
     initial.routeImagePath,
   );
+  const [medalImagePath, setMedalImagePath] = useState(initial.medalImagePath);
+  const [savedMedalImagePath, setSavedMedalImagePath] = useState(
+    initial.medalImagePath,
+  );
   const [state, setState] = useState<EventFormState>();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -213,6 +219,7 @@ export function PublishWizard({
         // The images this save stored are now the event's; see `ImageStep`.
         setSavedImagePath(String(data.get("image_path") ?? ""));
         setSavedRouteImagePath(String(data.get("route_image_path") ?? ""));
+        setSavedMedalImagePath(String(data.get("medal_image_path") ?? ""));
         // Rows inserted by this save now have ids; without them the next save
         // would delete and re-create them.
         setCategories((list) =>
@@ -262,6 +269,7 @@ export function PublishWizard({
       const unsaved = [
         imagePath !== savedImagePath && imagePath,
         routeImagePath !== savedRouteImagePath && routeImagePath,
+        medalImagePath !== savedMedalImagePath && medalImagePath,
       ].filter((p): p is string => Boolean(p));
       const result = await deleteEventAction(eventId, unsaved);
       if (result.ok) {
@@ -1233,10 +1241,36 @@ export function PublishWizard({
             />
           </div>
 
-          {/* 9 — Review -------------------------------------------------- */}
+          {/* 9 — Finisher medal ----------------------------------------- */}
           <div
             data-step={8}
             hidden={step !== 8}
+            className="mt-8 flex max-w-2xl flex-col gap-6"
+          >
+            <p className="text-[15px] text-fg-dim">{t("publish.medalImage.intro")}</p>
+            <ImageStep
+              name="medal_image_path"
+              messages="publish.medalImage"
+              value={medalImagePath}
+              savedPath={savedMedalImagePath}
+              onChange={setMedalImagePath}
+              // Shown whole, as on the event page: a medal is rarely landscape.
+              preview={(url) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={url}
+                  alt=""
+                  className="aspect-video w-full bg-carbon object-contain"
+                />
+              )}
+              error={fieldError("medal_image_path")}
+            />
+          </div>
+
+          {/* 10 — Review ------------------------------------------------- */}
+          <div
+            data-step={9}
+            hidden={step !== 9}
             className="mt-8 grid max-w-5xl gap-8 lg:grid-cols-[1fr_320px]"
           >
             {/* Listing preview */}

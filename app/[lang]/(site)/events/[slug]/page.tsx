@@ -5,9 +5,15 @@ import { Button } from "@/components/ui/button";
 import { SpecCell } from "@/components/ui/card";
 import { Progress } from "@/components/ui/misc";
 import { EventDetailTabs } from "@/components/events/event-detail-tabs";
+import { EventPayments } from "@/components/organizer/event-payments";
+import { EventRegistrations } from "@/components/organizer/event-registrations";
 import { SaveButton } from "@/components/events/saved-events";
 import { ShareRow } from "@/components/events/share-row";
+import { athMovilConfigured } from "@/lib/ath-movil/config";
+import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
+import { getUser } from "@/lib/auth/session";
 import { daysUntil } from "@/lib/data";
+import { getEventRegistrations } from "@/lib/events/organizer";
 import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
@@ -45,8 +51,28 @@ export default async function EventDetailPage(
   if (!found) notFound();
 
   const { event, organizer } = found;
+
+  // The event's organizer confirms ATH Móvil payments right here. Card
+  // payments confirm themselves, so only ATH Móvil ever waits. RLS keeps the
+  // rows to the organizer either way; the id check spares everyone else the
+  // query.
+  // Completed registrations ride along on the same check.
+  const user = await getUser();
+  const isOrganizer = user?.id === organizer.id;
+  const [pendingPayments, registrations] = isOrganizer
+    ? await Promise.all([
+        listEventAthMovilSubmissions(event.id),
+        getEventRegistrations(event.id, event.date),
+      ])
+    : [null, null];
+  const showPayments =
+    pendingPayments !== null &&
+    (athMovilConfigured() || pendingPayments.length > 0);
   const days = daysUntil(event.date);
   const spotsLeft = event.capacity - event.registered;
+  const categoryNames = Object.fromEntries(
+    event.categories.map((c) => [c.id, c.name]),
+  );
   const featured =
     event.categories.find((c) => c.name === event.featuredDistance) ??
     event.categories[0];
@@ -152,6 +178,28 @@ export default async function EventDetailPage(
           className="bg-ink"
         />
       </section>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Pending ATH Móvil payments — the organizer's eyes only           */}
+      {/* ---------------------------------------------------------------- */}
+      {showPayments ? (
+        <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+          <EventPayments initial={pendingPayments} categories={categoryNames} />
+        </div>
+      ) : null}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Completed registrations — the organizer's eyes only              */}
+      {/* ---------------------------------------------------------------- */}
+      {registrations ? (
+        <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+          <EventRegistrations
+            rows={registrations}
+            categories={categoryNames}
+            slug={event.slug}
+          />
+        </div>
+      ) : null}
 
       {/* ---------------------------------------------------------------- */}
       {/* Body + booking rail                                              */}

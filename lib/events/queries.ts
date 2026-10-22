@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { paymentCode } from "@/lib/ath-movil/config";
 import { eventImageUrl } from "@/lib/events/images";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
@@ -136,6 +137,7 @@ function toEvent(
     type: row.type,
     image: eventImageUrl(row.image_path),
     routeImage: eventImageUrl(row.route_image_path),
+    medalImage: eventImageUrl(row.medal_image_path),
     city: row.city,
     region: row.region,
     venue: row.venue,
@@ -328,6 +330,51 @@ export async function getOwnRegistration(
         email: data.email,
       }
     : null;
+}
+
+/**
+ * Where the caller's unpaid sign-up for an event stands with ATH Móvil:
+ * waiting for an admin to find the payment (`submitted`), or sent back
+ * because they could not (`rejected`). Null when neither applies.
+ */
+export async function getAthMovilStatus(
+  runnerId: string,
+  eventId: string,
+): Promise<
+  | {
+      state: "submitted";
+      categoryId: string;
+      submission: { amount: number; email: string; reference: string; code: string };
+    }
+  | { state: "rejected" }
+  | null
+> {
+  if (!hasSupabaseEnv()) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("registrations")
+    .select(
+      "id, category_id, amount, email, payment_reference, payment_submitted_at, payment_rejected_at",
+    )
+    .eq("runner_id", runnerId)
+    .eq("event_id", eventId)
+    .eq("status", "pending")
+    .maybeSingle();
+
+  if (data?.payment_submitted_at) {
+    return {
+      state: "submitted",
+      categoryId: data.category_id,
+      submission: {
+        amount: Number(data.amount),
+        email: data.email,
+        reference: data.payment_reference ?? "",
+        code: paymentCode(data.id),
+      },
+    };
+  }
+  return data?.payment_rejected_at ? { state: "rejected" } : null;
 }
 
 /**

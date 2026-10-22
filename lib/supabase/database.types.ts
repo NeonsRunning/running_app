@@ -153,6 +153,7 @@ export type Database = {
           directions: string;
           image_path: string | null;
           route_image_path: string | null;
+          medal_image_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -196,6 +197,7 @@ export type Database = {
           directions?: string;
           image_path?: string | null;
           route_image_path?: string | null;
+          medal_image_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -239,6 +241,7 @@ export type Database = {
           directions?: string;
           image_path?: string | null;
           route_image_path?: string | null;
+          medal_image_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -323,6 +326,14 @@ export type Database = {
           payment_intent_id: string | null;
           paid_at: string | null;
           confirmation_email_sent_at: string | null;
+          payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          /** The reference number on the runner's ATH Móvil receipt. */
+          payment_reference: string | null;
+          /** Set while an ATH Móvil payment waits for an admin's review. */
+          payment_submitted_at: string | null;
+          payment_reviewed_at: string | null;
+          payment_reviewed_by: string | null;
+          payment_rejected_at: string | null;
         };
         Insert: never;
         /**
@@ -433,6 +444,37 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
+      is_platform_admin: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      submit_ath_movil_payment: {
+        Args: { p_registration_id: string; p_reference: string };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      ath_movil_review_queue: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          id: string;
+          event_name: string;
+          event_date: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          phone: string;
+          amount: number;
+          payment_reference: string;
+          payment_submitted_at: string;
+        }[];
+      };
+      remove_registration: {
+        Args: { p_registration_id: string };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      review_ath_movil_payment: {
+        Args: { p_registration_id: string; p_approve: boolean };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
     };
     Enums: {
       account_type: "runner" | "organizer";
@@ -456,6 +498,7 @@ export type Database = {
       event_difficulty: "Easy" | "Moderate" | "Hard";
       event_status: "draft" | "published";
       registration_status: "pending" | "confirmed";
+      payment_method: "stripe" | "ath_movil";
       profile_gender: "f" | "m" | "x";
       shirt_size: "XS" | "S" | "M" | "L" | "XL" | "XXL";
     };

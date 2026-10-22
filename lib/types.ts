@@ -78,6 +78,8 @@ export type RunningEvent = {
   image?: string;
   /** Route map image URL; absent when the Route tab shows the schematic. */
   routeImage?: string;
+  /** Finisher medal image URL; absent when the page shows the placeholder. */
+  medalImage?: string;
   city: string;
   region: string;
   venue: string;

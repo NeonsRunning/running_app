@@ -12,6 +12,11 @@ import {
   paymentsConfigured,
   type PaymentHandle,
 } from "@/components/register/payment-fields";
+import {
+  AthMovilInstructions,
+  AthMovilUnderReview,
+} from "@/components/register/ath-movil-payment";
+import { athMovilConfigured, paymentCode } from "@/lib/ath-movil/config";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
 import {
@@ -32,6 +37,8 @@ import {
 import {
   completeRegistrationPaymentAction,
   startRegistrationPaymentAction,
+  submitAthMovilPaymentAction,
+  type AthMovilSubmission,
   type ConfirmedSignUp,
 } from "@/lib/events/registrations";
 import type { RunningEvent } from "@/lib/types";
@@ -45,6 +52,11 @@ import type { RunningEvent } from "@/lib/types";
  * step 4 collects it with Stripe's Payment Element, and the confirmation shows
  * the bib the database assigned once Stripe says it was paid. The runner
  * fields open pre-filled from their profile.
+ *
+ * Step 4 also offers ATH Móvil when it is configured: the runner sends the
+ * amount from the ATH Móvil app, types in the receipt's reference, and the
+ * flow ends on a "payment under review" screen instead of the bib until an
+ * admin approves it.
  *
  * For the fixture races nothing is persisted or charged: step 4 says so and
  * stands in for the round-trip with a timer, and the fields open with the
@@ -95,6 +107,14 @@ export type Runner = {
 
 type Errors = Partial<Record<keyof Runner, string>>;
 
+type PaymentMethod = "stripe" | "ath_movil";
+
+/** The runner's unpaid sign-up as ATH Móvil left it; see `getAthMovilStatus`. */
+export type AthMovilStatus =
+  | { state: "submitted"; categoryId: string; submission: AthMovilSubmission }
+  | { state: "rejected" }
+  | null;
+
 const EMPTY_ERRORS: Errors = {};
 
 /**
@@ -129,6 +149,7 @@ export function RegistrationFlow({
   initialRunner = DEMO_RUNNER,
   initialShirtSize = null,
   existing = null,
+  athMovil = null,
 }: {
   event: RunningEvent;
   initialRunner?: Runner;
@@ -136,6 +157,8 @@ export function RegistrationFlow({
   initialShirtSize?: string | null;
   /** Set when the runner has already signed up: opens on the confirmation. */
   existing?: ConfirmedRegistration | null;
+  /** Set when an ATH Móvil payment is waiting for review, or was rejected. */
+  athMovil?: AthMovilStatus;
 }) {
   const { toast } = useToast();
   const t = useT();
@@ -157,8 +180,12 @@ export function RegistrationFlow({
 
   const [confirmed, setConfirmed] = useState(existing);
   const [step, setStep] = useState(existing ? 5 : 1);
+  const [review, setReview] = useState(
+    athMovil?.state === "submitted" ? athMovil.submission : null,
+  );
   const [categoryId, setCategoryId] = useState(
     existing?.categoryId ??
+      (athMovil?.state === "submitted" ? athMovil.categoryId : undefined) ??
       event.categories.find((c) => c.name === event.featuredDistance)?.id ??
       event.categories[0].id,
   );
@@ -196,12 +223,28 @@ export function RegistrationFlow({
     ? (typedDonation ?? 0)
     : presetDonation;
   const [submitting, setSubmitting] = useState(false);
-  /** The Stripe payment opened for this sign-up, once step 3 is behind us. */
+  /**
+   * The held sign-up, once step 3 is behind us: the amount the database
+   * priced it at, and the Stripe payment opened for it (null without Stripe).
+   */
   const [payment, setPayment] = useState<{
     registrationId: string;
-    clientSecret: string;
+    clientSecret: string | null;
+    amount: number;
   } | null>(null);
   const paymentRef = useRef<PaymentHandle>(null);
+  const [chosenMethod, setChosenMethod] = useState<PaymentMethod>("stripe");
+  const [reference, setReference] = useState("");
+  const [referenceError, setReferenceError] = useState(false);
+
+  const stripeAvailable = Boolean(payment?.clientSecret) && paymentsConfigured();
+  const athAvailable = event.bookable && athMovilConfigured();
+  // Whatever was picked, fall back to the method actually on offer.
+  const method: PaymentMethod = athAvailable
+    && (chosenMethod === "ath_movil" || !stripeAvailable)
+    ? "ath_movil"
+    : "stripe";
+  const payingByAth = event.bookable && method === "ath_movil";
 
   const category =
     event.categories.find((c) => c.id === categoryId) ?? event.categories[0];
@@ -290,8 +333,27 @@ export function RegistrationFlow({
           setPayment({
             registrationId: result.registrationId,
             clientSecret: result.clientSecret,
+            amount: result.amount,
           });
           setStep(4);
+        })
+        .catch(() => fail("registrationFailed"))
+        .finally(() => setSubmitting(false));
+      return;
+    }
+    if (step === 4 && payingByAth) {
+      if (!payment) return;
+      if (!reference.trim()) {
+        setReferenceError(true);
+        return;
+      }
+      setSubmitting(true);
+      submitAthMovilPaymentAction(payment.registrationId, reference)
+        .then((result) => {
+          if (!result.ok) return fail(result.error);
+          if ("confirmed" in result) return finish(result.confirmed);
+          setReview(result.submitted);
+          window.scrollTo({ top: 0 });
         })
         .catch(() => fail("registrationFailed"))
         .finally(() => setSubmitting(false));
@@ -332,6 +394,10 @@ export function RegistrationFlow({
       return;
     }
     setStep((s) => Math.min(5, s + 1));
+  }
+
+  if (review && !done) {
+    return <AthMovilUnderReview event={event} submission={review} />;
   }
 
   if (done) {
@@ -863,12 +929,100 @@ export function RegistrationFlow({
                 {t("register.step4.title")}
               </h1>
               <p className="mt-3 text-[15px] text-fg-dim">
-                {t("register.step4.body")}
+                {t(
+                  payingByAth
+                    ? "register.athMovil.body"
+                    : "register.step4.body",
+                )}
               </p>
 
-              {event.bookable && payment && paymentsConfigured() ? (
+              {athMovil?.state === "rejected" ? (
+                <p
+                  role="status"
+                  className="mt-6 border-2 border-danger p-5 text-[15px] leading-relaxed text-fg sm:p-6"
+                >
+                  {t("register.athMovil.rejected")}
+                </p>
+              ) : null}
+
+              {payment && stripeAvailable && athAvailable ? (
+                <div
+                  role="radiogroup"
+                  aria-label={t("register.paymentMethod.group")}
+                  className="mt-8 grid gap-0.5 border-2 border-line bg-line sm:grid-cols-2"
+                >
+                  {(
+                    [
+                      {
+                        value: "stripe",
+                        label: t("register.paymentMethod.card"),
+                        detail: t("register.paymentMethod.cardDetail"),
+                      },
+                      {
+                        value: "ath_movil",
+                        label: t("register.paymentMethod.athMovil"),
+                        detail: t("register.paymentMethod.athMovilDetail"),
+                      },
+                    ] as const
+                  ).map(({ value, label, detail }) => {
+                    const on = method === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => setChosenMethod(value)}
+                        className={cn(
+                          "flex items-start gap-4 px-5 py-5 text-left transition-colors sm:px-6",
+                          on
+                            ? "bg-neon-lime/10 text-neon-lime"
+                            : "bg-ink hover:bg-carbon",
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "mt-1 h-5 w-5 shrink-0 border-2",
+                            on
+                              ? "border-neon-lime bg-neon-lime"
+                              : "border-line-bright",
+                          )}
+                        />
+                        <span>
+                          <span className="block font-display text-xl font-black uppercase">
+                            {label}
+                          </span>
+                          <span className="mt-1 block text-[13px] text-fg-dim">
+                            {detail}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {payingByAth && payment ? (
+                <div className="mt-8">
+                  <AthMovilInstructions
+                    amount={payment.amount}
+                    code={paymentCode(payment.registrationId)}
+                    reference={reference}
+                    onReferenceChange={(value) => {
+                      setReference(value);
+                      if (value.trim()) setReferenceError(false);
+                    }}
+                    error={
+                      referenceError
+                        ? t("register.athMovil.referenceRequired")
+                        : undefined
+                    }
+                  />
+                </div>
+              ) : event.bookable && payment?.clientSecret && stripeAvailable ? (
                 <>
-                  <p className="mt-2 font-mono text-[11px] tracking-[0.14em] text-neon-lime uppercase">
+                  <p className="mt-6 font-mono text-[11px] tracking-[0.14em] text-neon-lime uppercase">
                     {t("register.step4.hold")}
                   </p>
                   <div className="mt-8">
@@ -956,7 +1110,9 @@ export function RegistrationFlow({
                 {submitting
                   ? t("register.summary.processing")
                   : step === 4
-                    ? t("register.summary.complete")
+                    ? payingByAth
+                      ? t("register.athMovil.submit")
+                      : t("register.summary.complete")
                     : t("register.summary.continue")}
               </Button>
               {step > 1 ? (
@@ -1030,7 +1186,9 @@ export function RegistrationFlow({
             {submitting
               ? t("register.summary.processing")
               : step === 4
-                ? t("register.summary.completeShort")
+                ? payingByAth
+                  ? t("register.athMovil.submitShort")
+                  : t("register.summary.completeShort")
                 : t("register.summary.continue")}
           </Button>
         </div>

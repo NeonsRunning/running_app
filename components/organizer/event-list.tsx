@@ -179,6 +179,16 @@ function EventCard({
             {t("organizer.actions.view")}
           </Link>
         ) : null}
+        {event.registered > 0 ? (
+          <Link
+            href={`/events/${event.slug}#registrations`}
+            className={ACTION_CLASS}
+          >
+            {t("organizer.actions.registrations", {
+              count: fmt.number(event.registered),
+            })}
+          </Link>
+        ) : null}
         {/* Registrations hold an event in place; no point offering
             a delete the database will refuse. */}
         {event.registered === 0 ? (

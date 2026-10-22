@@ -25,6 +25,8 @@ export type Account = {
 export type Session = {
   signedIn: boolean;
   isOrganizer: boolean;
+  /** Reviews ATH Móvil payments at /admin/payments. */
+  isAdmin: boolean;
   name: string;
   initials: string;
   /** The auth user id — what `/runners/[id]` is keyed by. */
@@ -36,6 +38,7 @@ export type Session = {
 export const GUEST_SESSION: Session = {
   signedIn: false,
   isOrganizer: false,
+  isAdmin: false,
   name: "",
   initials: "",
   id: "",
@@ -109,6 +112,28 @@ export async function requireOrganizer(path?: string): Promise<Account | null> {
 }
 
 /**
+ * Whether the signed-in user is a platform admin: listed in
+ * `platform_admins`, which only the team can write to. False when signed out
+ * or on any failure.
+ */
+export async function isPlatformAdmin(): Promise<boolean> {
+  if (!hasSupabaseEnv()) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("is_platform_admin");
+  return !error && data === true;
+}
+
+/**
+ * The signed-in account if it is a platform admin's, null otherwise, and a
+ * redirect to login when signed out. The database functions behind the admin
+ * pages check the role again; this only decides what to render.
+ */
+export async function requireAdmin(path?: string): Promise<Account | null> {
+  const account = await requireAccount(path);
+  return (await isPlatformAdmin()) ? account : null;
+}
+
+/**
  * Project an account onto the session the header and settings render.
  *
  * The profile is the source of truth. The metadata fallback below only
@@ -118,7 +143,7 @@ export async function requireOrganizer(path?: string): Promise<Account | null> {
  */
 export function toSession(
   account: Account | null,
-  extras: { unreadNotifications?: number } = {},
+  extras: { unreadNotifications?: number; isAdmin?: boolean } = {},
 ): Session {
   if (!account) return GUEST_SESSION;
 
@@ -128,6 +153,7 @@ export function toSession(
   return {
     signedIn: true,
     isOrganizer: isOrganizer(profile),
+    isAdmin: extras.isAdmin ?? false,
     name,
     initials: profile?.initials ?? initialsOf(name),
     id: user.id,

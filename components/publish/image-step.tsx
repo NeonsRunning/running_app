@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 
 /**
- * An image field of the wizard: the cover and the route map.
+ * An image field of the wizard: the cover, the route map and the medal.
  *
  * Picking a file converts it to a resized WebP — iPhone HEIC included — and
  * uploads it at once, from the browser, into the organizer's own folder of
@@ -35,9 +35,9 @@ export function ImageStep({
   error,
 }: {
   /** Form field that carries the path. */
-  name: "image_path" | "route_image_path";
+  name: "image_path" | "route_image_path" | "medal_image_path";
   /** Dictionary section holding this field's labels. */
-  messages: "publish.image" | "publish.routeImage";
+  messages: "publish.image" | "publish.routeImage" | "publish.medalImage";
   /** Current object path; empty for no image. */
   value: string;
   /** Path stored on the event as of the last save. */

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none">
+  <title>Event medal</title>
+  <defs>
+    <linearGradient id="face" x1="120" y1="190" x2="280" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff200"/>
+      <stop offset="0.55" stop-color="#9cff00"/>
+      <stop offset="1" stop-color="#49ff18"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Dashed outline: a stand-in until the organizer adds the real medal. -->
+  <circle cx="200" cy="272" r="114" stroke="#3a3a3a" stroke-width="3" stroke-dasharray="10 10"/>
+
+  <!-- Ribbon -->
+  <path d="M222 20h60l-62 170-48-12Z" fill="#1f1f1f" stroke="#9cff00" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M252 20 196 184" stroke="#fff200" stroke-width="6"/>
+  <path d="M118 20h60l50 158-48 12Z" fill="#1f1f1f" stroke="#9cff00" stroke-width="4" stroke-linejoin="round"/>
+  <path d="M148 20l56 164" stroke="#fff200" stroke-width="6"/>
+
+  <!-- Clasp -->
+  <rect x="170" y="160" width="60" height="26" fill="#2a2a2a" stroke="#9cff00" stroke-width="4"/>
+
+  <!-- Medal -->
+  <circle cx="200" cy="272" r="96" fill="url(#face)"/>
+  <circle cx="200" cy="272" r="74" stroke="#050505" stroke-opacity="0.35" stroke-width="4"/>
+  <path d="M200 230 210.58 257.44 239.94 259.02 217.12 277.56 224.69 305.98 200 290 175.31 305.98 182.88 277.56 160.06 259.02 189.42 257.44Z" fill="#050505" fill-opacity="0.8"/>
+  <path d="M136 236a74 74 0 0 1 46-36" stroke="#ffffff" stroke-opacity="0.45" stroke-width="6" stroke-linecap="round"/>
+</svg>

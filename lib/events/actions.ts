@@ -303,12 +303,20 @@ export async function saveEventAction(
 
   let existing: Pick<
     Tables<"events">,
-    "status" | "slug" | "event_date" | "end_date" | "image_path" | "route_image_path"
+    | "status"
+    | "slug"
+    | "event_date"
+    | "end_date"
+    | "image_path"
+    | "route_image_path"
+    | "medal_image_path"
   > | null = null;
   if (id) {
     const { data } = await supabase
       .from("events")
-      .select("status, slug, event_date, end_date, image_path, route_image_path")
+      .select(
+        "status, slug, event_date, end_date, image_path, route_image_path, medal_image_path",
+      )
       .eq("id", id)
       .eq("organizer_id", userId)
       .maybeSingle();
@@ -464,6 +472,9 @@ export async function saveEventAction(
   const routeImagePath = readText(formData, "route_image_path");
   if (routeImagePath && !isOwnImagePath(routeImagePath, userId))
     fieldErrors.route_image_path = "imageInvalid";
+  const medalImagePath = readText(formData, "medal_image_path");
+  if (medalImagePath && !isOwnImagePath(medalImagePath, userId))
+    fieldErrors.medal_image_path = "imageInvalid";
 
   if (Object.keys(fieldErrors).length || "error" in parsedCategories) {
     return { fieldErrors };
@@ -508,6 +519,7 @@ export async function saveEventAction(
     directions,
     image_path: imagePath || null,
     route_image_path: routeImagePath || null,
+    medal_image_path: medalImagePath || null,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a
@@ -530,6 +542,7 @@ export async function saveEventAction(
       const replaced = [
         existing?.image_path !== data.image_path && existing?.image_path,
         existing?.route_image_path !== data.route_image_path && existing?.route_image_path,
+        existing?.medal_image_path !== data.medal_image_path && existing?.medal_image_path,
       ].filter((p): p is string => Boolean(p));
       if (replaced.length) {
         await supabase.storage.from(EVENT_IMAGE_BUCKET).remove(replaced);
@@ -598,7 +611,7 @@ export async function deleteEventAction(
     .delete()
     .eq("id", id)
     .eq("organizer_id", session.userId)
-    .select("id, image_path, route_image_path");
+    .select("id, image_path, route_image_path, medal_image_path");
 
   if (error?.code === FOREIGN_KEY_VIOLATION)
     return { error: "eventHasRegistrations" };
@@ -610,6 +623,7 @@ export async function deleteEventAction(
     ...new Set([
       data[0].image_path,
       data[0].route_image_path,
+      data[0].medal_image_path,
       // Arrives from the browser: only files in the caller's own folder.
       ...(Array.isArray(unsaved) ? unsaved : []).filter(
         (p) => typeof p === "string" && isOwnImagePath(p, session.userId),
