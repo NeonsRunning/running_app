@@ -300,9 +300,13 @@ supabase/migrations/20261027120000_organizer_payment_review.sql
    confirms them. Platform admins can review any event's payments from
    **Payment Review** in the account menu (`/admin/payments`).
 
-Turn it on with `NEXT_PUBLIC_ATH_MOVIL_PATH` (and optionally
-`NEXT_PUBLIC_ATH_MOVIL_QR_URL`; see `.env.example`). Platform admins are
-granted in the SQL editor:
+Payments go to an ATH Móvil Business account chosen per event. Platform
+admins list the accounts — a name, the business path and the QR code exported
+from the ATH Móvil Business app — at `/admin/payments/accounts`, and organizers
+pick one in the **Registration** step of the publish wizard. An event with no
+account (or a retired one) takes cards only. Each submission records the
+account it went to, so reviewers know which business app to check even if the
+event switches accounts later. Platform admins are granted in the SQL editor:
 
 ```sql
 insert into public.platform_admins (user_id)

@@ -1,5 +1,7 @@
 /** Domain types for the NEONS RUNNING platform. */
 
+import type { AthMovilAccount } from "@/lib/ath-movil/config";
+
 export type EventType =
   | "Road Race"
   | "Trail"
@@ -131,6 +133,11 @@ export type RunningEvent = {
   shirtSizes?: string[];
   /** What the organizer offers at sign-up; set on bookable races only. */
   extras?: EventExtras;
+  /**
+   * The ATH Móvil Business account runners pay into; absent when the race
+   * does not take ATH Móvil, or its account was retired.
+   */
+  athMovil?: AthMovilAccount;
 };
 
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */

@@ -160,6 +160,7 @@ export type Database = {
           image_path: string | null;
           route_image_path: string | null;
           medal_image_path: string | null;
+          ath_movil_account_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -207,6 +208,7 @@ export type Database = {
           image_path?: string | null;
           route_image_path?: string | null;
           medal_image_path?: string | null;
+          ath_movil_account_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -254,6 +256,7 @@ export type Database = {
           image_path?: string | null;
           route_image_path?: string | null;
           medal_image_path?: string | null;
+          ath_movil_account_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -263,6 +266,13 @@ export type Database = {
             columns: ["organizer_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "events_ath_movil_account_id_fkey";
+            columns: ["ath_movil_account_id"];
+            isOneToOne: false;
+            referencedRelation: "ath_movil_accounts";
             referencedColumns: ["id"];
           },
         ];
@@ -333,6 +343,10 @@ export type Database = {
           ships_by_mail: boolean;
           mailing_address: string | null;
           donation: number;
+          /** Our fee on this sign-up; $2.90 before the sales tax arrived. */
+          service_fee: number;
+          /** Puerto Rico sales tax (IVU) included in the amount. */
+          sales_tax: number;
           amount: number;
           created_at: string;
           status: Database["public"]["Enums"]["registration_status"];
@@ -348,6 +362,8 @@ export type Database = {
           payment_reviewed_at: string | null;
           payment_reviewed_by: string | null;
           payment_rejected_at: string | null;
+          /** The ATH Móvil account the runner was told to pay. */
+          ath_movil_account_id: string | null;
         };
         Insert: never;
         /**
@@ -380,7 +396,41 @@ export type Database = {
             referencedRelation: "profiles";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "registrations_ath_movil_account_id_fkey";
+            columns: ["ath_movil_account_id"];
+            isOneToOne: false;
+            referencedRelation: "ath_movil_accounts";
+            referencedColumns: ["id"];
+          },
         ];
+      };
+      ath_movil_accounts: {
+        Row: {
+          id: string;
+          label: string;
+          /** The business path runners search for: "/NeonsRunning". */
+          path: string;
+          /** Object path in the ath-movil-qr bucket. */
+          qr_path: string | null;
+          active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          label: string;
+          path: string;
+          qr_path?: string | null;
+          active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          label?: string;
+          path?: string;
+          qr_path?: string | null;
+          active?: boolean;
+        };
+        Relationships: [];
       };
       saved_events: {
         Row: {
@@ -401,6 +451,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "saved_events_event_slug_fkey";
+            columns: ["event_slug"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["slug"];
           },
         ];
       };
@@ -479,6 +536,9 @@ export type Database = {
           amount: number;
           payment_reference: string;
           payment_submitted_at: string;
+          /** Null for payments submitted before accounts were rows. */
+          account_label: string | null;
+          account_path: string | null;
         }[];
       };
       remove_registration: {

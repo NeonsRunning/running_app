@@ -486,6 +486,7 @@
       "donation": "Donación",
       "serviceFee": "Cargo por servicio",
       "shipping": "Envío y manejo",
+      "salesTax": "IVU (11.5%)",
       "total": "Total",
       "processing": "Procesando…",
       "complete": "Completar inscripción",
@@ -523,6 +524,9 @@
       "qrAlt": "Código QR de ATH Móvil para {path}",
       "sendExactly": "Envía exactamente",
       "businessPath": "Negocio en ATH Móvil",
+      "copyPath": "Copiar {path}",
+      "copy": "Copiar",
+      "copied": "Copiado",
       "yourCode": "Tu código",
       "step1": "Abre ATH Móvil, elige pagar a un negocio y busca {path}.",
       "step1Qr": "Abre ATH Móvil y escanea este código QR, o paga a un negocio y busca {path}.",
@@ -921,7 +925,7 @@
         "items": [
           {
             "q": "¿Qué es el cargo por servicio?",
-            "a": "Una tarifa fija de $2.90 por inscripción, visible en el resumen del pedido antes de pagar. No hay porcentaje adicional, y no hay cargo alguno en eventos gratuitos."
+            "a": "Una tarifa fija de $2.00 por inscripción, visible en el resumen del pedido antes de pagar. No hay porcentaje adicional. El IVU de Puerto Rico (11.5%) aplica a la inscripción, los extras, el cargo por servicio y el envío, pero no a los donativos."
           },
           {
             "q": "¿Puedo pedir un reembolso?",
@@ -1418,7 +1422,8 @@
       "imageTooLarge": "Esa imagen es demasiado grande — elige una de menos de 40 MB.",
       "imageUnreadable": "No se pudo leer esa imagen. Prueba otra foto o guárdala como JPG primero.",
       "imageUploadFailed": "No se pudo subir la imagen — inténtalo de nuevo en un momento.",
-      "imageInvalid": "Esa imagen no se puede usar. Súbela de nuevo."
+      "imageInvalid": "Esa imagen no se puede usar. Súbela de nuevo.",
+      "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil."
     },
     "editEvent": "Editar evento",
     "editMetaTitle": "Editar evento",
@@ -1437,7 +1442,12 @@
     "deleteLiveDescription": "El evento sale de la página de eventos y su enlace deja de funcionar. No se puede deshacer.",
     "deletedTitle": "Evento eliminado",
     "deletedBody": "{name} fue eliminado.",
-    "deleteFailedTitle": "No se pudo eliminar el evento"
+    "deleteFailedTitle": "No se pudo eliminar el evento",
+    "athMovilAccount": "Cuenta de ATH Móvil",
+    "athMovilAccountHint": "Además de tarjeta, los corredores pueden pagar por ATH Móvil a esta cuenta comercial. Tú confirmas cada pago desde la página del evento.",
+    "athMovilAccountNone": "Todavía no hay cuentas de ATH Móvil, así que los corredores pagan con tarjeta. Comunícate con el equipo para añadir una.",
+    "athMovilAccountOff": "No aceptar ATH Móvil",
+    "athMovilAccountRetired": "retirada"
   },
   "organizerOnly": {
     "eyebrow": "Solo organizadores",
@@ -1448,7 +1458,7 @@
   },
   "adminPayments": {
     "metaTitle": "Pagos por ATH Móvil",
-    "eyebrow": "Admin · ATH Móvil {path}",
+    "eyebrow": "Admin · ATH Móvil",
     "title": "Pagos por ATH Móvil",
     "body": "Busca cada pago en la app ATH Móvil Business —por su referencia, el código del mensaje, o la cantidad y el nombre— y apruébalo para confirmar la inscripción y enviar al corredor su número. Rechaza un pago solo si no aparece: el puesto del corredor queda libre.",
     "empty": "No hay pagos pendientes de revisión.",
@@ -1470,7 +1480,9 @@
       "notAllowed": "Tu cuenta no puede revisar este pago.",
       "alreadyReviewed": "Alguien ya revisó este pago.",
       "reviewFailed": "Algo salió mal. Inténtalo de nuevo en un momento."
-    }
+    },
+    "account": "Enviado a",
+    "manageAccounts": "Administrar cuentas de ATH Móvil"
   },
   "eventPayments": {
     "title": "Pagos pendientes",
@@ -1484,7 +1496,8 @@
       "reference": "Referencia",
       "code": "Código en el mensaje",
       "submitted": "Enviado",
-      "actions": "Acciones"
+      "actions": "Acciones",
+      "account": "Enviado a"
     },
     "confirm": "Confirmar",
     "reject": "Rechazar",
@@ -1501,7 +1514,8 @@
       "notAllowed": "Solo el organizador de este evento puede confirmar sus pagos.",
       "alreadyReviewed": "Este pago ya fue revisado.",
       "reviewFailed": "Algo salió mal — inténtalo de nuevo en un momento."
-    }
+    },
+    "sentTo": "Enviado a {path}"
   },
   "eventRegistrations": {
     "title": "Inscripciones",
@@ -1555,6 +1569,53 @@
       "club": "Club",
       "mailTo": "Dirección postal",
       "actions": "Acciones"
+    }
+  },
+  "adminAccounts": {
+    "metaTitle": "Cuentas de ATH Móvil",
+    "eyebrow": "Admin · ATH Móvil",
+    "title": "Cuentas de ATH Móvil",
+    "body": "Las cuentas de ATH Móvil Business a las que los organizadores pueden recibir pagos. Cada evento elige una en el asistente de publicación, y los corredores ven su path y su código QR en el paso de pago. Retira una cuenta para dejar de ofrecerla; los pagos ya enviados a ella se pueden seguir revisando.",
+    "backToPayments": "Volver a pagos",
+    "empty": "Todavía no hay cuentas. Añade una para que los organizadores puedan aceptar ATH Móvil.",
+    "add": "Añadir cuenta",
+    "addTitle": "Nueva cuenta de ATH Móvil",
+    "editTitle": "Editar cuenta de ATH Móvil",
+    "edit": "Editar",
+    "retire": "Retirar",
+    "restore": "Restaurar",
+    "retired": "Retirada",
+    "noQr": "Sin código QR: los corredores buscan el path.",
+    "label": "Nombre",
+    "labelHint": "Lo que ven los organizadores al elegir una cuenta.",
+    "labelPlaceholder": "p. ej. NEONS RUNNING…",
+    "path": "Path del negocio",
+    "pathHint": "Tal como los corredores lo buscan en ATH Móvil: letras, números, puntos, guiones y guiones bajos.",
+    "qrChoose": "Subir código QR",
+    "qrReplace": "Reemplazar código QR",
+    "qrRemove": "Quitar",
+    "qrUploading": "Subiendo…",
+    "qrHint": "El código QR exportado desde la app ATH Móvil Business: PNG, JPG o WebP, hasta 2 MB. Se muestra tal como se sube.",
+    "save": "Guardar cuenta",
+    "cancel": "Cancelar",
+    "working": "Guardando…",
+    "savedTitle": "Cuenta guardada",
+    "savedBody": "Los organizadores ya pueden elegir {label} para sus eventos.",
+    "retiredTitle": "Cuenta retirada",
+    "retiredBody": "{label} ya no se ofrece a los corredores. Los eventos que la usan aceptan solo tarjeta hasta que su organizador elija otra cuenta.",
+    "restoredTitle": "Cuenta restaurada",
+    "restoredBody": "{label} se ofrece de nuevo.",
+    "errors": {
+      "title": "No se pudo guardar la cuenta",
+      "labelRequired": "Escribe un nombre para la cuenta.",
+      "labelTooLong": "El nombre debe tener menos de 80 caracteres.",
+      "pathInvalid": "Escribe el path del negocio, como /NeonsRunning.",
+      "pathTaken": "Otra cuenta ya usa este path.",
+      "qrType": "Usa una imagen PNG, JPG o WebP.",
+      "qrTooLarge": "Esa imagen es demasiado grande: elige una de menos de 2 MB.",
+      "qrUploadFailed": "No se pudo subir el código QR. Inténtalo de nuevo en un momento.",
+      "notAdmin": "Solo los administradores de la plataforma pueden cambiar las cuentas de ATH Móvil.",
+      "saveFailed": "Algo salió mal. Inténtalo de nuevo en un momento."
     }
   }
 }

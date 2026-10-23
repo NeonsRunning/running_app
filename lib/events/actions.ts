@@ -484,6 +484,12 @@ export async function saveEventAction(
   if (medalImagePath && !isOwnImagePath(medalImagePath, userId))
     fieldErrors.medal_image_path = "imageInvalid";
 
+  /* Payments -------------------------------------------------------------- */
+  // One of the accounts admins listed; `save_event` checks it is still live.
+  const athMovilAccountId = readText(formData, "ath_movil_account_id");
+  if (athMovilAccountId && !UUID.test(athMovilAccountId))
+    fieldErrors.ath_movil_account_id = "athMovilAccountInvalid";
+
   if (Object.keys(fieldErrors).length || "error" in parsedCategories) {
     return { fieldErrors };
   }
@@ -531,6 +537,7 @@ export async function saveEventAction(
     image_path: imagePath || null,
     route_image_path: routeImagePath || null,
     medal_image_path: medalImagePath || null,
+    ath_movil_account_id: athMovilAccountId || null,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a
@@ -592,6 +599,9 @@ export async function saveEventAction(
       return { fieldErrors: { categories: "categoryHasRegistrations" } };
     if (error?.code === RAISED && CATEGORY_ERRORS.has(error.message))
       return { fieldErrors: { categories: error.message } };
+    // Not a listed account, or retired while the wizard was open.
+    if (error?.code === RAISED && error.message === "athMovilAccountInvalid")
+      return { fieldErrors: { ath_movil_account_id: "athMovilAccountInvalid" } };
     if (error?.code === RAISED && error.message === "eventNotFound")
       return { error: "eventNotFound" };
     return { error: "saveFailed" };

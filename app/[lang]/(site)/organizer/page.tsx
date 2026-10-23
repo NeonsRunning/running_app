@@ -49,9 +49,6 @@ export default async function OrganizerDashboardPage() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Button href="/organizer/checkin" variant="outline" size="md">
-            {t("organizer.checkin")}
-          </Button>
           <Button href="/publish" size="md">
             {t("organizer.createEvent")}
           </Button>
