@@ -138,6 +138,8 @@ export type RunningEvent = {
    * does not take ATH Móvil, or its account was retired.
    */
   athMovil?: AthMovilAccount;
+  /** Runners may send finish evidence after race day; set on bookable races. */
+  acceptsResults?: boolean;
 };
 
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */
@@ -161,16 +163,26 @@ export type IncludedIcon =
 export type RaceResult = {
   eventName: string;
   eventSlug: string;
+  /** Taken down by a platform admin: there is no event page to link to. */
+  eventRemoved?: boolean;
   date: string;
   distance: Distance;
   time: string;
   pace: string;
-  overallPlace: number;
-  overallField: number;
-  genderPlace: number;
-  genderField: number;
-  agePlace: number;
-  ageField: number;
+  /**
+   * Placings come from official timing. A result the runner reported with
+   * finish evidence has none, and the profile leaves those cells out.
+   */
+  placings?: {
+    overallPlace: number;
+    overallField: number;
+    genderPlace: number;
+    genderField: number;
+    agePlace: number;
+    ageField: number;
+  };
+  /** Accepted from the runner's own finish evidence rather than timing. */
+  selfReported?: boolean;
   personalBest: boolean;
   podium: boolean;
 };
@@ -183,6 +195,8 @@ export type Achievement = {
   earned: boolean;
   earnedOn?: string;
   isNew?: boolean;
+  /** The event's finisher medal, shown in place of the emoji. */
+  image?: string;
 };
 
 export type Runner = {

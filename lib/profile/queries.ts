@@ -2,6 +2,7 @@ import type { Enums, Tables } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { avatarUrl } from "./avatars";
+import type { MailingAddress } from "./address";
 
 /**
  * Reading profiles.
@@ -49,6 +50,8 @@ export type ProfileDetails = {
   phone: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
+  /** Null until the runner saves one; the database keeps it all-or-nothing. */
+  mailingAddress: MailingAddress | null;
   locale: string;
 };
 
@@ -149,7 +152,7 @@ export async function getProfileDetails(
   const { data, error } = await supabase
     .from("profile_private")
     .select(
-      "birth_date, gender, shirt_size, phone, emergency_contact_name, emergency_contact_phone, locale",
+      "birth_date, gender, shirt_size, phone, emergency_contact_name, emergency_contact_phone, address_line1, address_line2, address_city, address_state, address_postal_code, locale",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -163,6 +166,19 @@ export async function getProfileDetails(
     phone: data.phone,
     emergencyContactName: data.emergency_contact_name,
     emergencyContactPhone: data.emergency_contact_phone,
+    mailingAddress:
+      data.address_line1 &&
+      data.address_city &&
+      data.address_state &&
+      data.address_postal_code
+        ? {
+            line1: data.address_line1,
+            line2: data.address_line2,
+            city: data.address_city,
+            state: data.address_state,
+            postalCode: data.address_postal_code,
+          }
+        : null,
     locale: data.locale,
   };
 }

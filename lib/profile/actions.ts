@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { SHIRT_SIZES } from "@/lib/events/vocabulary";
 import { isOwnImagePath } from "@/lib/events/images";
 import { AVATAR_BUCKET } from "./avatars";
+import { ADDRESS_LIMITS, POSTAL_CODE, isStateCode } from "./address";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -196,6 +197,79 @@ export async function updateRaceDetailsAction(
   if (error || !data) return { error: "saveFailed" };
 
   revalidatePath("/[lang]/runners/[id]", "page");
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Mailing address                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Where a medal is mailed when a registration picks "send by mail".
+ *
+ * All or nothing, as the database insists: an empty form clears the address,
+ * and a started one has to be finished. Only the second street line is
+ * optional.
+ */
+export async function updateMailingAddressAction(
+  _prev: ProfileState | undefined,
+  formData: FormData,
+): Promise<ProfileState> {
+  const line1 = readText(formData, "addressLine1");
+  const line2 = readText(formData, "addressLine2");
+  const city = readText(formData, "addressCity");
+  const state = readText(formData, "addressState").toUpperCase();
+  const postalCode = readText(formData, "addressPostalCode");
+
+  // The state select always posts a value, so it alone doesn't start an address.
+  const clearing = !line1 && !line2 && !city && !postalCode;
+
+  const fieldErrors: Record<string, string> = {};
+  if (!clearing) {
+    if (!line1) fieldErrors.addressLine1 = "addressLineRequired";
+    else if (line1.length > ADDRESS_LIMITS.line)
+      fieldErrors.addressLine1 = "addressLineTooLong";
+    if (line2.length > ADDRESS_LIMITS.line)
+      fieldErrors.addressLine2 = "addressLineTooLong";
+    if (!city) fieldErrors.addressCity = "addressCityRequired";
+    else if (city.length > ADDRESS_LIMITS.city)
+      fieldErrors.addressCity = "cityTooLong";
+    if (!isStateCode(state)) fieldErrors.addressState = "addressStateInvalid";
+    if (!POSTAL_CODE.test(postalCode))
+      fieldErrors.addressPostalCode = "postalCodeInvalid";
+  }
+  if (Object.keys(fieldErrors).length) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "sessionExpired" };
+
+  const { data, error } = await supabase
+    .from("profile_private")
+    .update(
+      clearing
+        ? {
+            address_line1: null,
+            address_line2: null,
+            address_city: null,
+            address_state: null,
+            address_postal_code: null,
+          }
+        : {
+            address_line1: line1,
+            address_line2: orNull(line2),
+            address_city: city,
+            address_state: state,
+            address_postal_code: postalCode,
+          },
+    )
+    .eq("id", userData.user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { error: "saveFailed" };
+
+  revalidatePath("/[lang]/runners/[id]/settings", "page");
   return { ok: true };
 }
 

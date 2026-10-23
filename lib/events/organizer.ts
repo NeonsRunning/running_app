@@ -11,9 +11,10 @@ import type { Country } from "./vocabulary";
  * Reading an organizer's own events: the dashboard and the edit form.
  *
  * Unlike `queries.ts` this sees drafts and registrations, and it never runs
- * for anyone but the organizer — row-level security returns only their own
- * drafts and only the registrations for their own events, and every query
- * here filters on the organizer id as well.
+ * for anyone but the organizer or a platform admin — row-level security
+ * returns only their own drafts and only the registrations for their own
+ * events (every one, for an admin), and the organizer's queries here filter
+ * on the organizer id as well.
  */
 
 type CategoryRow = Tables<"event_categories">;
@@ -28,8 +29,17 @@ type RegistrationRow = Pick<
   "event_id" | "category_id" | "amount" | "service_fee" | "sales_tax" | "created_at" | "gender" | "birth_date"
 >;
 
-/** Lifecycle shown on a dashboard card; keys under `labels.eventStatus`. */
-export type DashboardStatus = "Draft" | "Live" | "Closing" | "Finished";
+/**
+ * Lifecycle shown on a dashboard card; keys under `labels.eventStatus`.
+ * "Removed": taken down by a platform admin, no longer the organizer's to
+ * edit or delete.
+ */
+export type DashboardStatus =
+  | "Draft"
+  | "Live"
+  | "Closing"
+  | "Finished"
+  | "Removed";
 
 export type DashboardEvent = {
   id: string;
@@ -113,6 +123,7 @@ function dashboardStatus(
   today: string,
 ): DashboardStatus {
   if (event.status === "draft") return "Draft";
+  if (event.status === "removed") return "Removed";
   if (event.last_day && event.last_day < today) return "Finished";
   // Closing: registration ends within a week, or the field is nearly full.
   const weekAhead = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
@@ -312,25 +323,31 @@ function hhmm(time: string | null): string {
   return time ? time.slice(0, 5) : "";
 }
 
+/** An event as the wizard's starting values, and whose it is. */
+export type EditableEvent = EventFormValues & { organizerId: string };
+
 /**
- * One of the organizer's events as the wizard's starting values, or null if
- * there is no such event or it belongs to someone else.
+ * An event as the wizard's starting values, or null if there is no such
+ * event, it belongs to someone else, or an admin removed it.
+ *
+ * `organizerId` limits it to that organizer's events; null opens anyone's,
+ * which only a platform admin's row-level security lets through.
  */
 export async function getEventForm(
-  organizerId: string,
+  organizerId: string | null,
   eventId: string,
-): Promise<EventFormValues | null> {
+): Promise<EditableEvent | null> {
   if (!hasSupabaseEnv()) return null;
 
   const supabase = await createClient();
-  const { data } = await supabase
+  let query = supabase
     .from("events")
     .select("*, event_categories (*)")
-    .eq("id", eventId)
-    .eq("organizer_id", organizerId)
-    .maybeSingle();
-  if (!data) return null;
-  const event = data as EventRow;
+    .eq("id", eventId);
+  if (organizerId) query = query.eq("organizer_id", organizerId);
+  const { data } = await query.maybeSingle();
+  if (!data || data.status === "removed") return null;
+  const event = data as EventRow & { status: "draft" | "published" };
 
   const { data: regs } = await supabase
     .from("registrations")
@@ -355,6 +372,7 @@ export async function getEventForm(
     }));
 
   return {
+    organizerId: event.organizer_id,
     id: event.id,
     status: event.status,
     slug: event.slug,
@@ -402,6 +420,7 @@ export async function getEventForm(
     routeImagePath: event.route_image_path ?? "",
     medalImagePath: event.medal_image_path ?? "",
     athMovilAccountId: event.ath_movil_account_id ?? "",
+    acceptsResults: event.accepts_results,
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,
@@ -430,11 +449,14 @@ export type EventRegistrationRow = {
   paymentMethod: Tables<"registrations">["payment_method"];
   /** When the payment was confirmed; the sign-up time if it never recorded one. */
   paidAt: string;
+  /** The organizer accepted this runner's finish, so the sign-up stays. */
+  hasAcceptedResult: boolean;
 };
 
 /**
  * One event's completed registrations — paid, bib assigned — in bib order.
- * Read through RLS, so it is empty for anyone but the event's organizer.
+ * Read through RLS, so it is empty for anyone but the event's organizer and
+ * platform admins.
  */
 export async function getEventRegistrations(
   eventId: string,
@@ -446,7 +468,7 @@ export async function getEventRegistrations(
   const { data, error } = await supabase
     .from("registrations")
     .select(
-      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, amount, payment_method, paid_at, created_at",
+      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
     )
     .eq("event_id", eventId)
     .eq("status", "confirmed")
@@ -470,5 +492,6 @@ export async function getEventRegistrations(
     amount: Number(r.amount),
     paymentMethod: r.payment_method,
     paidAt: r.paid_at ?? r.created_at,
+    hasAcceptedResult: r.result?.status === "accepted",
   }));
 }

@@ -7,13 +7,17 @@ import { Progress } from "@/components/ui/misc";
 import { EventDetailTabs } from "@/components/events/event-detail-tabs";
 import { EventPayments } from "@/components/organizer/event-payments";
 import { EventRegistrations } from "@/components/organizer/event-registrations";
+import { EventResults } from "@/components/organizer/event-results";
+import { ResultSubmission } from "@/components/results/result-submission";
 import { SaveButton } from "@/components/events/saved-events";
 import { ShareRow } from "@/components/events/share-row";
 import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
-import { getUser } from "@/lib/auth/session";
+import { getUser, isPlatformAdmin } from "@/lib/auth/session";
 import { daysUntil } from "@/lib/data";
 import { getEventRegistrations } from "@/lib/events/organizer";
-import { findEvent } from "@/lib/events/queries";
+import { findEvent, getOwnRegistration } from "@/lib/events/queries";
+import { puertoRicoToday } from "@/lib/results/evidence";
+import { getOwnResult, listEventResultSubmissions } from "@/lib/results/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 import {
@@ -53,17 +57,35 @@ export default async function EventDetailPage(
 
   // The event's organizer confirms ATH Móvil payments right here. Card
   // payments confirm themselves, so only ATH Móvil ever waits. RLS keeps the
-  // rows to the organizer either way; the id check spares everyone else the
-  // query.
+  // rows to the organizer and platform admins either way; the check spares
+  // everyone else the query.
   // Completed registrations ride along on the same check.
   const user = await getUser();
-  const isOrganizer = user?.id === organizer.id;
-  const [pendingPayments, registrations] = isOrganizer
+  const canManage =
+    Boolean(user) && (user?.id === organizer.id || (await isPlatformAdmin()));
+  const [pendingPayments, registrations, pendingResults] = canManage
     ? await Promise.all([
         listEventAthMovilSubmissions(event.id),
         getEventRegistrations(event.id, event.date),
+        listEventResultSubmissions(event.id),
       ])
-    : [null, null];
+    : [null, null, null];
+  // Shown while the event takes results, and after it stops for as long as
+  // anything is left to review.
+  const showResults =
+    pendingResults !== null &&
+    (Boolean(event.acceptsResults) || pendingResults.length > 0);
+
+  // Anyone with a paid sign-up sends their finish evidence from here — the
+  // event's own organizer included, when they ran it too.
+  const [ownRegistration, ownResult] =
+    user && event.acceptsResults
+      ? await Promise.all([
+          getOwnRegistration(user.id, event.id),
+          getOwnResult(user.id, event.id),
+        ])
+      : [null, null];
+  const raceDay = event.date <= puertoRicoToday();
   const showPayments =
     pendingPayments !== null &&
     (Boolean(event.athMovil) || pendingPayments.length > 0);
@@ -177,7 +199,7 @@ export default async function EventDetailPage(
       </section>
 
       {/* ---------------------------------------------------------------- */}
-      {/* Pending ATH Móvil payments — the organizer's eyes only           */}
+      {/* Pending ATH Móvil payments — organizer and admins only           */}
       {/* ---------------------------------------------------------------- */}
       {showPayments ? (
         <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
@@ -186,7 +208,16 @@ export default async function EventDetailPage(
       ) : null}
 
       {/* ---------------------------------------------------------------- */}
-      {/* Completed registrations — the organizer's eyes only              */}
+      {/* Finish evidence to review — organizer and admins only            */}
+      {/* ---------------------------------------------------------------- */}
+      {showResults ? (
+        <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+          <EventResults initial={pendingResults} />
+        </div>
+      ) : null}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Completed registrations — organizer and admins only              */}
       {/* ---------------------------------------------------------------- */}
       {registrations ? (
         <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
@@ -209,6 +240,14 @@ export default async function EventDetailPage(
         <aside className="border-t-2 border-line lg:border-t-0">
           {/* On desktop the booking card follows the reader down the page. */}
           <div className="lg:sticky lg:top-20">
+            {ownRegistration ? (
+              <ResultSubmission
+                eventId={event.id}
+                raceDay={raceDay}
+                own={ownResult}
+              />
+            ) : null}
+
             <div className="border-b-2 border-line px-5 py-7 sm:px-7">
               <div className="flex items-baseline gap-3">
                 <span className="font-display text-5xl font-black tracking-[-0.03em] text-neon-yellow">
@@ -220,11 +259,6 @@ export default async function EventDetailPage(
                   })}
                 </span>
               </div>
-              <p className="mt-2 text-[13px] text-fg-dim">
-                {t("events.detail.priceRises", {
-                  date: event.registrationCloses,
-                })}
-              </p>
 
               {canRegister ? (
                 <Button

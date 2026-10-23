@@ -148,6 +148,7 @@ export function RegistrationFlow({
   event,
   initialRunner = DEMO_RUNNER,
   initialShirtSize = null,
+  initialMailingAddress = "",
   existing = null,
   athMovil = null,
 }: {
@@ -155,6 +156,8 @@ export function RegistrationFlow({
   initialRunner?: Runner;
   /** The size saved on the runner's profile, preselected if this race offers it. */
   initialShirtSize?: string | null;
+  /** The address saved in the runner's settings, filled in if they pick mail. */
+  initialMailingAddress?: string;
   /** Set when the runner has already signed up: opens on the confirmation. */
   existing?: ConfirmedRegistration | null;
   /** Set when an ATH Móvil payment is waiting for review, or was rejected. */
@@ -216,7 +219,7 @@ export function RegistrationFlow({
   );
   const [wantsPhotos, setWantsPhotos] = useState(false);
   const [wantsMail, setWantsMail] = useState(false);
-  const [mailingAddress, setMailingAddress] = useState("");
+  const [mailingAddress, setMailingAddress] = useState(initialMailingAddress);
   const [addressError, setAddressError] = useState(false);
   const [presetDonation, setPresetDonation] = useState<number>(0);
   // What the runner typed in "Other amount"; while it holds anything it wins

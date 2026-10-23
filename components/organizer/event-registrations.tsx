@@ -162,6 +162,14 @@ export function EventRegistrations({
   }
 
   function actions(row: EventRegistrationRow) {
+    // An accepted finish lives on this sign-up; the server refuses both anyway.
+    if (row.hasAcceptedResult) {
+      return (
+        <p className="font-mono text-[11px] tracking-[0.08em] text-fg-dim uppercase md:text-right">
+          {t("eventRegistrations.resultLocked")}
+        </p>
+      );
+    }
     return (
       <div className="flex flex-wrap gap-2 md:justify-end">
         {/* Only ATH Móvil was confirmed by hand; Stripe confirmed card payments. */}

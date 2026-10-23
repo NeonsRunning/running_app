@@ -12,6 +12,7 @@ import {
   BellIcon,
   DashboardIcon,
   SearchIcon,
+  SettingsIcon,
   SignOutIcon,
   UserIcon,
 } from "@/components/ui/icons";
@@ -42,6 +43,11 @@ function accountMenu(session: {
 }) {
   return [
     { href: `/runners/${session.id}`, key: "account.profile", Icon: UserIcon },
+    {
+      href: `${SELF_PROFILE_PATH}/settings`,
+      key: "account.settings",
+      Icon: SettingsIcon,
+    },
     // Results is held back for a later release.
     // { href: "/results", key: "account.results", Icon: MedalIcon },
     // Only organizers have a dashboard to open.
@@ -54,12 +60,17 @@ function accountMenu(session: {
           },
         ]
       : []),
-    // Platform admins review ATH Móvil payments.
+    // Platform admins review ATH Móvil payments and moderate events.
     ...(session.isAdmin
       ? [
           {
             href: "/admin/payments",
             key: "account.paymentReview",
+            Icon: DashboardIcon,
+          },
+          {
+            href: "/admin/events",
+            key: "account.eventModeration",
             Icon: DashboardIcon,
           },
         ]
@@ -293,6 +304,12 @@ export function SiteHeader() {
                 >
                   {t("account.profile")}
                 </Link>
+                <Link
+                  href={`${SELF_PROFILE_PATH}/settings`}
+                  className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
+                >
+                  {t("account.settings")}
+                </Link>
                 {SHOW_NOTIFICATIONS ? (
                   <Link
                     href="/notifications"
@@ -320,6 +337,14 @@ export function SiteHeader() {
                     className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                   >
                     {t("account.paymentReview")}
+                  </Link>
+                ) : null}
+                {session.isAdmin ? (
+                  <Link
+                    href="/admin/events"
+                    className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
+                  >
+                    {t("account.eventModeration")}
                   </Link>
                 ) : null}
                 <SignOutButton className="border-b-2 border-line px-5 py-4 text-left text-base font-extrabold tracking-widest text-danger uppercase hover:bg-graphite">

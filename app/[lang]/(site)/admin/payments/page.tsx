@@ -35,9 +35,12 @@ export default async function AdminPaymentsPage() {
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-fg-dim">
           {t("adminPayments.body")}
         </p>
-        <div className="mt-6">
+        <div className="mt-6 flex flex-wrap gap-3">
           <Button href="/admin/payments/accounts" variant="outline" size="sm">
             {t("adminPayments.manageAccounts")}
+          </Button>
+          <Button href="/admin/events" variant="outline" size="sm">
+            {t("adminPayments.manageEvents")}
           </Button>
         </div>
       </header>

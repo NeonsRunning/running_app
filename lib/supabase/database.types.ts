@@ -76,6 +76,11 @@ export type Database = {
           phone: string | null;
           emergency_contact_name: string | null;
           emergency_contact_phone: string | null;
+          address_line1: string | null;
+          address_line2: string | null;
+          address_city: string | null;
+          address_state: string | null;
+          address_postal_code: string | null;
           locale: string;
           created_at: string;
           updated_at: string;
@@ -88,6 +93,11 @@ export type Database = {
           phone?: string | null;
           emergency_contact_name?: string | null;
           emergency_contact_phone?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          address_city?: string | null;
+          address_state?: string | null;
+          address_postal_code?: string | null;
           locale?: string;
           created_at?: string;
           updated_at?: string;
@@ -100,6 +110,11 @@ export type Database = {
           phone?: string | null;
           emergency_contact_name?: string | null;
           emergency_contact_phone?: string | null;
+          address_line1?: string | null;
+          address_line2?: string | null;
+          address_city?: string | null;
+          address_state?: string | null;
+          address_postal_code?: string | null;
           locale?: string;
           created_at?: string;
           updated_at?: string;
@@ -161,6 +176,8 @@ export type Database = {
           route_image_path: string | null;
           medal_image_path: string | null;
           ath_movil_account_id: string | null;
+          /** Runners may submit finish evidence for review. */
+          accepts_results: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -209,6 +226,7 @@ export type Database = {
           route_image_path?: string | null;
           medal_image_path?: string | null;
           ath_movil_account_id?: string | null;
+          accepts_results?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -257,6 +275,7 @@ export type Database = {
           route_image_path?: string | null;
           medal_image_path?: string | null;
           ath_movil_account_id?: string | null;
+          accepts_results?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -461,6 +480,81 @@ export type Database = {
           },
         ];
       };
+      race_results: {
+        Row: {
+          id: string;
+          registration_id: string;
+          event_id: string;
+          category_id: string;
+          runner_id: string;
+          finish_seconds: number;
+          /** Object path in the private race-evidence bucket. */
+          evidence_path: string;
+          status: Database["public"]["Enums"]["result_status"];
+          /** The organizer's reason, on a rejection. */
+          review_note: string | null;
+          submitted_at: string;
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "race_results_registration_id_fkey";
+            columns: ["registration_id"];
+            isOneToOne: true;
+            referencedRelation: "registrations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "race_results_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "race_results_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "event_categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "race_results_runner_id_fkey";
+            columns: ["runner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      event_moderation_log: {
+        Row: {
+          id: string;
+          /** Null once the event itself is gone; the name and slug remain. */
+          event_id: string | null;
+          event_name: string;
+          event_slug: string;
+          action: "removed" | "restored";
+          /** Why an admin removed it; null on a restore. */
+          reason: string | null;
+          actor_id: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "event_moderation_log_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -557,6 +651,48 @@ export type Database = {
         Args: { p_registration_id: string; p_approve: boolean };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
+      submit_race_result: {
+        Args: {
+          p_event_id: string;
+          p_finish_seconds: number;
+          p_evidence_path: string;
+        };
+        Returns: Database["public"]["Tables"]["race_results"]["Row"];
+      };
+      review_race_result: {
+        Args: { p_result_id: string; p_accept: boolean; p_note?: string | null };
+        Returns: Database["public"]["Tables"]["race_results"]["Row"];
+      };
+      admin_remove_event: {
+        Args: { p_event_id: string; p_reason: string };
+        Returns: Database["public"]["Tables"]["events"]["Row"];
+      };
+      admin_restore_event: {
+        Args: { p_event_id: string };
+        Returns: Database["public"]["Tables"]["events"]["Row"];
+      };
+      admin_list_events: {
+        Args: { p_query?: string; p_removed?: boolean };
+        Returns: {
+          id: string;
+          slug: string;
+          name: string;
+          status: Database["public"]["Enums"]["event_status"];
+          event_date: string | null;
+          last_day: string | null;
+          organizer_name: string | null;
+          paid_runners: number;
+          accepted_results: number;
+          payments_under_review: number;
+          /** Only for a removed event: its latest removal. */
+          removed_at: string | null;
+          removal_reason: string | null;
+        }[];
+      };
+      removed_event_visible: {
+        Args: { p_event_id: string };
+        Returns: boolean;
+      };
     };
     Enums: {
       account_type: "runner" | "organizer";
@@ -578,9 +714,10 @@ export type Database = {
         | "Marathon"
         | "Ultra";
       event_difficulty: "Easy" | "Moderate" | "Hard";
-      event_status: "draft" | "published";
+      event_status: "draft" | "published" | "removed";
       registration_status: "pending" | "confirmed";
       payment_method: "stripe" | "ath_movil";
+      result_status: "pending" | "accepted" | "rejected";
       profile_gender: "f" | "m" | "x";
       shirt_size: "XS" | "S" | "M" | "L" | "XL" | "XXL";
     };
