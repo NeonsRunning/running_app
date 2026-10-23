@@ -11,7 +11,6 @@ import { ProfilePhoto } from "@/components/profile/profile-photo";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
 import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
-import { SettingsPanel } from "@/components/settings/settings-panel";
 import { cn } from "@/lib/cn";
 import { daysUntil } from "@/lib/data";
 import {
@@ -22,7 +21,8 @@ import {
   todayIso,
 } from "@/lib/events/queries";
 import { getRunnerView, type RunnerView } from "@/lib/profile/view";
-import { getProfile, getProfileDetails } from "@/lib/profile/queries";
+import { formatFinishTime } from "@/lib/results/evidence";
+import { listRunnerResults } from "@/lib/results/queries";
 import { getUser, requireUser } from "@/lib/auth/session";
 import { SELF_ID, SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -45,9 +45,10 @@ import type { RunningEvent } from "@/lib/types";
  * in: the one address that can be linked to before an id is known, which is
  * what the nav, the login redirect and the confirmation emails all need.
  *
- * Owning the profile adds to the page rather than replacing it — saved races,
- * recommendations and the account settings mean nothing to anyone else, and
- * everything above them reads the same either way.
+ * Owning the profile adds to the page rather than replacing it — saved races
+ * and recommendations mean nothing to anyone else, and everything above them
+ * reads the same either way. Account settings live on their own page at
+ * `/runners/me/settings`.
  *
  * No `generateStaticParams` here, deliberately. Ids resolve against
  * `profiles`, and reading that table means reading the caller's cookies:
@@ -193,16 +194,17 @@ export default async function RunnerProfilePage(
   const nextEvent = next?.event;
   const laterRaces = calendar.slice(1);
 
-  // The saved, recommended and settings panels belong to the runner alone,
+  // The saved, recommended and pending panels belong to the runner alone,
   // so nobody else pays for the lookups behind them.
-  const [savedSlugs, registeredIds, profile, details] = isSelf
+  const [savedSlugs, registeredIds, ownResults] = isSelf
     ? await Promise.all([
         getSavedSlugs(runner.id),
         getRegisteredEventIds(runner.id),
-        getProfile(runner.id),
-        getProfileDetails(runner.id),
+        listRunnerResults(runner.id, { includeUnreviewed: true }),
       ])
-    : [[], [], null, null];
+    : [[], [], []];
+  // Accepted ones are already in the race history.
+  const pendingResults = ownResults.filter((r) => r.status !== "accepted");
   const recommended = isSelf
     ? recommendedFor(runner, events, {
         slugs: new Set([
@@ -269,7 +271,12 @@ export default async function RunnerProfilePage(
                 <Button href="/events" size="md" block>
                   {t("runner.findRace")}
                 </Button>
-                <Button href="#settings" variant="outline" size="md" block>
+                <Button
+                  href={`${SELF_PROFILE_PATH}/settings`}
+                  variant="outline"
+                  size="md"
+                  block
+                >
                   {t("account.settings")}
                 </Button>
               </>
@@ -348,9 +355,22 @@ export default async function RunnerProfilePage(
                           : "bg-carbon opacity-45",
                     )}
                   >
-                    <span aria-hidden="true" className="text-2xl">
-                      {a.emoji}
-                    </span>
+                    {a.image ? (
+                      // A Supabase Storage URL; next/image would need the
+                      // project's host configured as a remote pattern.
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={a.image}
+                        alt={t("runner.medalAlt", { event: a.name })}
+                        loading="lazy"
+                        decoding="async"
+                        className="h-14 w-14 shrink-0 object-contain"
+                      />
+                    ) : (
+                      <span aria-hidden="true" className="text-2xl">
+                        {a.emoji}
+                      </span>
+                    )}
                     <span className="min-w-0">
                       <span
                         className={cn(
@@ -379,6 +399,86 @@ export default async function RunnerProfilePage(
             )}
           </section>
 
+          {/* Pending results — the runner's own, and only when there are any */}
+          {pendingResults.length > 0 ? (
+            <section
+              id="pending-results"
+              className="scroll-mt-24 border-b-2 border-line px-4 py-10 sm:px-8 lg:px-10"
+            >
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+                  {t("runner.pendingResults")}
+                </h2>
+                <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
+                  {t("runner.pendingResultsMeta", {
+                    count: fmt.number(
+                      pendingResults.filter((r) => r.status === "pending").length,
+                    ),
+                  })}
+                </span>
+              </div>
+
+              <ul className="mt-6 border-t-2 border-line">
+                {pendingResults.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-line py-5"
+                  >
+                    <div className="min-w-0">
+                      {r.eventRemoved ? (
+                        <p className="font-display text-lg font-black uppercase">
+                          {r.eventName}
+                        </p>
+                      ) : (
+                        <Link
+                          href={`/events/${r.eventSlug}`}
+                          className="font-display text-lg font-black uppercase hover:text-neon-lime"
+                        >
+                          {r.eventName}
+                        </Link>
+                      )}
+                      <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
+                        {fmt.mediumDate(r.eventDate)} ·{" "}
+                        {distanceLabel(t, r.distance)} ·{" "}
+                        {t("runner.submittedOn", {
+                          date: fmt.mediumDate(r.submittedAt.slice(0, 10)),
+                        })}
+                      </p>
+                      {r.status === "rejected" ? (
+                        <p className="mt-3 max-w-[60ch] text-[14px] text-fg-muted">
+                          {r.reviewNote
+                            ? t("runner.rejectedNote", { note: r.reviewNote })
+                            : t("runner.rejectedBody")}
+                        </p>
+                      ) : null}
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="font-mono text-xl tabular-nums">
+                        {formatFinishTime(r.finishSeconds)}
+                      </span>
+                      {r.status === "pending" ? (
+                        <Badge tone="yellow">{t("runner.resultUnderReview")}</Badge>
+                      ) : (
+                        <>
+                          <Badge tone="danger">{t("runner.resultRejected")}</Badge>
+                          {/* A removed event takes no more evidence. */}
+                          {r.eventRemoved ? null : (
+                            <Link
+                              href={`/events/${r.eventSlug}`}
+                              className="text-[12px] font-extrabold tracking-[0.12em] text-neon-lime uppercase hover:text-neon-yellow"
+                            >
+                              {t("runner.resendEvidence")} →
+                            </Link>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           {/* Race history ------------------------------------------------ */}
           <section className="px-4 py-10 sm:px-8 lg:px-10">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -406,6 +506,9 @@ export default async function RunnerProfilePage(
                         </h3>
                         <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
                           {r.date} · {distanceLabel(t, r.distance)}
+                          {r.selfReported
+                            ? ` · ${t("runner.verifiedByOrganizer")}`
+                            : null}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -415,10 +518,27 @@ export default async function RunnerProfilePage(
                         {r.podium ? (
                           <Badge tone="yellow">{t("runner.podium")}</Badge>
                         ) : null}
+                        {/* A reported result has no results table behind it,
+                            and a removed event has no page at all. */}
+                        {r.eventRemoved ? null : (
+                          <Button
+                            href={
+                              r.selfReported
+                                ? `/events/${r.eventSlug}`
+                                : `/events/${r.eventSlug}/results`
+                            }
+                            variant="outline"
+                            size="sm"
+                          >
+                            {r.selfReported
+                              ? t("runner.viewEvent")
+                              : t("runner.viewResults")}
+                          </Button>
+                        )}
                       </div>
                     </div>
 
-                    <dl className="mt-5 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
+                    <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
                       <div>
                         <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
                           {t("runner.officialTime")}
@@ -442,32 +562,27 @@ export default async function RunnerProfilePage(
                         </dt>
                         <dd className="mt-1.5 font-mono text-xl">{r.pace}</dd>
                       </div>
-                      <div>
-                        <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                          {t("runner.overall")}
-                        </dt>
-                        <dd className="mt-1.5 font-mono text-xl">
-                          {r.overallPlace} / {r.overallField}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                          {t("runner.ageGroup")}
-                        </dt>
-                        <dd className="mt-1.5 font-mono text-xl">
-                          {r.agePlace} / {r.ageField}
-                        </dd>
-                      </div>
+                      {r.placings ? (
+                        <>
+                          <div>
+                            <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                              {t("runner.overall")}
+                            </dt>
+                            <dd className="mt-1.5 font-mono text-xl">
+                              {r.placings.overallPlace} / {r.placings.overallField}
+                            </dd>
+                          </div>
+                          <div>
+                            <dt className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                              {t("runner.ageGroup")}
+                            </dt>
+                            <dd className="mt-1.5 font-mono text-xl">
+                              {r.placings.agePlace} / {r.placings.ageField}
+                            </dd>
+                          </div>
+                        </>
+                      ) : null}
                     </dl>
-
-                    <Button
-                      href={`/events/${r.eventSlug}/results`}
-                      variant="outline"
-                      size="sm"
-                      className="mt-5"
-                    >
-                      {t("runner.viewResults")}
-                    </Button>
                   </li>
                 ))}
               </ul>
@@ -669,22 +784,6 @@ export default async function RunnerProfilePage(
         ) : null}
       </div>
 
-      {/* Settings — the runner's own ------------------------------------- */}
-      {isSelf ? (
-        <section
-          id="settings"
-          aria-labelledby="settings-title"
-          className="mx-auto max-w-[1600px] scroll-mt-24 border-t-2 border-line px-4 py-10 sm:px-8 lg:px-10"
-        >
-          <h2
-            id="settings-title"
-            className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase"
-          >
-            {t("settings.title")}
-          </h2>
-          <SettingsPanel profile={profile} details={details} />
-        </section>
-      ) : null}
     </div>
   );
 }

@@ -56,7 +56,8 @@
     "results": "Results",
     "settings": "Settings",
     "organizerDashboard": "Organizer Dashboard",
-    "paymentReview": "Payment Review"
+    "paymentReview": "Payment Review",
+    "eventModeration": "Event Moderation"
   },
   "tabs": {
     "home": "Home",
@@ -162,7 +163,8 @@
       "live": "Live",
       "draft": "Draft",
       "closing": "Closing",
-      "finished": "Finished"
+      "finished": "Finished",
+      "removed": "Removed"
     },
     "series": {
       "50": "50+",
@@ -286,7 +288,6 @@
       "specSpotsLeft": "Spots left",
       "specFrom": "From",
       "entry": "{category} entry",
-      "priceRises": "Price rises on {date}.",
       "registerNow": "Register Now",
       "registrationOpensOn": "Registration opens {date}",
       "registrationOpensSoon": "Registration opens soon",
@@ -573,6 +574,16 @@
       "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your card receipt arrives in a separate email.",
       "totalAthMovil": "Total paid (ATH Móvil)",
       "footerAthMovil": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your ATH Móvil receipt is in the ATH Móvil app."
+    },
+    "eventRemoved": {
+      "subject": "{event} was removed from NEONS RUNNING",
+      "heading": "Hi {name},",
+      "headingNoName": "Hi,",
+      "intro": "We removed {event} from NEONS RUNNING. It no longer appears in listings or search, and runners can’t sign up for it or send results.",
+      "reason": "Reason",
+      "kept": "Its registrations and payments are kept on record, and runners keep the results already accepted on their profiles.",
+      "cta": "Contact Us",
+      "footer": "If you think this was a mistake, contact us and we’ll take another look."
     }
   },
   "results": {
@@ -624,7 +635,9 @@
     "noEventsTitle": "No events yet",
     "noEventsBody": "Create your first race. You can save it as a draft and publish when it’s ready.",
     "noDate": "Date to be set",
-    "registeredOf": "{registered} of {capacity} registered"
+    "registeredOf": "{registered} of {capacity} registered",
+    "removedNote": "NEONS RUNNING removed this event: it no longer appears in listings or search, and it can’t be edited. Runners keep their accepted results. We emailed you the reason.",
+    "removedContact": "Contact Us"
   },
   "runner": {
     "notFound": "Runner not found",
@@ -638,7 +651,7 @@
     "achievements": "Achievements",
     "locked": "Locked · {detail}",
     "raceHistory": "Race history",
-    "raceHistoryMeta": "{count} races · 2025—2026",
+    "raceHistoryMeta": "{count} races",
     "pb": "PB",
     "podium": "Podium",
     "officialTime": "Official time",
@@ -694,7 +707,19 @@
         "saveFailed": "Couldn’t save your photo — try again.",
         "sessionExpired": "Your session expired. Log in again, then try once more."
       }
-    }
+    },
+    "medalDetail": "Finisher · {distance} · {date}",
+    "medalAlt": "Finisher medal of {event}",
+    "verifiedByOrganizer": "Finish evidence verified by the organizer",
+    "pendingResults": "Pending results",
+    "pendingResultsMeta": "{count} under review",
+    "submittedOn": "Sent {date}",
+    "rejectedNote": "The organizer sent it back: “{note}”",
+    "rejectedBody": "The organizer couldn’t verify this finish. Send a clearer screenshot from the event page.",
+    "resultUnderReview": "Under review",
+    "resultRejected": "Sent back",
+    "resendEvidence": "Send again",
+    "noPendingResults": "Nothing waiting. After a race that takes finish evidence, send your screenshot from its event page — it shows up here until the organizer reviews it."
   },
   "auth": {
     "shell": {
@@ -1045,6 +1070,16 @@
     "raceDetails": "Race-day details",
     "raceDetailsDescription": "Private — only you and the organizers of races you sign up for see these. Every registration opens with them already filled in.",
     "raceDetailsSaved": "Race-day details saved",
+    "mailingAddress": "Mailing address",
+    "mailingAddressDescription": "Private — where your medal goes when you pick “send by mail” at registration. Saved here, it fills that step in for you.",
+    "mailingAddressSaved": "Mailing address saved",
+    "addressLine1": "Street address",
+    "addressLine1Placeholder": "123 Calle Luna",
+    "addressLine2": "Apartment, suite, urbanization",
+    "addressLine2Placeholder": "Apt 4B",
+    "addressCity": "City",
+    "addressState": "State / territory",
+    "addressPostalCode": "ZIP code",
     "birthDate": "Date of birth",
     "birthDateHint": "Your age group is worked out from this.",
     "gender": "Gender",
@@ -1068,7 +1103,12 @@
       "birthDateInvalid": "That date of birth doesn't look right.",
       "phoneInvalid": "Use at least 7 digits, e.g. 787 555 0123.",
       "saveFailed": "Could not save — try again.",
-      "sessionExpired": "Your session expired. Start again from the log in screen."
+      "sessionExpired": "Your session expired. Start again from the log in screen.",
+      "addressLineRequired": "Enter the street address.",
+      "addressLineTooLong": "Keep each address line under 100 characters.",
+      "addressCityRequired": "Enter the city.",
+      "addressStateInvalid": "Pick a state or territory.",
+      "postalCodeInvalid": "Use a 5-digit ZIP code, e.g. 00901."
     },
     "notifications": "Notifications",
     "notificationsDescription": "Race-critical alerts always arrive by email. Everything else is up to you.",
@@ -1091,10 +1131,14 @@
     "runner": "Runner",
     "active": "Active",
     "organizer": "Organizer",
+    "runnerOn": "Register for races and keep your results in one place.",
+    "notEnabled": "Not enabled",
     "enabled": "Enabled",
     "organizerOn": "You can publish and manage events from the organizer dashboard.",
     "organizerOff": "Want to list races, take registrations and run race-day check-in? Get in touch and we’ll set you up.",
     "organizerDashboard": "Organizer dashboard",
+    "admin": "Admin",
+    "adminOn": "You’re a platform admin: you can review ATH Móvil payments.",
     "privacy": "Privacy",
     "publicProfile": "Public profile",
     "publicProfileDetail": "Other runners can find your profile and see your race history. Official results stay public either way — they are a published record.",
@@ -1243,7 +1287,7 @@
       "details": "Event details",
       "image": "Cover image",
       "route": "Route map",
-      "medal": "Event medal",
+      "medal": "Medal & results",
       "review": "Review"
     },
     "untitled": "Untitled race",
@@ -1426,6 +1470,9 @@
       "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off."
     },
     "editEvent": "Edit event",
+    "editingAsAdmin": "Editing as admin",
+    "backToAdminEvents": "Back to admin events",
+    "goToAdminEvents": "Go to admin events",
     "editMetaTitle": "Edit event",
     "saveDraft": "Save draft",
     "saveChanges": "Save changes",
@@ -1447,7 +1494,11 @@
     "athMovilAccountHint": "Runners can pay with ATH Móvil into this business account, besides card. You confirm each payment from the event page.",
     "athMovilAccountNone": "No ATH Móvil accounts are set up yet, so runners pay by card. Contact the team to add one.",
     "athMovilAccountOff": "Don’t accept ATH Móvil",
-    "athMovilAccountRetired": "retired"
+    "athMovilAccountRetired": "retired",
+    "results": {
+      "title": "Finish evidence",
+      "detail": "From race day, registered runners can send a screenshot of their run (Strava, Nike Run Club, a watch app) with their finish time. You accept or reject each one from the event page; accepted runners get the result and this medal on their profile."
+    }
   },
   "organizerOnly": {
     "eyebrow": "Organizers only",
@@ -1482,7 +1533,8 @@
       "reviewFailed": "Something went wrong — try again in a moment."
     },
     "account": "Sent to",
-    "manageAccounts": "Manage ATH Móvil Accounts"
+    "manageAccounts": "Manage ATH Móvil Accounts",
+    "manageEvents": "Manage Events"
   },
   "eventPayments": {
     "title": "Pending payments",
@@ -1517,6 +1569,79 @@
     },
     "sentTo": "Sent to {path}"
   },
+  "raceResult": {
+    "title": "Your result",
+    "beforeRace": "This race takes finish evidence. From race day, send a screenshot of your run here to get your result and medal on your profile.",
+    "intro": "Finished? Send a screenshot of your run — from Strava, Nike Run Club or your watch app — with your finish time. The organizer reviews it.",
+    "evidence": "Screenshot of your run",
+    "choose": "Choose a screenshot",
+    "evidenceHint": "JPG, PNG, WebP or HEIC. Make sure the distance, time and date are visible. Only you and the organizer can see it.",
+    "evidenceAlt": "Your finish evidence",
+    "finishTime": "Finish time",
+    "finishTimeHint": "As h:mm:ss, or mm:ss for under an hour.",
+    "submit": "Send for review",
+    "cancel": "Cancel",
+    "replace": "Replace evidence",
+    "phase": {
+      "converting": "Preparing…",
+      "uploading": "Uploading…",
+      "saving": "Sending…"
+    },
+    "sentTitle": "Result sent",
+    "sentBody": "The organizer will review it. Follow it under Pending results on your profile.",
+    "pending": "Under review",
+    "pendingBody": "Sent {date}. You’ll see it on your profile once the organizer accepts it.",
+    "accepted": "Accepted",
+    "acceptedBody": "Your result and the finisher medal are on your profile.",
+    "viewProfile": "View profile",
+    "rejected": "Sent back",
+    "rejectedNote": "The organizer’s note: “{note}”. Send new evidence below.",
+    "rejectedBody": "The organizer couldn’t verify this finish. Send a clearer screenshot below.",
+    "errors": {
+      "title": "Couldn’t send your result",
+      "evidenceRequired": "Choose a screenshot of your run first.",
+      "timeInvalid": "Enter your time as h:mm:ss, or mm:ss — for example 0:25:41.",
+      "imageType": "Use an image: JPG, PNG, WebP or HEIC.",
+      "imageTooLarge": "That image is too large — pick a smaller screenshot.",
+      "imageUnreadable": "Couldn’t read that image. Try another screenshot, or save it as JPG first.",
+      "uploadFailed": "Couldn’t upload the screenshot — try again in a moment.",
+      "evidenceInvalid": "That screenshot can’t be used. Upload it again.",
+      "sessionExpired": "Your session expired. Log in again, then try once more.",
+      "resultsClosed": "This event isn’t taking finish evidence.",
+      "raceNotStarted": "You can send your result from race day.",
+      "notRegistered": "Only runners with a confirmed registration can send a result.",
+      "resultAlreadyAccepted": "Your result for this event was already accepted.",
+      "submitFailed": "Something went wrong — try again in a moment."
+    }
+  },
+  "resultReview": {
+    "title": "Results to review",
+    "count": "{count} waiting",
+    "body": "Runners send a screenshot of their run with their finish time. Check that the distance, date and time match this event, then accept it to put the result and medal on their profile. Reject it with a note if it doesn’t — they can send it again.",
+    "empty": "No results waiting. Runners’ finish evidence shows up here from race day.",
+    "openEvidence": "Open {name}’s screenshot full size",
+    "evidenceAlt": "Finish evidence from {name}",
+    "evidenceMissing": "The screenshot couldn’t be loaded.",
+    "bib": "Bib {bib}",
+    "submitted": "Sent {date}",
+    "accept": "Accept",
+    "reject": "Reject",
+    "note": "Note to the runner",
+    "noteHint": "Why it was rejected — the runner sees this.",
+    "rejectYes": "Reject Result",
+    "cancel": "Cancel",
+    "working": "Saving…",
+    "acceptedTitle": "Result accepted",
+    "acceptedBody": "{name}’s result and medal are on their profile.",
+    "rejectedTitle": "Result sent back",
+    "rejectedBody": "{name} can send new evidence from the event page.",
+    "errors": {
+      "title": "Couldn’t save the review",
+      "notAllowed": "Only this event’s organizer can review its results.",
+      "alreadyReviewed": "This result was already reviewed, or the runner replaced it.",
+      "reviewFailed": "Something went wrong — try again in a moment."
+    }
+  },
   "eventRegistrations": {
     "title": "Registrations",
     "count": "{count} completed",
@@ -1535,6 +1660,7 @@
     "removeDescription": "Bib {bib} comes off the list and the spot goes back to the race. Their payment is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",
     "removedTitle": "Runner removed",
     "removedBody": "{name} is no longer registered for this event.",
+    "resultLocked": "Result accepted — can’t be removed",
     "markPending": "Back to pending",
     "markPendingAria": "Put {name}’s ATH Móvil payment back to pending",
     "markPendingTitle": "Put {name} back to pending?",
@@ -1546,12 +1672,14 @@
       "notAllowed": "Only this event’s organizer can change its registrations.",
       "alreadyChanged": "This registration was already removed or put back to pending.",
       "notAthMovil": "Only ATH Móvil payments can go back to pending — card payments are confirmed by Stripe.",
+      "resultAccepted": "This runner’s result was accepted — their sign-up can’t go back to pending.",
       "revertFailed": "Something went wrong — try again in a moment."
     },
     "errors": {
       "title": "Couldn’t remove the runner",
       "notAllowed": "Only this event’s organizer can remove its runners.",
       "alreadyRemoved": "This runner was already removed.",
+      "resultAccepted": "This runner’s result was accepted — their sign-up can’t be removed.",
       "removeFailed": "Something went wrong — try again in a moment."
     },
     "columns": {
@@ -1615,6 +1743,58 @@
       "qrTooLarge": "That image is too large — pick one under 2 MB.",
       "qrUploadFailed": "Couldn’t upload the QR code — try again in a moment.",
       "notAdmin": "Only platform admins can change ATH Móvil accounts.",
+      "saveFailed": "Something went wrong — try again in a moment."
+    }
+  },
+  "adminEvents": {
+    "metaTitle": "Events",
+    "eyebrow": "Admin · Events",
+    "title": "Events",
+    "body": "Edit any organizer’s event, or remove one that organizers can no longer delete because runners have paid. A removed event leaves listings, search and its page, and takes no sign-ups or results. Its registrations, payments and accepted results are kept, and you can restore it at any time.",
+    "backToPayments": "Back to Payments",
+    "viewLabel": "Which events",
+    "viewPublished": "Published",
+    "viewRemoved": "Removed",
+    "searchLabel": "Search events",
+    "searchPlaceholder": "Event name or slug…",
+    "search": "Search",
+    "empty": "No published events match.",
+    "emptyRemoved": "No removed events match.",
+    "paidRunners": "Paid runners",
+    "acceptedResults": "Accepted results",
+    "paymentsUnderReview": "Payments under review",
+    "edit": "Edit Event",
+    "remove": "Remove Event…",
+    "removeYes": "Remove Event",
+    "removeExplainer": "{runners} paid runners and {results} accepted results stay on record. The organizer gets your reason by email.",
+    "refundWarning": "This race hasn’t been run yet, so removing it cancels it. {runners} runners paid and are owed refunds, which aren’t automatic: issue them in Stripe or ATH Móvil, or arrange them with the organizer.",
+    "reason": "Reason",
+    "reasonHint": "Sent to the organizer and kept in the moderation log. Up to 500 characters.",
+    "reasonPlaceholder": "e.g. The organizer asked us to take it down after the race…",
+    "typeName": "Type “{name}” to confirm",
+    "cancel": "Cancel",
+    "working": "Saving…",
+    "removedTitle": "Event removed",
+    "removedBody": "{name} is off the site. Restore it from the Removed list.",
+    "removedOn": "Removed {date}",
+    "restore": "Restore…",
+    "restoreYes": "Restore Event",
+    "restoreConfirm": "Publish this event again, exactly as it was?",
+    "restoredTitle": "Event restored",
+    "restoredBody": "{name} is published again.",
+    "reviewPayments": "Review Payments",
+    "blocked": {
+      "paymentsUnderReview": "An ATH Móvil payment for this event is waiting for review. Approve or reject it first."
+    },
+    "errors": {
+      "title": "Couldn’t update the event",
+      "notAllowed": "Only platform admins can remove or restore events.",
+      "eventNotFound": "This event no longer exists, or was already restored.",
+      "alreadyRemoved": "Someone already removed this event.",
+      "reasonRequired": "Enter a reason for the organizer.",
+      "reasonTooLong": "Keep the reason under 500 characters.",
+      "nameMismatch": "Type the event’s name exactly as shown.",
+      "paymentsUnderReview": "An ATH Móvil payment for this event is waiting for review. Approve or reject it first.",
       "saveFailed": "Something went wrong — try again in a moment."
     }
   }

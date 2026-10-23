@@ -1,7 +1,12 @@
 import { cache } from "react";
 import { getRunnerById } from "@/lib/data";
 import type { Locale } from "@/lib/i18n/config";
-import type { Runner } from "@/lib/types";
+import { formatMediumDate } from "@/lib/i18n/format";
+import { distanceLabel } from "@/lib/i18n/labels";
+import { getTranslator } from "@/lib/i18n/server";
+import { formatFinishTime, formatPace } from "@/lib/results/evidence";
+import { listRunnerResults, type RunnerResultRow } from "@/lib/results/queries";
+import type { Distance, Runner } from "@/lib/types";
 import { getProfile, type Profile } from "./queries";
 
 /**
@@ -12,10 +17,12 @@ import { getProfile, type Profile } from "./queries";
  * of the fixtures in `lib/data.ts`. The page renders one shape either way and
  * never asks which source it came from.
  *
- * The identity half — name, city, club, bio — exists in both. The racing half
- * — stats, achievements, results, upcoming — has no table behind it yet, so a
- * real profile carries it empty and the page shows empty states rather than
- * borrowing someone else's numbers.
+ * The identity half — name, city, club, bio — exists in both. For a real
+ * profile the racing half comes from `race_results`: every result an
+ * organizer accepted from the runner's finish evidence becomes a line of race
+ * history and an achievement carrying the event's medal, and the stats and
+ * personal bests are counted from them. Upcoming races are read by the page
+ * itself, since only the runner may see them.
  */
 export type RunnerView = {
   id: string;
@@ -37,13 +44,6 @@ export type RunnerView = {
   results: Runner["results"];
   achievements: Runner["achievements"];
   upcoming: Runner["upcoming"];
-};
-
-const NO_STATS: Runner["stats"] = {
-  races: 0,
-  kmRaced: 0,
-  podiums: 0,
-  personalBests: 0,
 };
 
 /**
@@ -72,14 +72,86 @@ export const getRunnerView = cache(async function getRunnerView(
 ): Promise<RunnerView | null> {
   if (UUID.test(id)) {
     const profile = await getProfile(id);
-    return profile ? fromProfile(profile) : null;
+    if (!profile) return null;
+    const [results, t] = await Promise.all([
+      listRunnerResults(profile.id),
+      getTranslator(locale),
+    ]);
+    return fromProfile(profile, racing(results, locale, t));
   }
 
   const runner = getRunnerById(id, locale);
   return runner ? fromRunner(runner) : null;
 });
 
-function fromProfile(profile: Profile): RunnerView {
+/** A medal shows as new for a week after its result is accepted. */
+const NEW_FOR_MS = 7 * 24 * 3600 * 1000;
+/** A personal best stays highlighted for three months. */
+const FRESH_FOR_MS = 90 * 24 * 3600 * 1000;
+
+type Racing = Pick<
+  RunnerView,
+  "stats" | "personalBests" | "results" | "achievements"
+>;
+
+/** The racing half of a real profile, from its accepted results. */
+function racing(
+  rows: RunnerResultRow[],
+  locale: Locale,
+  t: Awaited<ReturnType<typeof getTranslator>>,
+): Racing {
+  const now = Date.now();
+
+  // The fastest result at each distance is its personal best.
+  const best = new Map<Distance, RunnerResultRow>();
+  for (const r of rows) {
+    const held = best.get(r.distance);
+    if (!held || r.finishSeconds < held.finishSeconds) best.set(r.distance, r);
+  }
+  const bestIds = new Set([...best.values()].map((r) => r.id));
+
+  return {
+    stats: {
+      races: rows.length,
+      kmRaced: Math.round(rows.reduce((sum, r) => sum + r.distanceKm, 0) * 10) / 10,
+      // Self-reported results carry no placings to find a podium in.
+      podiums: 0,
+      personalBests: best.size,
+    },
+    personalBests: [...best.values()].map((r) => ({
+      distance: r.distance,
+      time: formatFinishTime(r.finishSeconds),
+      fresh: now - Date.parse(`${r.eventDate}T12:00:00Z`) < FRESH_FOR_MS,
+    })),
+    results: rows.map((r) => ({
+      eventName: r.eventName,
+      eventSlug: r.eventSlug,
+      eventRemoved: r.eventRemoved,
+      date: formatMediumDate(r.eventDate, locale),
+      distance: r.distance,
+      time: formatFinishTime(r.finishSeconds),
+      pace: formatPace(r.finishSeconds, r.distanceKm),
+      selfReported: true,
+      personalBest: bestIds.has(r.id),
+      podium: false,
+    })),
+    achievements: rows.map((r) => ({
+      id: r.id,
+      emoji: "🏅",
+      name: r.eventName,
+      detail: t("runner.medalDetail", {
+        distance: distanceLabel(t, r.distance),
+        date: formatMediumDate(r.eventDate, locale),
+      }),
+      earned: true,
+      earnedOn: r.eventDate,
+      isNew: r.reviewedAt ? now - Date.parse(r.reviewedAt) < NEW_FOR_MS : false,
+      image: r.medalImage,
+    })),
+  };
+}
+
+function fromProfile(profile: Profile, racing: Racing): RunnerView {
   return {
     id: profile.id,
     handle: profile.handle,
@@ -92,10 +164,7 @@ function fromProfile(profile: Profile): RunnerView {
     // `created_at` is a timestamptz; the formatters take a plain date.
     joinedAt: profile.joinedAt.slice(0, 10),
     social: null,
-    stats: NO_STATS,
-    personalBests: [],
-    results: [],
-    achievements: [],
+    ...racing,
     upcoming: [],
   };
 }

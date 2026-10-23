@@ -1,6 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import {
+  useActionState,
+  useEffect,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -10,6 +16,7 @@ import { useSession } from "@/components/layout/session";
 import { useT } from "@/components/i18n/provider";
 import {
   setProfileVisibilityAction,
+  updateMailingAddressAction,
   updateProfileAction,
   updateRaceDetailsAction,
   type ProfileState,
@@ -17,6 +24,12 @@ import {
 import type { Profile, ProfileDetails } from "@/lib/profile/queries";
 import { SHIRT_SIZES } from "@/lib/events/vocabulary";
 import { PR_MUNICIPALITIES } from "@/lib/pr-municipalities";
+import {
+  ADDRESS_LIMITS,
+  DEFAULT_STATE,
+  US_STATES,
+  type MailingAddress,
+} from "@/lib/profile/address";
 import { cn } from "@/lib/cn";
 
 /**
@@ -34,6 +47,32 @@ const NOTIFICATION_PREFS = [
   { id: "community", on: false },
   { id: "marketing", on: false },
 ];
+
+/** One role on the account-type card: what it is, whether it is on, where it leads. */
+function RoleRow({
+  name,
+  badge,
+  detail,
+  action,
+}: {
+  name: string;
+  badge: ReactNode;
+  detail: string;
+  action?: ReactNode;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-4 p-6">
+      <div className="min-w-0 flex-1 basis-64">
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="text-base font-extrabold uppercase">{name}</p>
+          {badge}
+        </div>
+        <p className="mt-2 text-[13px] text-fg-dim">{detail}</p>
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </li>
+  );
+}
 
 function Section({
   title,
@@ -88,6 +127,13 @@ export function SettingsPanel({
       </Section>
 
       <Section
+        title={t("settings.mailingAddress")}
+        description={t("settings.mailingAddressDescription")}
+      >
+        <MailingAddressForm address={details?.mailingAddress ?? null} />
+      </Section>
+
+      <Section
         title={t("settings.notifications")}
         description={t("settings.notificationsDescription")}
       >
@@ -139,39 +185,52 @@ export function SettingsPanel({
         title={t("settings.accountType")}
         description={t("settings.accountTypeDescription")}
       >
-        <div className="flex flex-wrap items-center gap-4 border-2 border-line bg-carbon p-6">
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center gap-3">
-              <p className="text-base font-extrabold uppercase">
-                {t("settings.runner")}
-              </p>
-              <Badge tone="lime">{t("settings.active")}</Badge>
-              {session.isOrganizer ? (
-                <>
-                  <p className="text-base font-extrabold uppercase">
-                    · {t("settings.organizer")}
-                  </p>
-                  <Badge tone="green">{t("settings.enabled")}</Badge>
-                </>
-              ) : null}
-            </div>
-            <p className="mt-2 text-[13px] text-fg-dim">
-              {session.isOrganizer
+        <ul className="divide-y-2 divide-line border-2 border-line bg-carbon">
+          <RoleRow
+            name={t("settings.runner")}
+            badge={<Badge tone="lime">{t("settings.active")}</Badge>}
+            detail={t("settings.runnerOn")}
+          />
+          <RoleRow
+            name={t("settings.organizer")}
+            badge={
+              session.isOrganizer ? (
+                <Badge tone="green">{t("settings.enabled")}</Badge>
+              ) : (
+                <Badge tone="outline">{t("settings.notEnabled")}</Badge>
+              )
+            }
+            detail={
+              session.isOrganizer
                 ? t("settings.organizerOn")
-                : t("settings.organizerOff")}
-            </p>
-          </div>
-          {session.isOrganizer ? (
-            <Button href="/organizer" variant="outline" size="md">
-              {t("settings.organizerDashboard")}
-            </Button>
-          ) : (
-            // Organizer access is granted by the team, in the database.
-            <Button href="/contact" variant="outline" size="md">
-              {t("settings.requestOrganizer")}
-            </Button>
-          )}
-        </div>
+                : t("settings.organizerOff")
+            }
+            action={
+              session.isOrganizer ? (
+                <Button href="/organizer" variant="outline" size="md">
+                  {t("settings.organizerDashboard")}
+                </Button>
+              ) : (
+                // Organizer access is granted by the team, in the database.
+                <Button href="/contact" variant="outline" size="md">
+                  {t("settings.requestOrganizer")}
+                </Button>
+              )
+            }
+          />
+          {session.isAdmin ? (
+            <RoleRow
+              name={t("settings.admin")}
+              badge={<Badge tone="yellow">{t("settings.enabled")}</Badge>}
+              detail={t("settings.adminOn")}
+              action={
+                <Button href="/admin/payments" variant="outline" size="md">
+                  {t("account.paymentReview")}
+                </Button>
+              }
+            />
+          ) : null}
+        </ul>
       </Section>
 
       <Section title={t("settings.privacy")}>
@@ -499,6 +558,148 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
               name="emergencyPhone"
               maxLength={20}
               defaultValue={details?.emergencyContactPhone ?? ""}
+            />
+          )}
+        </Field>
+      </div>
+
+      <Button
+        type="submit"
+        size="lg"
+        className="mt-6"
+        disabled={pending}
+        aria-busy={pending}
+      >
+        {pending ? t("common.saving") : t("common.saveChanges")}
+      </Button>
+    </form>
+  );
+}
+
+/**
+ * Where a medal goes when a registration picks "send by mail". Saved here
+ * once, it fills in that step on every sign-up.
+ *
+ * Emptying every field and saving clears it.
+ */
+function MailingAddressForm({ address }: { address: MailingAddress | null }) {
+  const t = useT();
+  const { toast } = useToast();
+  const [state, action, pending] = useActionState(
+    updateMailingAddressAction,
+    undefined,
+  );
+
+  useEffect(() => {
+    if (!state?.ok) return;
+    toast({ title: t("settings.mailingAddressSaved") });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state]);
+
+  const fieldError = (field: string) => {
+    const key = state?.fieldErrors?.[field];
+    return key ? t(`settings.errors.${key}`) : undefined;
+  };
+
+  return (
+    <form action={action} noValidate>
+      {state?.error ? (
+        <p
+          role="alert"
+          className="mb-6 flex items-start gap-2 border-2 border-danger bg-danger/8 px-4 py-3 text-[13px] font-semibold text-danger"
+        >
+          <span aria-hidden="true">▲</span>
+          {t(`settings.errors.${state.error}`)}
+        </p>
+      ) : null}
+
+      <div className="grid gap-6 sm:grid-cols-6">
+        <Field
+          label={t("settings.addressLine1")}
+          error={fieldError("addressLine1")}
+          className="sm:col-span-6"
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="addressLine1"
+              autoComplete="shipping address-line1"
+              maxLength={ADDRESS_LIMITS.line}
+              placeholder={t("settings.addressLine1Placeholder")}
+              defaultValue={address?.line1 ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.addressLine2")}
+          error={fieldError("addressLine2")}
+          optional
+          className="sm:col-span-6"
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="addressLine2"
+              autoComplete="shipping address-line2"
+              maxLength={ADDRESS_LIMITS.line}
+              placeholder={t("settings.addressLine2Placeholder")}
+              defaultValue={address?.line2 ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.addressCity")}
+          error={fieldError("addressCity")}
+          className="sm:col-span-3"
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="addressCity"
+              autoComplete="shipping address-level2"
+              maxLength={ADDRESS_LIMITS.city}
+              defaultValue={address?.city ?? ""}
+            />
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.addressState")}
+          error={fieldError("addressState")}
+          className="sm:col-span-2"
+        >
+          {(p) => (
+            <Select
+              {...p}
+              name="addressState"
+              autoComplete="shipping address-level1"
+              defaultValue={address?.state ?? DEFAULT_STATE}
+            >
+              {US_STATES.map(([code, name]) => (
+                <option key={code} value={code}>
+                  {name}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+
+        <Field
+          label={t("settings.addressPostalCode")}
+          error={fieldError("addressPostalCode")}
+          className="sm:col-span-1"
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="addressPostalCode"
+              inputMode="numeric"
+              autoComplete="shipping postal-code"
+              maxLength={10}
+              placeholder="00901"
+              defaultValue={address?.postalCode ?? ""}
             />
           )}
         </Field>

@@ -13,6 +13,7 @@ import {
 } from "@/lib/events/queries";
 import { localizePath } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { formatMailingAddress } from "@/lib/profile/address";
 import { getProfileDetails } from "@/lib/profile/queries";
 
 // No `generateStaticParams`: events published from /publish are read with the
@@ -83,6 +84,11 @@ export default async function RegisterPage(
       event={event}
       initialRunner={runner}
       initialShirtSize={details?.shirtSize ?? null}
+      initialMailingAddress={
+        details?.mailingAddress
+          ? formatMailingAddress(details.mailingAddress)
+          : ""
+      }
       existing={existing}
       athMovil={athMovil}
     />

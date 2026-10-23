@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PublishWizard } from "@/components/publish/publish-wizard";
 import { OrganizerOnly } from "@/components/organizer/organizer-only";
 import { listAthMovilAccounts } from "@/lib/ath-movil/queries";
-import { requireOrganizer } from "@/lib/auth/session";
+import { isOrganizer, isPlatformAdmin, requireAccount } from "@/lib/auth/session";
 import { getEventForm } from "@/lib/events/organizer";
 import { getT } from "@/lib/i18n/server";
 
@@ -16,12 +16,14 @@ export default async function EditEventPage(
   props: PageProps<"/[lang]/organizer/events/[id]/edit">,
 ) {
   const { id } = await props.params;
-  const account = await requireOrganizer(`/organizer/events/${id}/edit`);
-  if (!account) return <OrganizerOnly />;
+  const account = await requireAccount(`/organizer/events/${id}/edit`);
+  const admin = await isPlatformAdmin();
+  if (!admin && !isOrganizer(account.profile)) return <OrganizerOnly />;
 
-  // Someone else's event reads the same as a missing one.
+  // A platform admin opens any organizer's event. For everyone else,
+  // someone else's event reads the same as a missing one.
   const [initial, athMovilAccounts] = await Promise.all([
-    getEventForm(account.user.id, id),
+    getEventForm(admin ? null : account.user.id, id),
     // Retired ones too: the event may still be using one.
     listAthMovilAccounts({ includeRetired: true }),
   ]);
@@ -33,6 +35,7 @@ export default async function EditEventPage(
       key={initial.id}
       initial={initial}
       athMovilAccounts={athMovilAccounts}
+      asAdmin={initial.organizerId !== account.user.id}
     />
   );
 }

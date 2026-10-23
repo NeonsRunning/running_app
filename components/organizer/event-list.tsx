@@ -19,11 +19,15 @@ import { domainLabel } from "@/lib/i18n/labels";
  * rest load from `GET /api/organizer/events` as the end of the list nears.
  */
 
-const STATUS_TONE: Record<DashboardStatus, "lime" | "outline" | "yellow" | "neutral"> = {
+const STATUS_TONE: Record<
+  DashboardStatus,
+  "lime" | "outline" | "yellow" | "neutral" | "danger"
+> = {
   Live: "lime",
   Draft: "outline",
   Closing: "yellow",
   Finished: "neutral",
+  Removed: "danger",
 };
 
 /** Card actions share one shape so the row stays a single map. */
@@ -120,18 +124,24 @@ function EventCard({
 }) {
   const t = useT();
   const fmt = useFormat();
+  // Taken down by a platform admin: no longer listed, edited or deleted.
+  const removedByAdmin = event.status === "Removed";
 
   return (
     <li className="border-2 border-line bg-carbon">
       <div className="flex items-start justify-between gap-4 border-b-2 border-line px-5 py-5">
         <div className="min-w-0">
           <h3 className="font-display text-2xl font-black wrap-break-word uppercase">
-            <Link
-              href={`/organizer/events/${event.id}/edit`}
-              className="hover:text-neon-lime"
-            >
-              {event.name}
-            </Link>
+            {removedByAdmin ? (
+              event.name
+            ) : (
+              <Link
+                href={`/organizer/events/${event.id}/edit`}
+                className="hover:text-neon-lime"
+              >
+                {event.name}
+              </Link>
+            )}
           </h3>
           <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
             {[
@@ -170,37 +180,46 @@ function EventCard({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 border-t-2 border-line px-5 py-4">
-        <Link href={`/organizer/events/${event.id}/edit`} className={ACTION_CLASS}>
-          {t("organizer.actions.edit")}
-        </Link>
-        {event.status !== "Draft" ? (
-          <Link href={`/events/${event.slug}`} className={ACTION_CLASS}>
-            {t("organizer.actions.view")}
+      {removedByAdmin ? (
+        <p className="border-t-2 border-line px-5 py-4 text-[13px] leading-relaxed text-fg-dim">
+          {t("organizer.removedNote")}{" "}
+          <Link href="/contact" className="font-bold text-fg underline hover:text-neon-lime">
+            {t("organizer.removedContact")}
           </Link>
-        ) : null}
-        {event.registered > 0 ? (
-          <Link
-            href={`/events/${event.slug}#registrations`}
-            className={ACTION_CLASS}
-          >
-            {t("organizer.actions.registrations", {
-              count: fmt.number(event.registered),
-            })}
+        </p>
+      ) : (
+        <div className="flex flex-wrap gap-2 border-t-2 border-line px-5 py-4">
+          <Link href={`/organizer/events/${event.id}/edit`} className={ACTION_CLASS}>
+            {t("organizer.actions.edit")}
           </Link>
-        ) : null}
-        {/* Registrations hold an event in place; no point offering
-            a delete the database will refuse. */}
-        {event.registered === 0 ? (
-          <DeleteEventButton
-            id={event.id}
-            name={event.name}
-            live={event.status !== "Draft"}
-            className={ACTION_CLASS}
-            onDeleted={onDeleted}
-          />
-        ) : null}
-      </div>
+          {event.status !== "Draft" ? (
+            <Link href={`/events/${event.slug}`} className={ACTION_CLASS}>
+              {t("organizer.actions.view")}
+            </Link>
+          ) : null}
+          {event.registered > 0 ? (
+            <Link
+              href={`/events/${event.slug}#registrations`}
+              className={ACTION_CLASS}
+            >
+              {t("organizer.actions.registrations", {
+                count: fmt.number(event.registered),
+              })}
+            </Link>
+          ) : null}
+          {/* Registrations hold an event in place; no point offering
+              a delete the database will refuse. */}
+          {event.registered === 0 ? (
+            <DeleteEventButton
+              id={event.id}
+              name={event.name}
+              live={event.status !== "Draft"}
+              className={ACTION_CLASS}
+              onDeleted={onDeleted}
+            />
+          ) : null}
+        </div>
+      )}
     </li>
   );
 }

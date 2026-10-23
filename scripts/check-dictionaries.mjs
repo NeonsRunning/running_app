@@ -46,6 +46,9 @@ const DYNAMIC_PREFIXES = [
   "register.steps.",
   "register.errors.",
   "adminPayments.errors.",
+  // Removal errors arrive from the server as keys; blockers are picked by code.
+  "adminEvents.errors.",
+  "adminEvents.blocked.",
   "eventPayments.errors.",
   "eventRegistrations.errors.",
   "eventRegistrations.pendingErrors.",
@@ -59,6 +62,10 @@ const DYNAMIC_PREFIXES = [
   "emails.",
   // Profile photo: upload phases and error codes from the action.
   "runner.photo.",
+  // Finish evidence: upload phases and error codes from the actions.
+  "raceResult.phase.",
+  "raceResult.errors.",
+  "resultReview.errors.",
 ];
 
 function flatten(node, prefix = "", out = new Set()) {

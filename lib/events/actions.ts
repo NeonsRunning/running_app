@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { isPlatformAdmin } from "@/lib/auth/session";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
 import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
@@ -25,7 +26,8 @@ import {
  *
  * The organizer checks here are for the error message. The guarantee is the
  * row-level security on `events`, which refuses any write unless the caller's
- * own profile says organizer and the row is theirs, whatever this file does.
+ * own profile says organizer and the row is theirs — or, for an edit, the
+ * caller is a platform admin — whatever this file does.
  */
 
 export type EventFormState = {
@@ -258,16 +260,22 @@ function readCategories(
 /**
  * The signed-in organizer's client and id, or the error to show instead.
  * Every action re-reads the user rather than trusting anything the form sent.
+ *
+ * With `allowAdmin`, a platform admin passes too, organizer or not: they may
+ * edit anyone's event, though never create or delete one.
  */
-async function organizerSession() {
+async function organizerSession({ allowAdmin = false } = {}) {
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) return { error: "sessionExpired" } as const;
 
-  const profile = await getProfile(data.user.id);
-  if (!profile?.isOrganizer) return { error: "notOrganizer" } as const;
+  const [profile, admin] = await Promise.all([
+    getProfile(data.user.id),
+    allowAdmin ? isPlatformAdmin() : false,
+  ]);
+  if (!profile?.isOrganizer && !admin) return { error: "notOrganizer" } as const;
 
-  return { supabase, userId: data.user.id } as const;
+  return { supabase, userId: data.user.id, admin } as const;
 }
 
 type EventColumns = Omit<
@@ -297,9 +305,10 @@ export async function saveEventAction(
   const id = readText(formData, "id") || null;
   if (id && !UUID.test(id)) return { error: "eventNotFound" };
 
-  const session = await organizerSession();
+  // Only an edit is open to admins; a new event is always the caller's own.
+  const session = await organizerSession({ allowAdmin: Boolean(id) });
   if ("error" in session) return { error: session.error };
-  const { supabase, userId } = session;
+  const { supabase, userId, admin } = session;
 
   let existing: Pick<
     Tables<"events">,
@@ -312,15 +321,17 @@ export async function saveEventAction(
     | "medal_image_path"
   > | null = null;
   if (id) {
-    const { data } = await supabase
+    // An admin edits any organizer's event; anyone else only their own.
+    let query = supabase
       .from("events")
       .select(
         "status, slug, event_date, end_date, image_path, route_image_path, medal_image_path",
       )
-      .eq("id", id)
-      .eq("organizer_id", userId)
-      .maybeSingle();
-    if (!data) return { error: "eventNotFound" };
+      .eq("id", id);
+    if (!admin) query = query.eq("organizer_id", userId);
+    const { data } = await query.maybeSingle();
+    // A removed event is the platform's now; the policy refuses the save too.
+    if (!data || data.status === "removed") return { error: "eventNotFound" };
     existing = data;
   }
 
@@ -424,6 +435,7 @@ export async function saveEventAction(
   const offersPhotos = formData.get("offers_photos") === "on";
   const acceptsDonations = formData.get("accepts_donations") === "on";
   const offersMail = formData.get("offers_mail") === "on";
+  const acceptsResults = formData.get("accepts_results") === "on";
   const donationRecipient = readText(formData, "donation_recipient");
   const shirtPrice = readDecimal(readText(formData, "shirt_price"));
   const photoPrice = readDecimal(readText(formData, "photo_price"));
@@ -474,14 +486,18 @@ export async function saveEventAction(
   /* Images ---------------------------------------------------------------- */
   // Uploaded by the browser already; only a path into the caller's own
   // folder is accepted, so no one can point a listing at another's file.
+  // The image already on the event stays acceptable as it is: an admin's
+  // edit keeps the organizer's files, and the organizer keeps an admin's.
+  const usable = (path: string, current: string | null | undefined) =>
+    !path || path === current || isOwnImagePath(path, userId);
   const imagePath = readText(formData, "image_path");
-  if (imagePath && !isOwnImagePath(imagePath, userId))
+  if (!usable(imagePath, existing?.image_path))
     fieldErrors.image_path = "imageInvalid";
   const routeImagePath = readText(formData, "route_image_path");
-  if (routeImagePath && !isOwnImagePath(routeImagePath, userId))
+  if (!usable(routeImagePath, existing?.route_image_path))
     fieldErrors.route_image_path = "imageInvalid";
   const medalImagePath = readText(formData, "medal_image_path");
-  if (medalImagePath && !isOwnImagePath(medalImagePath, userId))
+  if (!usable(medalImagePath, existing?.medal_image_path))
     fieldErrors.medal_image_path = "imageInvalid";
 
   /* Payments -------------------------------------------------------------- */
@@ -538,6 +554,7 @@ export async function saveEventAction(
     route_image_path: routeImagePath || null,
     medal_image_path: medalImagePath || null,
     ath_movil_account_id: athMovilAccountId || null,
+    accepts_results: acceptsResults,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a
@@ -578,7 +595,8 @@ export async function saveEventAction(
         saved: {
           id: data.id,
           slug: data.slug,
-          status: data.status,
+          // Never "removed": the update policy refuses a removed row.
+          status: data.status === "published" ? "published" : "draft",
           categoryIds: Object.fromEntries(
             (rows ?? []).map((r) => [r.distance, r.id]),
           ),

@@ -32,7 +32,7 @@ type Registration = Tables<"registrations">;
  * addressed to it too. Read before `after()`: a page render cannot read
  * headers from inside the callback.
  */
-async function siteOrigin(): Promise<string> {
+export async function siteOrigin(): Promise<string> {
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
   if (configured) return configured.replace(/\/$/, "");
 
@@ -130,7 +130,7 @@ const LIME = "#9cff00";
 const MUTED = "#6b6b6b";
 const LINE = "#e6e6e6";
 
-function escape(value: string): string {
+export function escape(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

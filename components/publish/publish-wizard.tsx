@@ -134,11 +134,18 @@ let nextCategoryKey = 1;
 export function PublishWizard({
   initial = EMPTY_EVENT_FORM,
   athMovilAccounts = [],
+  asAdmin = false,
 }: {
   initial?: EventFormValues;
   /** The ATH Móvil Business accounts admins listed, retired ones included. */
   athMovilAccounts?: AthMovilAccountRow[];
+  /**
+   * A platform admin editing another organizer's event: no delete (an admin
+   * removes from /admin/events instead), and the way out leads back there.
+   */
+  asAdmin?: boolean;
 }) {
+  const home = asAdmin ? "/admin/events" : "/organizer";
   const [step, setStep] = useState(0);
   // An existing event can be browsed in any order from the start.
   const [visited, setVisited] = useState(initial.id ? REVIEW_STEP : 0);
@@ -172,6 +179,7 @@ export function PublishWizard({
   const [offersPhotos, setOffersPhotos] = useState(initial.offersPhotos);
   const [acceptsDonations, setAcceptsDonations] = useState(initial.acceptsDonations);
   const [offersMail, setOffersMail] = useState(initial.offersMail);
+  const [acceptsResults, setAcceptsResults] = useState(initial.acceptsResults);
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -294,7 +302,7 @@ export function PublishWizard({
           title: t("publish.deletedTitle"),
           body: t("publish.deletedBody", { name: eventName }),
         });
-        router.push("/organizer");
+        router.push(home);
         return;
       }
       setConfirmDelete(false);
@@ -375,8 +383,8 @@ export function PublishWizard({
           <Button href={`/events/${slug}`} size="lg">
             {t("publish.viewListing")}
           </Button>
-          <Button href="/organizer" variant="outline" size="lg">
-            {t("publish.goToDashboard")}
+          <Button href={home} variant="outline" size="lg">
+            {t(asAdmin ? "publish.goToAdminEvents" : "publish.goToDashboard")}
           </Button>
         </div>
       </div>
@@ -397,17 +405,25 @@ export function PublishWizard({
       <header className="sticky top-0 z-60 border-b-2 border-line bg-ink">
         <div className="mx-auto flex max-w-[1600px] items-center gap-4 px-4 py-3.5 sm:px-6 lg:px-10">
           <Link
-            href="/organizer"
-            aria-label={t("publish.backToDashboard")}
+            href={home}
+            aria-label={t(asAdmin ? "publish.backToAdminEvents" : "publish.backToDashboard")}
             className="flex h-10 shrink-0 items-center gap-2 border-2 border-line-strong px-2.5 font-mono text-[11px] tracking-[0.14em] uppercase hover:border-neon-lime hover:text-neon-lime"
           >
             <ArrowLeftIcon size={18} aria-hidden />
-            <span className="hidden xl:inline">{t("publish.backToDashboard")}</span>
+            <span className="hidden xl:inline">
+              {t(asAdmin ? "publish.backToAdminEvents" : "publish.backToDashboard")}
+            </span>
           </Link>
           <BrandLock compact />
           <div className="hidden min-w-0 border-l-2 border-line pl-4 sm:block">
             <Eyebrow>
-              {t(eventId ? "publish.editEvent" : "publish.createEvent")}
+              {t(
+                asAdmin
+                  ? "publish.editingAsAdmin"
+                  : eventId
+                    ? "publish.editEvent"
+                    : "publish.createEvent",
+              )}
             </Eyebrow>
             <p className="mt-0.5 flex items-center gap-2 truncate text-[15px] font-extrabold uppercase">
               {eventName}
@@ -422,7 +438,7 @@ export function PublishWizard({
               {t("publish.viewListing")}
             </Button>
           ) : null}
-          {eventId ? (
+          {eventId && !asAdmin ? (
             <Button
               variant="ghost"
               size="sm"
@@ -1381,6 +1397,15 @@ export function PublishWizard({
               )}
               error={fieldError("medal_image_path")}
             />
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="accepts_results"
+                checked={acceptsResults}
+                onChange={setAcceptsResults}
+                title={t("publish.results.title")}
+                detail={t("publish.results.detail")}
+              />
+            </div>
           </div>
 
           {/* 10 — Review ------------------------------------------------- */}

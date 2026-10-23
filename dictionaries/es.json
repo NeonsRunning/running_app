@@ -56,7 +56,8 @@
     "results": "Resultados",
     "settings": "Ajustes",
     "organizerDashboard": "Panel de organizador",
-    "paymentReview": "Revisión de Pagos"
+    "paymentReview": "Revisión de Pagos",
+    "eventModeration": "Moderación de Eventos"
   },
   "tabs": {
     "home": "Inicio",
@@ -162,7 +163,8 @@
       "live": "En vivo",
       "draft": "Borrador",
       "closing": "Cerrando",
-      "finished": "Finalizado"
+      "finished": "Finalizado",
+      "removed": "Retirado"
     },
     "series": {
       "50": "50+",
@@ -286,7 +288,6 @@
       "specSpotsLeft": "Cupos disponibles",
       "specFrom": "Desde",
       "entry": "inscripción {category}",
-      "priceRises": "El precio sube el {date}.",
       "registerNow": "Inscribirme ahora",
       "registrationOpensOn": "Inscripciones abren el {date}",
       "registrationOpensSoon": "Inscripciones abren pronto",
@@ -573,6 +574,16 @@
       "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING. El recibo de tu tarjeta llega en un correo aparte.",
       "totalAthMovil": "Total pagado (ATH Móvil)",
       "footerAthMovil": "Recibes este email porque te inscribiste en {event} en NEONS RUNNING. Tu recibo de ATH Móvil está en la app de ATH Móvil."
+    },
+    "eventRemoved": {
+      "subject": "{event} fue retirado de NEONS RUNNING",
+      "heading": "Hola, {name}:",
+      "headingNoName": "Hola:",
+      "intro": "Retiramos {event} de NEONS RUNNING. Ya no aparece en el listado ni en la búsqueda, y los corredores no pueden inscribirse ni enviar resultados.",
+      "reason": "Motivo",
+      "kept": "Sus inscripciones y pagos se conservan en nuestros registros, y los corredores mantienen en sus perfiles los resultados ya aceptados.",
+      "cta": "Contáctanos",
+      "footer": "Si crees que fue un error, contáctanos y lo revisaremos de nuevo."
     }
   },
   "results": {
@@ -624,7 +635,9 @@
     "noEventsTitle": "Aún no tienes eventos",
     "noEventsBody": "Crea tu primera carrera. Puedes guardarla como borrador y publicarla cuando esté lista.",
     "noDate": "Fecha por definir",
-    "registeredOf": "{registered} de {capacity} inscritos"
+    "registeredOf": "{registered} de {capacity} inscritos",
+    "removedNote": "NEONS RUNNING retiró este evento: ya no aparece en el listado ni en la búsqueda, y no se puede editar. Los corredores conservan sus resultados aceptados. Te enviamos el motivo por correo.",
+    "removedContact": "Contáctanos"
   },
   "runner": {
     "notFound": "Corredor no encontrado",
@@ -638,7 +651,7 @@
     "achievements": "Logros",
     "locked": "Bloqueado · {detail}",
     "raceHistory": "Historial de carreras",
-    "raceHistoryMeta": "{count} carreras · 2025—2026",
+    "raceHistoryMeta": "{count} carreras",
     "pb": "MP",
     "podium": "Podio",
     "officialTime": "Tiempo oficial",
@@ -694,7 +707,19 @@
         "saveFailed": "No pudimos guardar tu foto. Inténtalo de nuevo.",
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo y vuelve a intentarlo."
       }
-    }
+    },
+    "medalDetail": "Finisher · {distance} · {date}",
+    "medalAlt": "Medalla de finisher de {event}",
+    "verifiedByOrganizer": "Evidencia verificada por el organizador",
+    "pendingResults": "Resultados pendientes",
+    "pendingResultsMeta": "{count} en revisión",
+    "submittedOn": "Enviado {date}",
+    "rejectedNote": "El organizador lo devolvió: “{note}”",
+    "rejectedBody": "El organizador no pudo verificar esta llegada. Envía una captura más clara desde la página del evento.",
+    "resultUnderReview": "En revisión",
+    "resultRejected": "Devuelto",
+    "resendEvidence": "Enviar de nuevo",
+    "noPendingResults": "Nada pendiente. Después de una carrera que acepte evidencia, envía tu captura desde la página del evento — aparece aquí hasta que el organizador la revise."
   },
   "auth": {
     "shell": {
@@ -1045,6 +1070,16 @@
     "raceDetails": "Datos para carreras",
     "raceDetailsDescription": "Privado — solo lo ven tú y los organizadores de las carreras en las que te inscribes. Cada inscripción se abre con estos datos ya llenos.",
     "raceDetailsSaved": "Datos para carreras guardados",
+    "mailingAddress": "Dirección postal",
+    "mailingAddressDescription": "Privado — a donde enviamos tu medalla cuando eliges “enviar por correo” al inscribirte. Guardada aquí, ese paso se llena solo.",
+    "mailingAddressSaved": "Dirección postal guardada",
+    "addressLine1": "Dirección",
+    "addressLine1Placeholder": "123 Calle Luna",
+    "addressLine2": "Apartamento, suite, urbanización",
+    "addressLine2Placeholder": "Apt. 4B",
+    "addressCity": "Ciudad",
+    "addressState": "Estado / territorio",
+    "addressPostalCode": "Código postal",
     "birthDate": "Fecha de nacimiento",
     "birthDateHint": "Tu grupo de edad se calcula con esta fecha.",
     "gender": "Género",
@@ -1068,7 +1103,12 @@
       "birthDateInvalid": "Esa fecha de nacimiento no parece correcta.",
       "phoneInvalid": "Usa al menos 7 dígitos, p. ej. 787 555 0123.",
       "saveFailed": "No se pudo guardar. Vuelve a intentarlo.",
-      "sessionExpired": "Tu sesión venció. Empieza otra vez desde el inicio de sesión."
+      "sessionExpired": "Tu sesión venció. Empieza otra vez desde el inicio de sesión.",
+      "addressLineRequired": "Escribe la dirección.",
+      "addressLineTooLong": "Cada línea de la dirección no puede pasar de 100 caracteres.",
+      "addressCityRequired": "Escribe la ciudad.",
+      "addressStateInvalid": "Elige un estado o territorio.",
+      "postalCodeInvalid": "Usa un código postal de 5 dígitos, p. ej. 00901."
     },
     "notifications": "Notificaciones",
     "notificationsDescription": "Los avisos críticos de carrera siempre llegan por correo. El resto lo decides tú.",
@@ -1091,10 +1131,14 @@
     "runner": "Corredor",
     "active": "Activa",
     "organizer": "Organizador",
+    "runnerOn": "Inscríbete en carreras y guarda tus resultados en un solo lugar.",
+    "notEnabled": "No activado",
     "enabled": "Activado",
     "organizerOn": "Puedes publicar y gestionar eventos desde el panel de organizador.",
     "organizerOff": "¿Quieres publicar carreras, recibir inscripciones y hacer el check-in del día del evento? Escríbenos y te habilitamos.",
     "organizerDashboard": "Panel de organizador",
+    "admin": "Admin",
+    "adminOn": "Eres administrador de la plataforma: puedes revisar los pagos de ATH Móvil.",
     "privacy": "Privacidad",
     "publicProfile": "Perfil público",
     "publicProfileDetail": "Otros corredores pueden encontrar tu perfil y ver tu historial de carreras. Los resultados oficiales siguen siendo públicos en cualquier caso — son un registro publicado.",
@@ -1243,7 +1287,7 @@
       "details": "Detalles del evento",
       "image": "Imagen de portada",
       "route": "Mapa de ruta",
-      "medal": "Medalla del evento",
+      "medal": "Medalla y resultados",
       "review": "Revisión"
     },
     "untitled": "Carrera sin título",
@@ -1426,6 +1470,9 @@
       "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil."
     },
     "editEvent": "Editar evento",
+    "editingAsAdmin": "Editando como admin",
+    "backToAdminEvents": "Volver a eventos (admin)",
+    "goToAdminEvents": "Ir a eventos (admin)",
     "editMetaTitle": "Editar evento",
     "saveDraft": "Guardar borrador",
     "saveChanges": "Guardar cambios",
@@ -1447,7 +1494,11 @@
     "athMovilAccountHint": "Además de tarjeta, los corredores pueden pagar por ATH Móvil a esta cuenta comercial. Tú confirmas cada pago desde la página del evento.",
     "athMovilAccountNone": "Todavía no hay cuentas de ATH Móvil, así que los corredores pagan con tarjeta. Comunícate con el equipo para añadir una.",
     "athMovilAccountOff": "No aceptar ATH Móvil",
-    "athMovilAccountRetired": "retirada"
+    "athMovilAccountRetired": "retirada",
+    "results": {
+      "title": "Evidencia de llegada",
+      "detail": "Desde el día de la carrera, los corredores inscritos pueden enviar una captura de su carrera (Strava, Nike Run Club, la app de su reloj) con su tiempo. Tú aceptas o rechazas cada una desde la página del evento; quienes sean aceptados reciben el resultado y esta medalla en su perfil."
+    }
   },
   "organizerOnly": {
     "eyebrow": "Solo organizadores",
@@ -1482,7 +1533,8 @@
       "reviewFailed": "Algo salió mal. Inténtalo de nuevo en un momento."
     },
     "account": "Enviado a",
-    "manageAccounts": "Administrar cuentas de ATH Móvil"
+    "manageAccounts": "Administrar cuentas de ATH Móvil",
+    "manageEvents": "Gestionar Eventos"
   },
   "eventPayments": {
     "title": "Pagos pendientes",
@@ -1517,6 +1569,79 @@
     },
     "sentTo": "Enviado a {path}"
   },
+  "raceResult": {
+    "title": "Tu resultado",
+    "beforeRace": "Esta carrera acepta evidencia de llegada. Desde el día de la carrera, envía aquí una captura de tu carrera para tener tu resultado y medalla en tu perfil.",
+    "intro": "¿Terminaste? Envía una captura de tu carrera — de Strava, Nike Run Club o la app de tu reloj — con tu tiempo. El organizador la revisa.",
+    "evidence": "Captura de tu carrera",
+    "choose": "Elige una captura",
+    "evidenceHint": "JPG, PNG, WebP o HEIC. Asegúrate de que se vean la distancia, el tiempo y la fecha. Solo tú y el organizador pueden verla.",
+    "evidenceAlt": "Tu evidencia de llegada",
+    "finishTime": "Tiempo final",
+    "finishTimeHint": "Como h:mm:ss, o mm:ss si es menos de una hora.",
+    "submit": "Enviar a revisión",
+    "cancel": "Cancelar",
+    "replace": "Reemplazar evidencia",
+    "phase": {
+      "converting": "Preparando…",
+      "uploading": "Subiendo…",
+      "saving": "Enviando…"
+    },
+    "sentTitle": "Resultado enviado",
+    "sentBody": "El organizador lo revisará. Síguelo en Resultados pendientes en tu perfil.",
+    "pending": "En revisión",
+    "pendingBody": "Enviado {date}. Lo verás en tu perfil cuando el organizador lo acepte.",
+    "accepted": "Aceptado",
+    "acceptedBody": "Tu resultado y la medalla de finisher están en tu perfil.",
+    "viewProfile": "Ver perfil",
+    "rejected": "Devuelto",
+    "rejectedNote": "Nota del organizador: “{note}”. Envía nueva evidencia abajo.",
+    "rejectedBody": "El organizador no pudo verificar esta llegada. Envía una captura más clara abajo.",
+    "errors": {
+      "title": "No se pudo enviar tu resultado",
+      "evidenceRequired": "Primero elige una captura de tu carrera.",
+      "timeInvalid": "Escribe tu tiempo como h:mm:ss, o mm:ss — por ejemplo 0:25:41.",
+      "imageType": "Usa una imagen: JPG, PNG, WebP o HEIC.",
+      "imageTooLarge": "Esa imagen es demasiado grande — elige una captura más pequeña.",
+      "imageUnreadable": "No se pudo leer esa imagen. Prueba otra captura, o guárdala como JPG primero.",
+      "uploadFailed": "No se pudo subir la captura — inténtalo de nuevo en un momento.",
+      "evidenceInvalid": "Esa captura no se puede usar. Súbela de nuevo.",
+      "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo y vuelve a intentarlo.",
+      "resultsClosed": "Este evento no acepta evidencia de llegada.",
+      "raceNotStarted": "Puedes enviar tu resultado desde el día de la carrera.",
+      "notRegistered": "Solo los corredores con inscripción confirmada pueden enviar un resultado.",
+      "resultAlreadyAccepted": "Tu resultado para este evento ya fue aceptado.",
+      "submitFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    }
+  },
+  "resultReview": {
+    "title": "Resultados por revisar",
+    "count": "{count} en espera",
+    "body": "Los corredores envían una captura de su carrera con su tiempo. Verifica que la distancia, la fecha y el tiempo coincidan con este evento y acéptala para poner el resultado y la medalla en su perfil. Si no coinciden, recházala con una nota — pueden enviarla de nuevo.",
+    "empty": "No hay resultados en espera. La evidencia de los corredores aparece aquí desde el día de la carrera.",
+    "openEvidence": "Abrir la captura de {name} en tamaño completo",
+    "evidenceAlt": "Evidencia de llegada de {name}",
+    "evidenceMissing": "No se pudo cargar la captura.",
+    "bib": "Número {bib}",
+    "submitted": "Enviado {date}",
+    "accept": "Aceptar",
+    "reject": "Rechazar",
+    "note": "Nota para el corredor",
+    "noteHint": "Por qué se rechazó — el corredor la verá.",
+    "rejectYes": "Rechazar resultado",
+    "cancel": "Cancelar",
+    "working": "Guardando…",
+    "acceptedTitle": "Resultado aceptado",
+    "acceptedBody": "El resultado y la medalla de {name} están en su perfil.",
+    "rejectedTitle": "Resultado devuelto",
+    "rejectedBody": "{name} puede enviar nueva evidencia desde la página del evento.",
+    "errors": {
+      "title": "No se pudo guardar la revisión",
+      "notAllowed": "Solo el organizador de este evento puede revisar sus resultados.",
+      "alreadyReviewed": "Este resultado ya fue revisado, o el corredor lo reemplazó.",
+      "reviewFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    }
+  },
   "eventRegistrations": {
     "title": "Inscripciones",
     "count": "{count} completadas",
@@ -1535,6 +1660,7 @@
     "removeDescription": "El número {bib} sale de la lista y el espacio vuelve a quedar disponible. Su pago no se reembolsa automáticamente — reembólsalo en Stripe o en la app ATH Móvil Business si hace falta. Esto no se puede deshacer.",
     "removedTitle": "Corredor eliminado",
     "removedBody": "{name} ya no está inscrito en este evento.",
+    "resultLocked": "Resultado aceptado — no se puede eliminar",
     "markPending": "Volver a pendiente",
     "markPendingAria": "Volver a poner el pago ATH Móvil de {name} como pendiente",
     "markPendingTitle": "¿Volver a poner a {name} como pendiente?",
@@ -1546,12 +1672,14 @@
       "notAllowed": "Solo el organizador de este evento puede cambiar sus inscripciones.",
       "alreadyChanged": "Esta inscripción ya fue eliminada o puesta como pendiente.",
       "notAthMovil": "Solo los pagos ATH Móvil pueden volver a pendiente — los pagos con tarjeta los confirma Stripe.",
+      "resultAccepted": "El resultado de este corredor ya fue aceptado — su inscripción no puede volver a pendiente.",
       "revertFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     },
     "errors": {
       "title": "No se pudo eliminar al corredor",
       "notAllowed": "Solo el organizador de este evento puede eliminar a sus corredores.",
       "alreadyRemoved": "Este corredor ya fue eliminado.",
+      "resultAccepted": "El resultado de este corredor ya fue aceptado — su inscripción no se puede eliminar.",
       "removeFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     },
     "columns": {
@@ -1616,6 +1744,58 @@
       "qrUploadFailed": "No se pudo subir el código QR. Inténtalo de nuevo en un momento.",
       "notAdmin": "Solo los administradores de la plataforma pueden cambiar las cuentas de ATH Móvil.",
       "saveFailed": "Algo salió mal. Inténtalo de nuevo en un momento."
+    }
+  },
+  "adminEvents": {
+    "metaTitle": "Eventos",
+    "eyebrow": "Admin · Eventos",
+    "title": "Eventos",
+    "body": "Edita el evento de cualquier organizador, o retira uno que su organizador ya no puede eliminar porque hay corredores que pagaron. Un evento retirado sale del listado, la búsqueda y su página, y no acepta inscripciones ni resultados. Sus inscripciones, pagos y resultados aceptados se conservan, y puedes restaurarlo cuando quieras.",
+    "backToPayments": "Volver a Pagos",
+    "viewLabel": "Qué eventos",
+    "viewPublished": "Publicados",
+    "viewRemoved": "Retirados",
+    "searchLabel": "Buscar eventos",
+    "searchPlaceholder": "Nombre o slug del evento…",
+    "search": "Buscar",
+    "empty": "Ningún evento publicado coincide.",
+    "emptyRemoved": "Ningún evento retirado coincide.",
+    "paidRunners": "Corredores pagados",
+    "acceptedResults": "Resultados aceptados",
+    "paymentsUnderReview": "Pagos en revisión",
+    "edit": "Editar Evento",
+    "remove": "Retirar Evento…",
+    "removeYes": "Retirar Evento",
+    "removeExplainer": "{runners} corredores pagados y {results} resultados aceptados se conservan. El organizador recibe tu motivo por correo.",
+    "refundWarning": "Esta carrera aún está activa, así que retirarla la cancela. {runners} corredores pagaron y se les debe un reembolso, que no es automático: emítelo en Stripe o ATH Móvil, o coordínalo con el organizador.",
+    "reason": "Motivo",
+    "reasonHint": "Se envía al organizador y queda en el registro de moderación. Hasta 500 caracteres.",
+    "reasonPlaceholder": "p. ej. El organizador nos pidió retirarlo después de la carrera…",
+    "typeName": "Escribe “{name}” para confirmar",
+    "cancel": "Cancelar",
+    "working": "Guardando…",
+    "removedTitle": "Evento retirado",
+    "removedBody": "{name} ya no está en el sitio. Puedes restaurarlo desde la lista de Retirados.",
+    "removedOn": "Retirado el {date}",
+    "restore": "Restaurar…",
+    "restoreYes": "Restaurar Evento",
+    "restoreConfirm": "¿Publicar este evento de nuevo, tal como estaba?",
+    "restoredTitle": "Evento restaurado",
+    "restoredBody": "{name} está publicado de nuevo.",
+    "reviewPayments": "Revisar Pagos",
+    "blocked": {
+      "paymentsUnderReview": "Hay un pago por ATH Móvil de este evento pendiente de revisión. Apruébalo o recházalo primero."
+    },
+    "errors": {
+      "title": "No se pudo actualizar el evento",
+      "notAllowed": "Solo los administradores de la plataforma pueden retirar o restaurar eventos.",
+      "eventNotFound": "Este evento ya no existe o ya fue restaurado.",
+      "alreadyRemoved": "Alguien ya retiró este evento.",
+      "reasonRequired": "Escribe un motivo para el organizador.",
+      "reasonTooLong": "El motivo debe tener menos de 500 caracteres.",
+      "nameMismatch": "Escribe el nombre del evento exactamente como aparece.",
+      "paymentsUnderReview": "Hay un pago por ATH Móvil de este evento pendiente de revisión. Apruébalo o recházalo primero.",
+      "saveFailed": "Algo salió mal; inténtalo de nuevo en un momento."
     }
   }
 }

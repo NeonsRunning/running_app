@@ -144,6 +144,7 @@ function toEvent(
     image: eventImageUrl(row.image_path),
     routeImage: eventImageUrl(row.route_image_path),
     medalImage: eventImageUrl(row.medal_image_path),
+    acceptsResults: row.accepts_results,
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,
