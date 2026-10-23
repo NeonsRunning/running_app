@@ -23,6 +23,8 @@ export type RunnerView = {
   handle: string | null;
   name: string;
   initials: string;
+  /** The runner's photo; null shows the initials instead. */
+  avatarUrl: string | null;
   city: string | null;
   club: string | null;
   bio: string | null;
@@ -83,6 +85,7 @@ function fromProfile(profile: Profile): RunnerView {
     handle: profile.handle,
     name: profile.name,
     initials: profile.initials,
+    avatarUrl: profile.avatarUrl,
     city: profile.city,
     club: profile.club,
     bio: profile.bio,
@@ -103,6 +106,7 @@ function fromRunner(runner: Runner): RunnerView {
     handle: runner.handle,
     name: runner.name,
     initials: runner.initials,
+    avatarUrl: null,
     city: runner.city,
     club: runner.club,
     bio: runner.bio,

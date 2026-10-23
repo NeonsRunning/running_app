@@ -29,6 +29,8 @@ export type Session = {
   isAdmin: boolean;
   name: string;
   initials: string;
+  /** The profile photo for the account chip; null shows the initials. */
+  avatarUrl: string | null;
   /** The auth user id — what `/runners/[id]` is keyed by. */
   id: string;
   email: string;
@@ -41,6 +43,7 @@ export const GUEST_SESSION: Session = {
   isAdmin: false,
   name: "",
   initials: "",
+  avatarUrl: null,
   id: "",
   email: "",
   unreadNotifications: 0,
@@ -156,6 +159,7 @@ export function toSession(
     isAdmin: extras.isAdmin ?? false,
     name,
     initials: profile?.initials ?? initialsOf(name),
+    avatarUrl: profile?.avatarUrl ?? null,
     id: user.id,
     email: user.email ?? "",
     unreadNotifications: extras.unreadNotifications ?? 0,

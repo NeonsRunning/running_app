@@ -51,12 +51,21 @@ export type RegistrationInput = {
   shirtSize: string | null;
   wantsPhotos: boolean;
   donation: number;
+  /** Mail the kit; `mailingAddress` is where it goes. */
+  shipsByMail: boolean;
+  mailingAddress: string;
   /** The language the runner signed up in: their emails are written in it. */
   locale: string;
 };
 
 /** A confirmed sign-up: what the confirmation screen shows. */
-export type ConfirmedSignUp = { bib: number; amount: number; email: string };
+export type ConfirmedSignUp = {
+  bib: number;
+  amount: number;
+  email: string;
+  /** The runner's name as entered on the sign-up. */
+  name: string;
+};
 
 /** An ATH Móvil payment waiting for an admin: what the runner is shown. */
 export type AthMovilSubmission = {
@@ -114,6 +123,7 @@ const KNOWN_ERRORS = new Set([
   "extrasChanged",
   "shirtSizeUnavailable",
   "donationInvalid",
+  "mailingAddressInvalid",
   "paymentUnderReview",
 ]);
 
@@ -179,8 +189,15 @@ function confirmedSignUp(row: {
   bib: number | null;
   amount: number;
   email: string;
+  first_name: string;
+  last_name: string;
 }): ConfirmedSignUp {
-  return { bib: row.bib ?? 0, amount: Number(row.amount), email: row.email };
+  return {
+    bib: row.bib ?? 0,
+    amount: Number(row.amount),
+    email: row.email,
+    name: `${row.first_name} ${row.last_name}`.trim(),
+  };
 }
 
 /**
@@ -210,6 +227,8 @@ export async function startRegistrationPaymentAction(
     shirt_size: input.shirtSize,
     wants_photos: Boolean(input.wantsPhotos),
     donation: Number(input.donation),
+    ships_by_mail: Boolean(input.shipsByMail),
+    mailing_address: input.shipsByMail ? trim(input.mailingAddress) : "",
   };
 
   if (
@@ -227,7 +246,9 @@ export async function startRegistrationPaymentAction(
     !PHONE.test(details.emergency_contact_phone) ||
     details.club.length > 80 ||
     (details.shirt_size !== null && !isOneOf(SHIRT_SIZES, details.shirt_size)) ||
-    !Number.isFinite(details.donation)
+    !Number.isFinite(details.donation) ||
+    (details.ships_by_mail && !details.mailing_address) ||
+    details.mailing_address.length > 300
   ) {
     return { ok: false, error: "detailsInvalid" };
   }
@@ -350,7 +371,7 @@ export async function completeRegistrationPaymentAction(
   // Organizers can read their runners' rows too; only the runner's own counts.
   const { data: reg } = await supabase
     .from("registrations")
-    .select("status, bib, amount, email, payment_intent_id")
+    .select("status, bib, amount, email, first_name, last_name, payment_intent_id")
     .eq("id", registrationId)
     .eq("runner_id", userData.user.id)
     .maybeSingle();
@@ -408,7 +429,7 @@ export async function submitAthMovilPaymentAction(
 
   const { data: reg } = await supabase
     .from("registrations")
-    .select("status, bib, amount, email, payment_intent_id")
+    .select("status, bib, amount, email, first_name, last_name, payment_intent_id")
     .eq("id", registrationId)
     .eq("runner_id", userData.user.id)
     .maybeSingle();

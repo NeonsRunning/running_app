@@ -4,7 +4,7 @@ import { Link } from "@/components/i18n/link";
 import { useMemo, useRef, useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox, Field, Input, Select } from "@/components/ui/field";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocale, useT } from "@/components/i18n/provider";
 import {
@@ -25,7 +25,6 @@ import {
   waveLabel,
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
-import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import {
   DONATIONS,
   FIXTURE_EXTRAS,
@@ -91,6 +90,7 @@ export type ConfirmedRegistration = {
   bib: number;
   amount: number;
   email: string;
+  name: string;
 };
 
 export type Runner = {
@@ -173,10 +173,12 @@ export function RegistrationFlow({
     : FIXTURE_EXTRAS;
   const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
   const photoPrice = extras.photoPrice;
+  const shippingPrice = extras.shippingPrice;
   const hasExtras =
     shirtPrice !== null ||
     photoPrice !== null ||
-    extras.donationRecipient !== null;
+    extras.donationRecipient !== null ||
+    shippingPrice !== null;
 
   const [confirmed, setConfirmed] = useState(existing);
   const [step, setStep] = useState(existing ? 5 : 1);
@@ -213,6 +215,9 @@ export function RegistrationFlow({
         : (shirtSizes[0] ?? "M"),
   );
   const [wantsPhotos, setWantsPhotos] = useState(false);
+  const [wantsMail, setWantsMail] = useState(false);
+  const [mailingAddress, setMailingAddress] = useState("");
+  const [addressError, setAddressError] = useState(false);
   const [presetDonation, setPresetDonation] = useState<number>(0);
   // What the runner typed in "Other amount"; while it holds anything it wins
   // over the preset buttons.
@@ -257,8 +262,9 @@ export function RegistrationFlow({
         shirt: wantsShirt,
         photos: wantsPhotos,
         donation,
+        mail: wantsMail,
       }),
-    [category.price, extras, wantsShirt, wantsPhotos, donation],
+    [category.price, extras, wantsShirt, wantsPhotos, donation, wantsMail],
   );
 
   const done = step === 5;
@@ -315,6 +321,10 @@ export function RegistrationFlow({
       setDonationError(true);
       return;
     }
+    if (step === 3 && wantsMail && !mailingAddress.trim()) {
+      setAddressError(true);
+      return;
+    }
     if (step === 3 && event.bookable) {
       // Reserve the spot and open the payment for what the database prices
       // it at. Called again after going back: the same sign-up is updated.
@@ -325,6 +335,8 @@ export function RegistrationFlow({
         shirtSize: wantsShirt ? shirtSize : null,
         wantsPhotos,
         donation,
+        shipsByMail: wantsMail,
+        mailingAddress: wantsMail ? mailingAddress : "",
         locale,
       })
         .then((result) => {
@@ -408,6 +420,10 @@ export function RegistrationFlow({
         total={confirmed?.amount ?? total}
         bib={confirmed?.bib ?? 1048}
         email={confirmed?.email ?? runner.email}
+        name={
+          confirmed?.name ??
+          `${runner.firstName.trim()} ${runner.lastName.trim()}`.trim()
+        }
         t={t}
         fmt={fmt}
       />
@@ -577,6 +593,8 @@ export function RegistrationFlow({
                       {t("register.step1.waiverPre")}{" "}
                       <Link
                         href="/legal/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
                         className="text-neon-lime underline underline-offset-2"
                       >
                         {t("register.step1.waiverLink")}
@@ -919,6 +937,64 @@ export function RegistrationFlow({
                     </Field>
                   </div>
                 ) : null}
+
+                {shippingPrice !== null ? (
+                  <div className="border-t-2 border-line p-5 first:border-t-0 sm:p-7">
+                    <div className="flex items-start justify-between gap-5">
+                      <div>
+                        <h2 className="font-display text-xl font-black uppercase">
+                          {t("register.step3.mail")}
+                        </h2>
+                        <p className="mt-1.5 text-sm text-fg-dim">
+                          {t("register.step3.mailDetail")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-display text-xl font-black text-neon-yellow">
+                          {extraPrice(shippingPrice)}
+                        </span>
+                        <Checkbox
+                          checked={wantsMail}
+                          onChange={(e) => {
+                            setWantsMail(e.target.checked);
+                            setAddressError(false);
+                          }}
+                          label={
+                            <span className="sr-only">
+                              {t("register.step3.addMail")}
+                            </span>
+                          }
+                        />
+                      </div>
+                    </div>
+                    {wantsMail ? (
+                      <Field
+                        label={t("register.step3.mailingAddress")}
+                        hint={t("register.step3.mailingAddressHint")}
+                        error={
+                          addressError
+                            ? t("register.step3.mailingAddressRequired")
+                            : undefined
+                        }
+                        className="mt-5"
+                      >
+                        {(p) => (
+                          <Textarea
+                            {...p}
+                            rows={3}
+                            maxLength={300}
+                            autoComplete="shipping street-address"
+                            value={mailingAddress}
+                            onChange={(e) => {
+                              setMailingAddress(e.target.value);
+                              if (e.target.value.trim()) setAddressError(false);
+                            }}
+                          />
+                        )}
+                      </Field>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -1088,6 +1164,12 @@ export function RegistrationFlow({
                   value={fmt.money(SERVICE_FEE)}
                   muted
                 />
+                {wantsMail ? (
+                  <SummaryRow
+                    label={t("register.summary.shipping")}
+                    value={fmt.money(shippingPrice ?? 0)}
+                  />
+                ) : null}
               </dl>
               <div className="mt-6 flex items-baseline justify-between">
                 <span className="text-[15px] font-extrabold tracking-[0.12em] uppercase">
@@ -1141,7 +1223,7 @@ export function RegistrationFlow({
             <div className="border-t-2 border-line bg-carbon px-5 py-6 sm:px-7">
               <Eyebrow>{t("register.summary.raceDay")}</Eyebrow>
               <p className="mt-3 text-[15px] leading-relaxed text-fg-muted">
-                {fmt.longDate(event.date)}
+                {fmt.eventDates(event.date, event.endDate)}
                 <br />
                 {startTimeLabel(
                   t,
@@ -1229,6 +1311,7 @@ function Confirmation({
   total,
   bib,
   email,
+  name,
   t,
   fmt,
 }: {
@@ -1237,6 +1320,7 @@ function Confirmation({
   total: number;
   bib: number;
   email: string;
+  name: string;
   t: Translate;
   fmt: Formatters;
 }) {
@@ -1272,14 +1356,8 @@ function Confirmation({
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-            <Button href={SELF_PROFILE_PATH} size="lg">
-              {t("register.confirmation.viewRegistration")}
-            </Button>
-            <Button href={SELF_PROFILE_PATH} variant="outline" size="lg">
-              {t("register.confirmation.addToCalendar")}
-            </Button>
-            <Button href={`/events/${event.slug}`} variant="ghost" size="lg">
-              {t("register.confirmation.share")}
+            <Button href={`/events/${event.slug}`} size="lg">
+              {t("register.confirmation.viewEvent")}
             </Button>
           </div>
         </div>
@@ -1292,11 +1370,11 @@ function Confirmation({
               {t("register.confirmation.racePass")}
             </span>
             <span className="font-mono text-[11px] tracking-[0.18em] text-fg-faint">
-              NR-2026-{category.replace(/\s/g, "").toUpperCase()}
+              NR-{event.date.slice(0, 4)}-{category.replace(/\s/g, "").toUpperCase()}
             </span>
           </div>
 
-          <div className="border-b-2 border-line px-5 py-8 text-center">
+          <div className="px-5 py-8 text-center">
             <Eyebrow className="tracking-[0.2em]">
               {t("register.confirmation.bibNumber")}
             </Eyebrow>
@@ -1305,39 +1383,10 @@ function Confirmation({
             </p>
             <p className="mt-3 font-mono text-[12px] tracking-[0.16em] text-neon-yellow uppercase">
               {t("register.confirmation.bibMeta", {
+                name,
                 category: categoryName,
               })}
             </p>
-            {/* Barcode motif, echoing a real race bib. */}
-            <div
-              aria-hidden="true"
-              className="mt-6 flex justify-center gap-0.75"
-            >
-              {[4, 2, 6, 2, 4, 8, 2, 4, 6, 2, 5, 3].map((w, i) => (
-                <span
-                  key={i}
-                  style={{ width: `${w}px` }}
-                  className="block h-11 bg-fg"
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-5 px-5 py-6">
-            <div aria-hidden="true" className="h-24 w-24 shrink-0 bg-white p-2">
-              <div className="bg-finish-line h-full w-full" />
-            </div>
-            <div>
-              <p className="text-[15px] font-extrabold tracking-wide uppercase">
-                {t("register.confirmation.qrTitle")}
-              </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-fg-dim">
-                {t("register.confirmation.qrBody")}
-              </p>
-              <Button variant="success" size="sm" className="mt-3.5">
-                {t("register.confirmation.downloadPass")}
-              </Button>
-            </div>
           </div>
         </div>
 

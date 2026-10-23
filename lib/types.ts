@@ -80,8 +80,12 @@ export type RunningEvent = {
   routeImage?: string;
   /** Finisher medal image URL; absent when the page shows the placeholder. */
   medalImage?: string;
+  /** Runners take part anywhere in the region; city and venue then say so. */
+  anywhere: boolean;
   city: string;
   region: string;
+  /** "City, Region", or "Anywhere in Region" for a race run anywhere. */
+  place: string;
   venue: string;
   address: string;
   date: string; // ISO date
@@ -135,6 +139,8 @@ export type EventExtras = {
   photoPrice: number | null;
   /** Who receives donations. */
   donationRecipient: string | null;
+  /** Shipping and handling when the runner has their kit sent by mail. */
+  shippingPrice: number | null;
 };
 
 export type IncludedIcon =
@@ -191,7 +197,14 @@ export type Runner = {
   personalBests: { distance: Distance; time: string; fresh: boolean }[];
   results: RaceResult[];
   achievements: Achievement[];
-  upcoming: { eventSlug: string; bib: string; category: Distance; wave: string }[];
+  upcoming: {
+    eventSlug: string;
+    bib: string;
+    category: Distance;
+    wave: string;
+    /** Signed up but not paid yet: there is no bib until it is. */
+    pending?: boolean;
+  }[];
 };
 
 export type Participant = {

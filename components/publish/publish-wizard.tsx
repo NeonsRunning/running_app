@@ -109,6 +109,7 @@ const FIELD_STEP: Record<string, number> = {
   shirt_sizes: 4,
   photo_price: 4,
   donation_recipient: 4,
+  shipping_price: 4,
   terrain: 5,
   difficulty: 5,
   elevation_gain: 5,
@@ -154,6 +155,7 @@ export function PublishWizard({
     if (!opens || opens === eventDate) setOpens(nextEventDate);
     if (!closes || closes === lastDay) setCloses(nextEndDate || nextEventDate);
   };
+  const [anywhere, setAnywhere] = useState(initial.anywhere);
   const [city, setCity] = useState(initial.city);
   const [country, setCountry] = useState<Country>(initial.country);
   const [categories, setCategories] = useState<Category[]>(() =>
@@ -164,6 +166,7 @@ export function PublishWizard({
   const [offersShirt, setOffersShirt] = useState(initial.offersShirt);
   const [offersPhotos, setOffersPhotos] = useState(initial.offersPhotos);
   const [acceptsDonations, setAcceptsDonations] = useState(initial.acceptsDonations);
+  const [offersMail, setOffersMail] = useState(initial.offersMail);
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -325,7 +328,10 @@ export function PublishWizard({
 
   const checklist = [
     { key: "publish.checklist.info", done: name.trim().length > 0 && eventDate !== "" },
-    { key: "publish.checklist.location", done: city.trim().length > 0 },
+    {
+      key: "publish.checklist.location",
+      done: anywhere || city.trim().length > 0,
+    },
     {
       key: "publish.checklist.categories",
       done: categories.some((c) => c.price && c.capacity),
@@ -550,7 +556,11 @@ export function PublishWizard({
                   <Chip
                     key={option}
                     active={type === option}
-                    onClick={() => setType(option)}
+                    onClick={() => {
+                      setType(option);
+                      // A virtual race is run wherever the runner is.
+                      if (option === "Virtual Race") setAnywhere(true);
+                    }}
                   >
                     {eventTypeLabel(t, option)}
                   </Chip>
@@ -654,70 +664,95 @@ export function PublishWizard({
             hidden={step !== 1}
             className="mt-8 flex max-w-3xl flex-col gap-6"
           >
-            <Field label={t("publish.venueName")} error={fieldError("venue")}>
-              {(p) => (
-                <Input
-                  {...p}
-                  name="venue"
-                  defaultValue={initial.venue}
-                  maxLength={120}
-                  placeholder="Paseo de la Princesa…"
-                />
+            <fieldset>
+              <legend className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase">
+                {t("publish.locationKind")}
+              </legend>
+              {anywhere && <input type="hidden" name="anywhere" value="on" />}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Chip active={!anywhere} onClick={() => setAnywhere(false)}>
+                  {t("publish.locationVenue")}
+                </Chip>
+                <Chip active={anywhere} onClick={() => setAnywhere(true)}>
+                  {t("publish.locationAnywhere")}
+                </Chip>
+              </div>
+              {anywhere && (
+                <p className="mt-3 text-sm text-fg-muted">
+                  {t("publish.locationAnywhereHint")}
+                </p>
               )}
-            </Field>
-            <Field
-              label={t("publish.streetAddress")}
-              error={fieldError("address")}
-              optional
-            >
-              {(p) => (
-                <Input
-                  {...p}
-                  name="address"
-                  defaultValue={initial.address}
-                  maxLength={200}
-                  autoComplete="street-address"
-                  placeholder={t("publish.streetPlaceholder")}
-                />
-              )}
-            </Field>
-            <div className="grid gap-6 sm:grid-cols-2">
-              <Field label={t("publish.city")} error={fieldError("city")}>
-                {(p) =>
-                  country === "PR" ? (
-                    <Select
-                      {...p}
-                      name="city"
-                      value={city}
-                      autoComplete="address-level2"
-                      onChange={(e) => setCity(e.target.value)}
-                    >
-                      <option value="" disabled>
-                        {t("publish.chooseMunicipality")}
-                      </option>
-                      {/* Keep a city saved before the list existed selectable. */}
-                      {city && !isOneOf(PR_MUNICIPALITIES, city) && (
-                        <option value={city}>{city}</option>
-                      )}
-                      {PR_MUNICIPALITIES.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </Select>
-                  ) : (
-                    <Input
-                      {...p}
-                      name="city"
-                      value={city}
-                      maxLength={80}
-                      autoComplete="address-level2"
-                      onChange={(e) => setCity(e.target.value)}
-                      placeholder="San Juan…"
-                    />
-                  )
-                }
+            </fieldset>
+
+            {/* Hidden rather than removed, so switching back keeps what was typed. */}
+            <div hidden={anywhere} className="flex flex-col gap-6">
+              <Field label={t("publish.venueName")} error={fieldError("venue")}>
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="venue"
+                    defaultValue={initial.venue}
+                    maxLength={120}
+                    placeholder="Paseo de la Princesa…"
+                  />
+                )}
               </Field>
+              <Field
+                label={t("publish.streetAddress")}
+                error={fieldError("address")}
+                optional
+              >
+                {(p) => (
+                  <Input
+                    {...p}
+                    name="address"
+                    defaultValue={initial.address}
+                    maxLength={200}
+                    autoComplete="street-address"
+                    placeholder={t("publish.streetPlaceholder")}
+                  />
+                )}
+              </Field>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2">
+              <div hidden={anywhere}>
+                <Field label={t("publish.city")} error={fieldError("city")}>
+                  {(p) =>
+                    country === "PR" ? (
+                      <Select
+                        {...p}
+                        name="city"
+                        value={city}
+                        autoComplete="address-level2"
+                        onChange={(e) => setCity(e.target.value)}
+                      >
+                        <option value="" disabled>
+                          {t("publish.chooseMunicipality")}
+                        </option>
+                        {/* Keep a city saved before the list existed selectable. */}
+                        {city && !isOneOf(PR_MUNICIPALITIES, city) && (
+                          <option value={city}>{city}</option>
+                        )}
+                        {PR_MUNICIPALITIES.map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : (
+                      <Input
+                        {...p}
+                        name="city"
+                        value={city}
+                        maxLength={80}
+                        autoComplete="address-level2"
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="San Juan…"
+                      />
+                    )
+                  }
+                </Field>
+              </div>
               <Field label={t("publish.region")} error={fieldError("region")}>
                 {(p) => (
                   <Input
@@ -729,23 +764,25 @@ export function PublishWizard({
                   />
                 )}
               </Field>
-              <Field
-                label={t("publish.postalCode")}
-                error={fieldError("postal_code")}
-                optional
-              >
-                {(p) => (
-                  <Input
-                    {...p}
-                    name="postal_code"
-                    defaultValue={initial.postalCode}
-                    maxLength={12}
-                    inputMode="numeric"
-                    autoComplete="postal-code"
-                    placeholder="00901"
-                  />
-                )}
-              </Field>
+              <div hidden={anywhere}>
+                <Field
+                  label={t("publish.postalCode")}
+                  error={fieldError("postal_code")}
+                  optional
+                >
+                  {(p) => (
+                    <Input
+                      {...p}
+                      name="postal_code"
+                      defaultValue={initial.postalCode}
+                      maxLength={12}
+                      inputMode="numeric"
+                      autoComplete="postal-code"
+                      placeholder="00901"
+                    />
+                  )}
+                </Field>
+              </div>
               <Field label={t("publish.country")} error={fieldError("country")}>
                 {(p) => (
                   <Select
@@ -766,7 +803,7 @@ export function PublishWizard({
           </div>
 
           {/* 3 — Race categories --------------------------------------- */}
-          <div data-step={2} hidden={step !== 2} className="mt-8 max-w-4xl">
+          <div data-step={2} hidden={step !== 2} className="mt-8 max-w-5xl">
             <p className="text-[15px] text-fg-dim">
               {t("publish.categoriesIntro")}
             </p>
@@ -807,7 +844,7 @@ export function PublishWizard({
                       </button>
                     ) : null}
                   </div>
-                  <div className="grid gap-5 p-5 sm:grid-cols-2 lg:grid-cols-5">
+                  <div className="grid items-end gap-5 p-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)]">
                     <Field label={t("publish.distance")}>
                       {(p) => (
                         <Select
@@ -903,11 +940,14 @@ export function PublishWizard({
           <div
             data-step={3}
             hidden={step !== 3}
-            className="mt-8 flex max-w-3xl flex-col gap-8"
+            className="mt-8 flex max-w-4xl flex-col gap-8"
           >
+            {/* Each field spans the grid's three rows (label, input, hint) via
+                subgrid, so inputs stay level when a label wraps. */}
             <div className="grid gap-6 sm:grid-cols-3">
               <Field
                 label={t("publish.participantLimit")}
+                className="sm:row-span-3 sm:grid sm:grid-rows-subgrid sm:gap-0 sm:[&>label]:self-end"
                 hint={t("publish.participantLimitHint")}
                 error={fieldError("capacity")}
                 optional
@@ -921,7 +961,11 @@ export function PublishWizard({
                   />
                 )}
               </Field>
-              <Field label={t("publish.minimumAge")} error={fieldError("minimum_age")}>
+              <Field
+                label={t("publish.minimumAge")}
+                error={fieldError("minimum_age")}
+                className="sm:row-span-3 sm:grid sm:grid-rows-subgrid sm:gap-0 sm:[&>label]:self-end"
+              >
                 {(p) => (
                   <Input
                     {...p}
@@ -934,6 +978,7 @@ export function PublishWizard({
               </Field>
               <Field
                 label={t("publish.maximumAge")}
+                className="sm:row-span-3 sm:grid sm:grid-rows-subgrid sm:gap-0 sm:[&>label]:self-end"
                 error={fieldError("maximum_age")}
                 optional
               >
@@ -1069,6 +1114,32 @@ export function PublishWizard({
                         defaultValue={initial.donationRecipient}
                         maxLength={120}
                         placeholder={t("publish.extras.donationRecipientPlaceholder")}
+                      />
+                    )}
+                  </Field>
+                </div>
+              </li>
+
+              <li className="border-2 border-line bg-carbon p-5">
+                <ExtraToggle
+                  name="offers_mail"
+                  checked={offersMail}
+                  onChange={setOffersMail}
+                  title={t("publish.extras.mail")}
+                  detail={t("publish.extras.mailDetail")}
+                />
+                <div hidden={!offersMail} className="mt-5 max-w-56">
+                  <Field
+                    label={t("publish.extras.shippingPrice")}
+                    hint={t("publish.extras.shippingPriceHint")}
+                    error={fieldError("shipping_price")}
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="shipping_price"
+                        defaultValue={initial.shippingPrice}
+                        inputMode="decimal"
                       />
                     )}
                   </Field>
@@ -1293,7 +1364,9 @@ export function PublishWizard({
                           ? `${fmt.mediumDate(eventDate)} – ${fmt.mediumDate(endDate)}`
                           : fmt.mediumDate(eventDate)
                         : null,
-                      city.trim() || null,
+                      anywhere
+                        ? t("events.anywhere.short")
+                        : city.trim() || null,
                     ]
                       .filter(Boolean)
                       .join(" · ") || t("publish.previewDatePending")}

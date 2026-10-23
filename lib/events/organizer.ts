@@ -38,6 +38,8 @@ export type DashboardEvent = {
   name: string;
   status: DashboardStatus;
   date: string | null;
+  /** Run anywhere in the region, so there is no city. */
+  anywhere: boolean;
   city: string | null;
   registered: number;
   capacity: number;
@@ -187,6 +189,7 @@ export async function getOrganizerEvents(
         name: e.name,
         status: dashboardStatus(e, registered, capacity, today),
         date: e.event_date,
+        anywhere: e.anywhere,
         city: e.city,
         registered,
         capacity,
@@ -364,6 +367,7 @@ export async function getEventForm(
     startTime: hhmm(event.start_time),
     registrationOpens: event.registration_opens ?? "",
     registrationCloses: event.registration_closes ?? "",
+    anywhere: event.anywhere,
     venue: event.venue ?? "",
     address: event.address,
     city: event.city ?? "",
@@ -380,6 +384,8 @@ export async function getEventForm(
     photoPrice: decimal(event.photo_price),
     acceptsDonations: event.accepts_donations,
     donationRecipient: event.donation_recipient,
+    offersMail: event.offers_mail,
+    shippingPrice: decimal(event.shipping_price),
     terrain: event.terrain,
     difficulty: event.difficulty,
     elevationGain: event.elevation_gain ? String(event.elevation_gain) : "",
@@ -418,6 +424,8 @@ export type EventRegistrationRow = {
   age: number;
   shirtSize: string | null;
   club: string | null;
+  /** Where to mail the kit; null when the runner picks it up. */
+  mailingAddress: string | null;
   amount: number;
   paymentMethod: Tables<"registrations">["payment_method"];
   /** When the payment was confirmed; the sign-up time if it never recorded one. */
@@ -438,7 +446,7 @@ export async function getEventRegistrations(
   const { data, error } = await supabase
     .from("registrations")
     .select(
-      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, amount, payment_method, paid_at, created_at",
+      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, amount, payment_method, paid_at, created_at",
     )
     .eq("event_id", eventId)
     .eq("status", "confirmed")
@@ -458,6 +466,7 @@ export async function getEventRegistrations(
     age: ageOn(r.birth_date, raceDay),
     shirtSize: r.shirt_size,
     club: r.club,
+    mailingAddress: r.ships_by_mail ? r.mailing_address : null,
     amount: Number(r.amount),
     paymentMethod: r.payment_method,
     paidAt: r.paid_at ?? r.created_at,

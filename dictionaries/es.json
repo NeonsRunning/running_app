@@ -256,6 +256,7 @@
       "emptyBody": "Prueba a ampliar la distancia o el rango de fechas — hay 184 carreras publicadas en la región y se añaden nuevas cada semana.",
       "clearFilters": "Limpiar filtros",
       "markers": "Marcadores de carrera · {count} en el mapa",
+      "markersAnywhere": "Marcadores de carrera · {count} en el mapa · {anywhere} en cualquier lugar",
       "from": "Desde {price}",
       "details": "Detalles",
       "loadingMore": "Cargando más carreras…",
@@ -348,6 +349,11 @@
       "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
       "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}"
+    },
+    "anywhere": {
+      "short": "Cualquier lugar",
+      "place": "Cualquier lugar de {region}",
+      "address": "Córrela donde quieras en {region}."
     }
   },
   "search": {
@@ -410,7 +416,8 @@
       "paymentProcessing": "Tu pago aún se está procesando. Tu inscripción se confirma en cuanto se acredite — vuelve a esta página en un rato.",
       "paymentRefunded": "No pudimos asociar tu pago a tu inscripción, así que te lo devolvimos completo. Vuelve a empezar, por favor.",
       "paymentUnderReview": "Estamos verificando tu pago por ATH Móvil para esta carrera. Te enviaremos un email en cuanto se confirme.",
-      "referenceInvalid": "Escribe el número de referencia de tu recibo de ATH Móvil (hasta 40 caracteres)."
+      "referenceInvalid": "Escribe el número de referencia de tu recibo de ATH Móvil (hasta 40 caracteres).",
+      "mailingAddressInvalid": "Escribe la dirección a la que enviamos tu medalla (hasta 300 caracteres). Regresa al paso de extras y revísala."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
     "confirmToastBody": "Dorsal n.º 1048 confirmado para {event}.",
@@ -457,7 +464,13 @@
       "customDonation": "Otra cantidad",
       "customDonationInvalid": "Escribe una cantidad entre $0 y {max}.",
       "none": "El organizador no ofrece extras para esta carrera.",
-      "free": "Gratis"
+      "free": "Gratis",
+      "mail": "Envío por correo",
+      "mailDetail": "¿No puedes recoger tu medalla? Te la enviamos por correo.",
+      "addMail": "Enviar mi medalla por correo",
+      "mailingAddress": "Dirección postal",
+      "mailingAddressHint": "Calle, ciudad, estado y código postal.",
+      "mailingAddressRequired": "Escribe la dirección a la que enviamos tu medalla."
     },
     "step4": {
       "title": "Pago",
@@ -472,6 +485,7 @@
       "photos": "Paquete de fotos",
       "donation": "Donación",
       "serviceFee": "Cargo por servicio",
+      "shipping": "Envío y manejo",
       "total": "Total",
       "processing": "Procesando…",
       "complete": "Completar inscripción",
@@ -485,12 +499,10 @@
     "confirmation": {
       "titleLine1": "¡Ya estás",
       "titleLine2": "dentro!",
-      "viewRegistration": "Ver mi inscripción",
-      "addToCalendar": "Añadir al calendario",
-      "share": "Compartir",
+      "viewEvent": "Ver evento",
       "racePass": "Pase de carrera",
       "bibNumber": "Número de dorsal",
-      "bibMeta": "Alex Rivera · {category} · Corral A",
+      "bibMeta": "{name} · {category}",
       "qrTitle": "Pase QR para el registro",
       "qrBody": "Muéstralo en la carpa de registro. Funciona sin conexión una vez descargado.",
       "downloadPass": "Descargar pase",
@@ -550,6 +562,8 @@
       "photos": "Fotos de la carrera",
       "donation": "Donativo",
       "donationTo": "Donativo a {recipient}",
+      "mail": "Envío por correo",
+      "mailTo": "Enviar a",
       "total": "Total cobrado",
       "cta": "Ver detalles de la carrera",
       "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING. El recibo de tu tarjeta llega en un correo aparte.",
@@ -634,6 +648,7 @@
     "start": "Salida",
     "bib": "Dorsal",
     "viewRegistration": "Ver inscripción",
+    "viewEvent": "Ver evento",
     "upcoming": "Próximas",
     "personalBestsPanel": "Marcas personales",
     "clubOnly": "Club {club}",
@@ -647,11 +662,35 @@
     "daysToStart": "{days} días para tu próxima línea de salida · {count} carreras en tu calendario esta temporada.",
     "category": "Categoría",
     "registrationMeta": "{category} · {wave} · dorsal {bib}",
+    "registrationMetaPending": "{category} · {wave}",
+    "pending": "Pendiente",
     "savedEvents": "Carreras guardadas",
     "findMore": "Buscar más",
     "recommended": "Recomendadas para ti",
     "recommendedKicker": "Inscripciones abiertas · {city} primero",
-    "recommendedKickerAny": "Inscripciones abiertas · las que más se llenan"
+    "recommendedKickerAny": "Inscripciones abiertas · las que más se llenan",
+    "photo": {
+      "add": "Añadir foto",
+      "change": "Cambiar foto",
+      "remove": "Quitar foto",
+      "removeTitle": "¿Quitar tu foto?",
+      "removeDescription": "Tu perfil volverá a mostrar tus iniciales. Puedes subir una foto nueva cuando quieras.",
+      "alt": "Foto de {name}",
+      "converting": "Preparando…",
+      "uploading": "Subiendo…",
+      "saving": "Guardando…",
+      "saved": "Foto de perfil actualizada",
+      "removed": "Foto de perfil eliminada",
+      "errors": {
+        "imageType": "Usa una foto: JPG, PNG, WebP o HEIC.",
+        "imageTooLarge": "Esa imagen es demasiado grande: elige una de menos de 40 MB.",
+        "imageUnreadable": "No pudimos leer esa imagen. Prueba con otra foto o guárdala primero como JPG.",
+        "uploadFailed": "No pudimos subir la foto. Inténtalo de nuevo en un momento.",
+        "photoInvalid": "Esa foto no se puede usar. Súbela de nuevo.",
+        "saveFailed": "No pudimos guardar tu foto. Inténtalo de nuevo.",
+        "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo y vuelve a intentarlo."
+      }
+    }
   },
   "auth": {
     "shell": {
@@ -1225,6 +1264,10 @@
     "startTimeHintMultiDay": "Déjala vacía si los corredores pueden salir en cualquier momento entre las dos fechas.",
     "registrationOpens": "Apertura de inscripciones",
     "registrationCloses": "Cierre de inscripciones",
+    "locationKind": "Dónde se corre",
+    "locationVenue": "En un lugar específico",
+    "locationAnywhere": "En cualquier lugar de la región",
+    "locationAnywhereHint": "Los corredores participan donde quieran, así que no hay lugar ni ciudad. Ideal para carreras virtuales.",
     "venueName": "Nombre del lugar",
     "streetAddress": "Dirección",
     "streetPlaceholder": "Calle y número",
@@ -1256,7 +1299,11 @@
       "donationRecipient": "Las donaciones van a",
       "donationRecipientHint": "La organización benéfica, fundación o causa a la que donan los corredores. Los corredores ven este nombre antes de donar.",
       "donationRecipientPlaceholder": "p. ej. Fundación Corre PR",
-      "freeHint": "Escribe 0 para incluirlo sin costo."
+      "freeHint": "Escribe 0 para incluirlo sin costo.",
+      "mail": "Envío por correo",
+      "mailDetail": "Los corredores que no puedan recoger su medalla pueden recibirla por correo. El envío y manejo se suma al final de su total.",
+      "shippingPrice": "Envío y manejo (USD)",
+      "shippingPriceHint": "Se suma al final del total del corredor. Escribe 0 para enviar gratis."
     },
     "terrain": "Terreno",
     "terrainPlaceholder": "Asfalto cerrado, llano",
@@ -1462,17 +1509,31 @@
     "empty": "Todavía no hay inscripciones completadas. Los corredores aparecen aquí cuando se confirma su pago.",
     "noMatches": "Ninguna inscripción coincide con esa búsqueda.",
     "searchPlaceholder": "Busca nombre, número, email, teléfono o club",
+    "mailTo": "Enviar a: {address}",
     "searchAria": "Buscar inscripciones",
     "exportCsv": "Exportar CSV",
     "card": "Tarjeta",
     "athMovil": "ATH Móvil",
     "remove": "Eliminar",
-    "removing": "Eliminando…",
+    "working": "Procesando…",
     "removeAria": "Eliminar a {name} de este evento",
     "removeTitle": "¿Eliminar a {name}?",
     "removeDescription": "El número {bib} sale de la lista y el espacio vuelve a quedar disponible. Su pago no se reembolsa automáticamente — reembólsalo en Stripe o en la app ATH Móvil Business si hace falta. Esto no se puede deshacer.",
     "removedTitle": "Corredor eliminado",
     "removedBody": "{name} ya no está inscrito en este evento.",
+    "markPending": "Volver a pendiente",
+    "markPendingAria": "Volver a poner el pago ATH Móvil de {name} como pendiente",
+    "markPendingTitle": "¿Volver a poner a {name} como pendiente?",
+    "markPendingDescription": "El número {bib} se libera y la inscripción vuelve a los pagos ATH Móvil por revisar. El corredor conserva su espacio. Al confirmarla de nuevo recibe el próximo número disponible y se le reenvía el email de confirmación.",
+    "pendingTitle": "De vuelta a pendiente",
+    "pendingBody": "El pago de {name} está esperando revisión otra vez.",
+    "pendingErrors": {
+      "title": "No se pudo volver a poner como pendiente",
+      "notAllowed": "Solo el organizador de este evento puede cambiar sus inscripciones.",
+      "alreadyChanged": "Esta inscripción ya fue eliminada o puesta como pendiente.",
+      "notAthMovil": "Solo los pagos ATH Móvil pueden volver a pendiente — los pagos con tarjeta los confirma Stripe.",
+      "revertFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    },
     "errors": {
       "title": "No se pudo eliminar al corredor",
       "notAllowed": "Solo el organizador de este evento puede eliminar a sus corredores.",
@@ -1492,6 +1553,7 @@
       "email": "Email",
       "phone": "Teléfono",
       "club": "Club",
+      "mailTo": "Dirección postal",
       "actions": "Acciones"
     }
   }

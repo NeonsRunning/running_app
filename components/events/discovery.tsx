@@ -2,6 +2,7 @@
 
 import { Link } from "@/components/i18n/link";
 import {
+  type CSSProperties,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -577,7 +578,9 @@ export function EventDiscovery({
 /**
  * Map view: Puerto Rico's municipalities, with a marker on each race's
  * municipality. Races in the same municipality stack beneath one another;
- * races whose city isn't a known municipality stay in the list only.
+ * races whose city isn't a known municipality stay in the list only. Races
+ * run anywhere in the region line up in a strip over the water instead, and
+ * light the whole island while active.
  */
 function MapView({ events }: { events: RunningEvent[] }) {
   const t = useT();
@@ -587,6 +590,7 @@ function MapView({ events }: { events: RunningEvent[] }) {
   const markers = useMemo(() => {
     const stacks = new Map<Municipality, number>();
     return events.flatMap((event) => {
+      if (event.anywhere) return [];
       const municipality = municipalityOf(event.city);
       if (!municipality) return [];
       const stack = stacks.get(municipality) ?? 0;
@@ -595,6 +599,8 @@ function MapView({ events }: { events: RunningEvent[] }) {
     });
   }, [events]);
 
+  const anywhere = events.filter((e) => e.anywhere);
+  const anywhereActive = anywhere.some((e) => e.id === active);
   const hosting = new Set(markers.map((m) => m.municipality));
   const activeMunicipality = markers.find(
     (m) => m.event.id === active,
@@ -626,9 +632,11 @@ function MapView({ events }: { events: RunningEvent[] }) {
                   "transition-colors",
                   name === activeMunicipality
                     ? "fill-neon-yellow/20 stroke-neon-yellow"
+                    : anywhereActive
+                      ? "fill-neon-yellow/10 stroke-neon-yellow/70"
                     : hosting.has(name)
                       ? "fill-neon-lime/15 stroke-neon-lime/60"
-                      : "fill-neon-lime/[0.04] stroke-neon-lime/25",
+                        : "fill-neon-lime/[0.04] stroke-neon-lime/25",
                 )}
               >
                 <title>{name}</title>
@@ -637,45 +645,59 @@ function MapView({ events }: { events: RunningEvent[] }) {
           </svg>
 
           {markers.map(({ event: e, municipality, stack }) => {
-            const isActive = e.id === active;
             const { x, y } = PR_MAP.municipalities[municipality];
             return (
-              <button
+              <MapMarker
                 key={e.id}
-                type="button"
-                onClick={() => setActive(e.id)}
-                aria-pressed={isActive}
-                aria-label={`${e.name} · ${e.city}`}
+                event={e}
+                active={e.id === active}
+                onSelect={() => setActive(e.id)}
+                className="absolute"
                 style={{
                   left: `${(x / PR_MAP.width) * 100}%`,
                   top: `${(y / PR_MAP.height) * 100}%`,
                   transform: `translate(-50%, calc(-50% + ${stack * 115}%))`,
                 }}
-                className={cn(
-                  "absolute border-2 px-2 py-1 text-[10px] font-black whitespace-nowrap transition-colors sm:px-2.5 sm:py-1.5 sm:text-[11px]",
-                  isActive
-                    ? "z-10 border-neon-yellow bg-neon-yellow text-ink"
-                    : "border-neon-lime bg-ink text-neon-lime hover:bg-neon-lime hover:text-ink",
-                )}
-              >
-                {distanceLabel(t, e.featuredDistance)} ·{" "}
-                {fmt.moneyWhole(e.fromPrice)}
-              </button>
+              />
             );
           })}
         </div>
 
+        {anywhere.length > 0 && (
+          <div className="absolute top-4 right-4 left-4 flex flex-wrap items-center gap-2 sm:top-5 sm:left-5">
+            <span className="mr-1 font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+              {t("events.anywhere.short")}
+            </span>
+            {anywhere.map((e) => (
+              <MapMarker
+                key={e.id}
+                event={e}
+                active={e.id === active}
+                onSelect={() => setActive(e.id)}
+              />
+            ))}
+          </div>
+        )}
+
         <p className="absolute bottom-5 left-5 font-mono text-[11px] tracking-[0.16em] text-fg-faint uppercase">
-          {t("events.discovery.markers", {
-            count: fmt.number(markers.length),
-          })}
+          {anywhere.length
+            ? t("events.discovery.markersAnywhere", {
+                count: fmt.number(markers.length),
+                anywhere: fmt.number(anywhere.length),
+              })
+            : t("events.discovery.markers", {
+                count: fmt.number(markers.length),
+              })}
         </p>
       </div>
 
       <ul className="border-t-2 border-line lg:border-t-0 lg:border-l-2">
         {events.map((e) => (
+          // Clicking the row picks its race on the map; the link inside does
+          // the same for keyboard users on focus.
           <li
             key={e.id}
+            onClick={() => setActive(e.id)}
             className={cn(
               "border-b-2 border-line px-5 py-5 transition-colors",
               e.id === active && "bg-carbon",
@@ -712,6 +734,42 @@ function MapView({ events }: { events: RunningEvent[] }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+/** A race's price tag on the map: distance and starting price. */
+function MapMarker({
+  event: e,
+  active,
+  onSelect,
+  className,
+  style,
+}: {
+  event: RunningEvent;
+  active: boolean;
+  onSelect: () => void;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const t = useT();
+  const fmt = useFormat();
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      aria-label={`${e.name} · ${e.place}`}
+      style={style}
+      className={cn(
+        "border-2 px-2 py-1 text-[10px] font-black whitespace-nowrap transition-colors sm:px-2.5 sm:py-1.5 sm:text-[11px]",
+        active
+          ? "z-10 border-neon-yellow bg-neon-yellow text-ink"
+          : "border-neon-lime bg-ink text-neon-lime hover:bg-neon-lime hover:text-ink",
+        className,
+      )}
+    >
+      {distanceLabel(t, e.featuredDistance)} · {fmt.moneyWhole(e.fromPrice)}
+    </button>
   );
 }
 

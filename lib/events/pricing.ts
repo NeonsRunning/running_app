@@ -12,6 +12,8 @@ import type { EventExtras } from "@/lib/types";
  */
 export const SHIRT_PRICE = 22;
 export const PHOTO_PRICE = 12;
+/** Shipping and handling for a kit sent by mail; added after the service fee. */
+export const SHIPPING_PRICE = 8;
 export const SERVICE_FEE = 2.9;
 export const DONATIONS = [0, 5, 10, 25] as const;
 /** Largest donation a runner can type in; `register_for_event()` enforces it too. */
@@ -34,6 +36,7 @@ export const FIXTURE_EXTRAS: EventExtras = {
   shirtPrice: SHIRT_PRICE,
   photoPrice: PHOTO_PRICE,
   donationRecipient: "Fundación Corre PR",
+  shippingPrice: null,
 };
 
 export function registrationTotal(opts: {
@@ -42,12 +45,14 @@ export function registrationTotal(opts: {
   shirt: boolean;
   photos: boolean;
   donation: number;
+  mail: boolean;
 }): number {
   return (
     opts.price +
     (opts.shirt ? (opts.extras.shirtPrice ?? 0) : 0) +
     (opts.photos ? (opts.extras.photoPrice ?? 0) : 0) +
     opts.donation +
-    SERVICE_FEE
+    SERVICE_FEE +
+    (opts.mail ? (opts.extras.shippingPrice ?? 0) : 0)
   );
 }

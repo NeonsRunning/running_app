@@ -52,7 +52,7 @@ export function ShareRow({
   }
 
   const cls =
-    "flex-1 border-2 border-line-strong px-2 py-3 text-center font-mono text-[11px] uppercase tracking-wider text-fg-dim transition-colors hover:border-fg-dim hover:text-fg";
+    "flex flex-1 items-center justify-center border-2 border-line-strong px-2 py-3 text-center font-mono text-[11px] uppercase tracking-wider text-fg-dim transition-colors hover:border-fg-dim hover:text-fg";
 
   return (
     <div className={className}>

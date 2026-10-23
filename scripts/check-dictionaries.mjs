@@ -48,6 +48,7 @@ const DYNAMIC_PREFIXES = [
   "adminPayments.errors.",
   "eventPayments.errors.",
   "eventRegistrations.errors.",
+  "eventRegistrations.pendingErrors.",
   "footer.",
   "account.",
   "tabs.",
@@ -56,6 +57,8 @@ const DYNAMIC_PREFIXES = [
   "events.tabs.",
   // Email copy, resolved through a per-template key helper.
   "emails.",
+  // Profile photo: upload phases and error codes from the action.
+  "runner.photo.",
 ];
 
 function flatten(node, prefix = "", out = new Set()) {

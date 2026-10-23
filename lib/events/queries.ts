@@ -14,6 +14,7 @@ import type {
   AidStation,
   Organizer,
   RegistrationStatus,
+  Runner,
   RunningEvent,
   ScheduleItem,
 } from "@/lib/types";
@@ -43,9 +44,10 @@ type EventRow = Tables<"events"> & {
 /**
  * A published row. Drafts may leave these empty; the
  * `events_published_complete` check guarantees a published row does not.
+ * Venue and city stay nullable: a race run anywhere in the region has none.
  */
 type PublishedRow = EventRow & {
-  [K in "type" | "event_date" | "registration_closes" | "venue" | "city"]: NonNullable<EventRow[K]>;
+  [K in "type" | "event_date" | "registration_closes"]: NonNullable<EventRow[K]>;
 };
 
 function isPublished(row: EventRow): row is PublishedRow {
@@ -54,8 +56,7 @@ function isPublished(row: EventRow): row is PublishedRow {
     row.type !== null &&
     row.event_date !== null &&
     row.registration_closes !== null &&
-    row.venue !== null &&
-    row.city !== null
+    (row.anywhere || (row.venue !== null && row.city !== null))
   );
 }
 
@@ -138,12 +139,18 @@ function toEvent(
     image: eventImageUrl(row.image_path),
     routeImage: eventImageUrl(row.route_image_path),
     medalImage: eventImageUrl(row.medal_image_path),
-    city: row.city,
+    anywhere: row.anywhere,
+    city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,
-    venue: row.venue,
-    address: [row.address, row.city, row.postal_code]
-      .filter(Boolean)
-      .join(", "),
+    place: row.anywhere
+      ? t("events.anywhere.place", { region: row.region })
+      : `${row.city}, ${row.region}`,
+    venue: row.anywhere
+      ? t("events.anywhere.place", { region: row.region })
+      : (row.venue ?? ""),
+    address: row.anywhere
+      ? t("events.anywhere.address", { region: row.region })
+      : [row.address, row.city, row.postal_code].filter(Boolean).join(", "),
     date: row.event_date,
     dow: formatWeekdayShort(row.event_date, locale),
     day,
@@ -204,6 +211,7 @@ function toEvent(
         row.accepts_donations && row.donation_recipient
           ? row.donation_recipient
           : null,
+      shippingPrice: row.offers_mail ? Number(row.shipping_price) : null,
     },
   };
 }
@@ -310,13 +318,19 @@ export async function getPlatformStats(): Promise<PlatformStats> {
 export async function getOwnRegistration(
   runnerId: string,
   eventId: string,
-): Promise<{ categoryId: string; bib: number; amount: number; email: string } | null> {
+): Promise<{
+  categoryId: string;
+  bib: number;
+  amount: number;
+  email: string;
+  name: string;
+} | null> {
   if (!hasSupabaseEnv()) return null;
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("registrations")
-    .select("category_id, bib, amount, email")
+    .select("category_id, bib, amount, email, first_name, last_name")
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
     .eq("status", "confirmed")
@@ -328,6 +342,7 @@ export async function getOwnRegistration(
         bib: data.bib ?? 0,
         amount: Number(data.amount),
         email: data.email,
+        name: `${data.first_name} ${data.last_name}`.trim(),
       }
     : null;
 }
@@ -409,6 +424,52 @@ export async function getRegisteredEventIds(
     .eq("status", "confirmed");
 
   return error || !data ? [] : data.map((r) => r.event_id);
+}
+
+/**
+ * A runner's current sign-ups on published races whose last day has not
+ * passed yet, soonest first. A race drops off the list the day after it ends
+ * — the runner has either run it or missed it by then.
+ *
+ * Paid sign-ups come with their bib. Unpaid ones come flagged `pending` while
+ * their spot is still held: a card payment in progress, or an ATH Móvil
+ * payment waiting for review (held until reviewed). A lapsed hold or a
+ * rejected payment no longer holds a spot, so it is left out.
+ *
+ * Row-level security limits `registrations` to the runner's own rows (and an
+ * organizer's own races), so this is only meaningful for the signed-in
+ * runner's own profile.
+ */
+export async function getUpcomingRegistrations(
+  runnerId: string,
+): Promise<Runner["upcoming"]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("registrations")
+    .select(
+      "bib, status, category:event_categories!inner(distance), event:events!inner(slug, event_date, last_day, status)",
+    )
+    .eq("runner_id", runnerId)
+    .or(`status.eq.confirmed,hold_expires_at.gt.${new Date().toISOString()}`)
+    .eq("event.status", "published")
+    .gte("event.last_day", todayIso());
+
+  if (error || !data) return [];
+
+  return data
+    .sort((a, b) =>
+      (a.event.event_date ?? "").localeCompare(b.event.event_date ?? ""),
+    )
+    .map((r) => ({
+      eventSlug: r.event.slug,
+      bib: r.bib === null ? "" : String(r.bib),
+      category: r.category.distance,
+      // Database races have a single open wave; see `toEvent`.
+      wave: "Open",
+      pending: r.status === "pending",
+    }));
 }
 
 /** Upcoming and ongoing races organizers published, soonest first. */
