@@ -1,38 +1,73 @@
+import { hasSupabaseEnv, supabaseEnv } from "@/lib/supabase/env";
+
 /**
- * ATH Móvil: paying the platform's ATH Móvil Business account by hand.
+ * ATH Móvil: paying an ATH Móvil Business account by hand.
  *
- * There is no API behind this. The payment step shows the business path and
- * QR code, the runner sends the money from the ATH Móvil app and types in the
+ * There is no API behind this. A platform admin lists each business account
+ * — its path and the QR code exported from the ATH Móvil Business app — at
+ * /admin/payments/accounts, and the organizer picks one per event in the
+ * publish wizard. The payment step shows that account's path and QR code,
+ * the runner sends the money from the ATH Móvil app and types in the
  * reference number from their receipt, and the event's organizer later finds
  * the payment in the ATH Móvil Business app and confirms the sign-up from the
  * event page (platform admins can too, from /admin/payments). The SQL side
- * lives in `supabase/migrations/20261026120000_ath_movil_payments.sql` and
- * `20261027120000_organizer_payment_review.sql`.
+ * lives in `supabase/migrations/20261026120000_ath_movil_payments.sql`,
+ * `20261027120000_organizer_payment_review.sql` and
+ * `20261103120000_ath_movil_accounts.sql`.
  *
- * Both values are public — they are printed on the payment step — so they are
- * read from `NEXT_PUBLIC_` variables, and this module is safe on either side.
- * ATH Móvil is offered only when the path is set.
+ * Shared by client and server, so nothing here may import server code.
  */
 
-/** The business path runners search for in the app, e.g. "/NeonsRunning". */
-const PATH = process.env.NEXT_PUBLIC_ATH_MOVIL_PATH?.trim() ?? "";
+/** An ATH Móvil Business account runners can pay into. */
+export type AthMovilAccount = {
+  id: string;
+  /** What organizers pick from: "NEONS RUNNING". */
+  label: string;
+  /** The business path runners search for in the app: "/NeonsRunning". */
+  path: string;
+  /** Public URL of the account's QR code; absent without one. */
+  qrUrl?: string;
+};
 
-/**
- * The QR code exported from the ATH Móvil Business app: a path under
- * `public/` ("/payments/ath-movil-qr.png") or an absolute URL. Optional.
- */
-const QR = process.env.NEXT_PUBLIC_ATH_MOVIL_QR_URL?.trim() ?? "";
+/** Public bucket holding the QR codes, uploaded as-is from the admin page. */
+export const ATH_MOVIL_QR_BUCKET = "ath-movil-qr";
 
-export function athMovilConfigured(): boolean {
-  return PATH !== "";
+/** Mirrors the bucket's `file_size_limit`. */
+export const ATH_MOVIL_QR_MAX_BYTES = 2 * 1024 * 1024;
+
+/** The bucket's `allowed_mime_types`, with the extension each is stored under. */
+export const ATH_MOVIL_QR_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+};
+
+/** Mirrors the `path` check on `ath_movil_accounts`. */
+export const ATH_MOVIL_PATH = /^\/[A-Za-z0-9._-]{1,60}$/;
+
+/** Longest account label; the table checks it. */
+export const MAX_LABEL_LENGTH = 80;
+
+/** Public URL of a stored QR code, or undefined without one. */
+export function athMovilQrUrl(path: string | null | undefined): string | undefined {
+  if (!path || !hasSupabaseEnv()) return undefined;
+  const { url } = supabaseEnv();
+  return `${url}/storage/v1/object/public/${ATH_MOVIL_QR_BUCKET}/${path}`;
 }
 
-export function athMovilPath(): string {
-  return PATH.startsWith("/") ? PATH : `/${PATH}`;
-}
-
-export function athMovilQrUrl(): string | null {
-  return QR || null;
+/** A stored account row in the shape the pages render. */
+export function toAthMovilAccount(row: {
+  id: string;
+  label: string;
+  path: string;
+  qr_path: string | null;
+}): AthMovilAccount {
+  return {
+    id: row.id,
+    label: row.label,
+    path: row.path,
+    qrUrl: athMovilQrUrl(row.qr_path),
+  };
 }
 
 /** Longest reference a runner may type; the `registrations` table checks it. */

@@ -16,7 +16,7 @@ import {
   AthMovilInstructions,
   AthMovilUnderReview,
 } from "@/components/register/ath-movil-payment";
-import { athMovilConfigured, paymentCode } from "@/lib/ath-movil/config";
+import { paymentCode } from "@/lib/ath-movil/config";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
 import {
@@ -52,8 +52,8 @@ import type { RunningEvent } from "@/lib/types";
  * the bib the database assigned once Stripe says it was paid. The runner
  * fields open pre-filled from their profile.
  *
- * Step 4 also offers ATH Móvil when it is configured: the runner sends the
- * amount from the ATH Móvil app, types in the receipt's reference, and the
+ * Step 4 also offers ATH Móvil when the race has an account: the runner sends
+ * the amount to it from the ATH Móvil app, types in the receipt's reference, and the
  * flow ends on a "payment under review" screen instead of the bib until an
  * admin approves it.
  *
@@ -243,7 +243,9 @@ export function RegistrationFlow({
   const [referenceError, setReferenceError] = useState(false);
 
   const stripeAvailable = Boolean(payment?.clientSecret) && paymentsConfigured();
-  const athAvailable = event.bookable && athMovilConfigured();
+  // The account the organizer picked for this race, if it takes ATH Móvil.
+  const athAccount = event.bookable ? event.athMovil : undefined;
+  const athAvailable = Boolean(athAccount);
   // Whatever was picked, fall back to the method actually on offer.
   const method: PaymentMethod = athAvailable
     && (chosenMethod === "ath_movil" || !stripeAvailable)
@@ -254,7 +256,7 @@ export function RegistrationFlow({
   const category =
     event.categories.find((c) => c.id === categoryId) ?? event.categories[0];
 
-  const total = useMemo(
+  const { tax, total } = useMemo(
     () =>
       registrationTotal({
         price: category.price,
@@ -357,6 +359,15 @@ export function RegistrationFlow({
       if (!payment) return;
       if (!reference.trim()) {
         setReferenceError(true);
+        // Bring the field to the middle of the screen, clear of the sticky
+        // header, and focus it so the message is read out where it applies.
+        requestAnimationFrame(() => {
+          const field = document.querySelector<HTMLElement>(
+            '[name="ath-movil-reference"]',
+          );
+          field?.scrollIntoView({ behavior: "smooth", block: "center" });
+          field?.focus({ preventScroll: true });
+        });
         return;
       }
       setSubmitting(true);
@@ -1079,9 +1090,10 @@ export function RegistrationFlow({
                 </div>
               ) : null}
 
-              {payingByAth && payment ? (
+              {payingByAth && payment && athAccount ? (
                 <div className="mt-8">
                   <AthMovilInstructions
+                    account={athAccount}
                     amount={payment.amount}
                     code={paymentCode(payment.registrationId)}
                     reference={reference}
@@ -1170,6 +1182,11 @@ export function RegistrationFlow({
                     value={fmt.money(shippingPrice ?? 0)}
                   />
                 ) : null}
+                <SummaryRow
+                  label={t("register.summary.salesTax")}
+                  value={fmt.money(tax)}
+                  muted
+                />
               </dl>
               <div className="mt-6 flex items-baseline justify-between">
                 <span className="text-[15px] font-extrabold tracking-[0.12em] uppercase">

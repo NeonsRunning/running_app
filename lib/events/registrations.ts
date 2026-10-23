@@ -2,11 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import type Stripe from "stripe";
-import {
-  MAX_REFERENCE_LENGTH,
-  athMovilConfigured,
-  paymentCode,
-} from "@/lib/ath-movil/config";
+import { MAX_REFERENCE_LENGTH, paymentCode } from "@/lib/ath-movil/config";
 import { getStripe, hasStripeEnv, toCents } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isLocale } from "@/lib/i18n/config";
@@ -32,8 +28,9 @@ import { SHIRT_SIZES, isOneOf } from "./vocabulary";
  *
  * The runner can pay with ATH Móvil instead. The spot is reserved the same
  * way; `submitAthMovilPaymentAction` then records the reference from their
- * ATH Móvil receipt and holds the spot until a platform admin finds the
- * payment and approves it (see `lib/ath-movil/config.ts`).
+ * ATH Móvil receipt and holds the spot until the organizer or a platform
+ * admin finds the payment in the event's ATH Móvil Business account and
+ * approves it (see `lib/ath-movil/config.ts`).
  */
 
 export type RegistrationInput = {
@@ -73,6 +70,8 @@ export type AthMovilSubmission = {
   email: string;
   reference: string;
   code: string;
+  /** The business path the money was sent to. */
+  path: string;
 };
 
 export type PaymentStart =
@@ -209,9 +208,6 @@ export async function startRegistrationPaymentAction(
   input: RegistrationInput,
 ): Promise<PaymentStart> {
   const stripeReady = hasStripeEnv();
-  if (!stripeReady && !athMovilConfigured()) {
-    return { ok: false, error: "paymentsUnavailable" };
-  }
 
   const trim = (v: string) => (typeof v === "string" ? v.trim() : "");
   const details = {
@@ -262,9 +258,15 @@ export async function startRegistrationPaymentAction(
   // of repricing it.
   const { data: category } = await supabase
     .from("event_categories")
-    .select("event_id")
+    .select(
+      "event_id, event:events!inner(account:ath_movil_accounts!events_ath_movil_account_id_fkey(active))",
+    )
     .eq("id", input.categoryId)
     .maybeSingle();
+  // Without cards, the race's own ATH Móvil account is the only way to pay.
+  if (!stripeReady && !category?.event.account?.active) {
+    return { ok: false, error: "paymentsUnavailable" };
+  }
   const { data: existing } = category
     ? await supabase
         .from("registrations")
@@ -416,7 +418,6 @@ export async function submitAthMovilPaymentAction(
   reference: string,
 ): Promise<AthMovilResult> {
   if (!UUID.test(registrationId)) return { ok: false, error: "registrationFailed" };
-  if (!athMovilConfigured()) return { ok: false, error: "paymentsUnavailable" };
 
   const ref = typeof reference === "string" ? reference.trim() : "";
   if (!ref || ref.length > MAX_REFERENCE_LENGTH) {
@@ -469,6 +470,8 @@ export async function submitAthMovilPaymentAction(
   );
   if (error || !submitted) {
     const key = error?.code === "P0001" ? error.message : "";
+    // The race stopped taking ATH Móvil while the runner was paying.
+    if (key === "athMovilUnavailable") return { ok: false, error: "paymentsUnavailable" };
     const known = new Set([
       "sessionExpired",
       "referenceInvalid",
@@ -479,6 +482,15 @@ export async function submitAthMovilPaymentAction(
     return { ok: false, error: known.has(key) ? key : "registrationFailed" };
   }
 
+  // Set by `submit_ath_movil_payment()` from the event's account.
+  const { data: account } = submitted.ath_movil_account_id
+    ? await supabase
+        .from("ath_movil_accounts")
+        .select("path")
+        .eq("id", submitted.ath_movil_account_id)
+        .maybeSingle()
+    : { data: null };
+
   revalidatePath("/", "layout");
   return {
     ok: true,
@@ -487,6 +499,7 @@ export async function submitAthMovilPaymentAction(
       email: submitted.email,
       reference: submitted.payment_reference ?? ref,
       code: paymentCode(submitted.id),
+      path: account?.path ?? "",
     },
   };
 }

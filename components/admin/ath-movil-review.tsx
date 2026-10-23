@@ -95,9 +95,15 @@ export function AthMovilReview({
             </p>
           </div>
 
-          <dl className="grid gap-px bg-line sm:grid-cols-3">
+          <dl className="grid gap-px bg-line sm:grid-cols-2 lg:grid-cols-4">
             {(
               [
+                [
+                  t("adminPayments.account"),
+                  row.account
+                    ? `${row.account.path} · ${row.account.label}`
+                    : "—",
+                ],
                 [t("adminPayments.reference"), row.reference],
                 [t("adminPayments.code"), row.code],
                 [

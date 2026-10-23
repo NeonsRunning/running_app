@@ -218,6 +218,13 @@ export function EventPayments({
                       className="px-4 py-3.5 font-mono text-sm break-all tabular-nums"
                     >
                       {row.reference}
+                      {/* Which business app to look in, should the event
+                          have switched accounts since. */}
+                      {row.accountPath ? (
+                        <span className="mt-0.5 block text-[11px] text-fg-faint">
+                          {t("eventPayments.sentTo", { path: row.accountPath })}
+                        </span>
+                      ) : null}
                     </td>
                     <td
                       translate="no"
@@ -261,6 +268,7 @@ export function EventPayments({
                       ["eventPayments.columns.distance", distance(row)],
                       ["eventPayments.columns.reference", row.reference],
                       ["eventPayments.columns.code", row.code],
+                      ["eventPayments.columns.account", row.accountPath || "—"],
                       [
                         "eventPayments.columns.submitted",
                         submitted.format(new Date(row.submittedAt)),

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { paymentCode } from "@/lib/ath-movil/config";
+import { paymentCode, toAthMovilAccount } from "@/lib/ath-movil/config";
 import { eventImageUrl } from "@/lib/events/images";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
@@ -30,7 +30,8 @@ import type {
 const EVENT_COLUMNS = `
   *,
   event_categories (*),
-  organizer:profiles!events_organizer_id_fkey (id, full_name, bio, created_at)
+  organizer:profiles!events_organizer_id_fkey (id, full_name, bio, created_at),
+  ath_movil_account:ath_movil_accounts!events_ath_movil_account_id_fkey (id, label, path, qr_path, active)
 `;
 
 type EventRow = Tables<"events"> & {
@@ -38,6 +39,10 @@ type EventRow = Tables<"events"> & {
   organizer: Pick<
     Tables<"profiles">,
     "id" | "full_name" | "bio" | "created_at"
+  > | null;
+  ath_movil_account: Pick<
+    Tables<"ath_movil_accounts">,
+    "id" | "label" | "path" | "qr_path" | "active"
   > | null;
 };
 
@@ -213,6 +218,9 @@ function toEvent(
           : null,
       shippingPrice: row.offers_mail ? Number(row.shipping_price) : null,
     },
+    athMovil: row.ath_movil_account?.active
+      ? toAthMovilAccount(row.ath_movil_account)
+      : undefined,
   };
 }
 
@@ -349,8 +357,9 @@ export async function getOwnRegistration(
 
 /**
  * Where the caller's unpaid sign-up for an event stands with ATH Móvil:
- * waiting for an admin to find the payment (`submitted`), or sent back
- * because they could not (`rejected`). Null when neither applies.
+ * waiting for someone to find the payment in the ATH Móvil Business account
+ * it went to (`submitted`), or sent back because they could not
+ * (`rejected`). Null when neither applies.
  */
 export async function getAthMovilStatus(
   runnerId: string,
@@ -359,7 +368,13 @@ export async function getAthMovilStatus(
   | {
       state: "submitted";
       categoryId: string;
-      submission: { amount: number; email: string; reference: string; code: string };
+      submission: {
+        amount: number;
+        email: string;
+        reference: string;
+        code: string;
+        path: string;
+      };
     }
   | { state: "rejected" }
   | null
@@ -370,7 +385,7 @@ export async function getAthMovilStatus(
   const { data } = await supabase
     .from("registrations")
     .select(
-      "id, category_id, amount, email, payment_reference, payment_submitted_at, payment_rejected_at",
+      "id, category_id, amount, email, payment_reference, payment_submitted_at, payment_rejected_at, account:ath_movil_accounts!registrations_ath_movil_account_id_fkey (path)",
     )
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
@@ -386,6 +401,7 @@ export async function getAthMovilStatus(
         email: data.email,
         reference: data.payment_reference ?? "",
         code: paymentCode(data.id),
+        path: data.account?.path ?? "",
       },
     };
   }

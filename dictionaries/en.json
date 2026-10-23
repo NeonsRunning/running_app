@@ -486,6 +486,7 @@
       "donation": "Donation",
       "serviceFee": "Service fee",
       "shipping": "Shipping & handling",
+      "salesTax": "Sales tax (IVU 11.5%)",
       "total": "Total",
       "processing": "Processing…",
       "complete": "Complete Registration",
@@ -523,6 +524,9 @@
       "qrAlt": "ATH Móvil QR code for {path}",
       "sendExactly": "Send exactly",
       "businessPath": "ATH Móvil business",
+      "copyPath": "Copy {path}",
+      "copy": "Copy",
+      "copied": "Copied",
       "yourCode": "Your code",
       "step1": "Open ATH Móvil, choose to pay a business and search for {path}.",
       "step1Qr": "Open ATH Móvil and scan this QR code, or pay a business and search for {path}.",
@@ -921,7 +925,7 @@
         "items": [
           {
             "q": "What is the service fee?",
-            "a": "A flat $2.90 per registration, shown in the order summary before you pay. There is no percentage cut on top, and no fee at all on free events."
+            "a": "A flat $2.00 per registration, shown in the order summary before you pay. There is no percentage cut on top. Puerto Rico sales tax (IVU, 11.5%) applies to the registration, extras, service fee and shipping, but not to donations."
           },
           {
             "q": "Can I get a refund?",
@@ -1418,7 +1422,8 @@
       "imageTooLarge": "That image is too large — pick one under 40 MB.",
       "imageUnreadable": "Couldn’t read that image. Try another photo, or save it as JPG first.",
       "imageUploadFailed": "Couldn’t upload the image — try again in a moment.",
-      "imageInvalid": "That image can’t be used. Upload it again."
+      "imageInvalid": "That image can’t be used. Upload it again.",
+      "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off."
     },
     "editEvent": "Edit event",
     "editMetaTitle": "Edit event",
@@ -1437,7 +1442,12 @@
     "deleteLiveDescription": "The listing comes off the events page and its link stops working. This can’t be undone.",
     "deletedTitle": "Event deleted",
     "deletedBody": "{name} has been removed.",
-    "deleteFailedTitle": "Couldn’t delete the event"
+    "deleteFailedTitle": "Couldn’t delete the event",
+    "athMovilAccount": "ATH Móvil account",
+    "athMovilAccountHint": "Runners can pay with ATH Móvil into this business account, besides card. You confirm each payment from the event page.",
+    "athMovilAccountNone": "No ATH Móvil accounts are set up yet, so runners pay by card. Contact the team to add one.",
+    "athMovilAccountOff": "Don’t accept ATH Móvil",
+    "athMovilAccountRetired": "retired"
   },
   "organizerOnly": {
     "eyebrow": "Organizers only",
@@ -1448,7 +1458,7 @@
   },
   "adminPayments": {
     "metaTitle": "ATH Móvil payments",
-    "eyebrow": "Admin · ATH Móvil {path}",
+    "eyebrow": "Admin · ATH Móvil",
     "title": "ATH Móvil payments",
     "body": "Find each payment in the ATH Móvil Business app — by its reference, the code in the message, or the amount and name — then approve it to confirm the registration and email the runner their bib. Reject one only if the payment isn’t there: the runner’s spot is released.",
     "empty": "No payments waiting for review.",
@@ -1470,7 +1480,9 @@
       "notAllowed": "Your account can’t review this payment.",
       "alreadyReviewed": "Someone already reviewed this payment.",
       "reviewFailed": "Something went wrong — try again in a moment."
-    }
+    },
+    "account": "Sent to",
+    "manageAccounts": "Manage ATH Móvil Accounts"
   },
   "eventPayments": {
     "title": "Pending payments",
@@ -1484,7 +1496,8 @@
       "reference": "Reference",
       "code": "Code in message",
       "submitted": "Submitted",
-      "actions": "Actions"
+      "actions": "Actions",
+      "account": "Sent to"
     },
     "confirm": "Confirm",
     "reject": "Reject",
@@ -1501,7 +1514,8 @@
       "notAllowed": "Only this event’s organizer can confirm its payments.",
       "alreadyReviewed": "This payment was already reviewed.",
       "reviewFailed": "Something went wrong — try again in a moment."
-    }
+    },
+    "sentTo": "Sent to {path}"
   },
   "eventRegistrations": {
     "title": "Registrations",
@@ -1555,6 +1569,53 @@
       "club": "Club",
       "mailTo": "Mailing address",
       "actions": "Actions"
+    }
+  },
+  "adminAccounts": {
+    "metaTitle": "ATH Móvil accounts",
+    "eyebrow": "Admin · ATH Móvil",
+    "title": "ATH Móvil accounts",
+    "body": "The ATH Móvil Business accounts organizers can take payments into. Each event picks one in the publish wizard, and runners see its path and QR code on the payment step. Retire an account to stop offering it; payments already sent to it stay reviewable.",
+    "backToPayments": "Back to Payments",
+    "empty": "No accounts yet. Add one so organizers can accept ATH Móvil.",
+    "add": "Add Account",
+    "addTitle": "New ATH Móvil account",
+    "editTitle": "Edit ATH Móvil account",
+    "edit": "Edit",
+    "retire": "Retire",
+    "restore": "Restore",
+    "retired": "Retired",
+    "noQr": "No QR code — runners search for the path instead.",
+    "label": "Name",
+    "labelHint": "What organizers see when they pick an account.",
+    "labelPlaceholder": "e.g. NEONS RUNNING…",
+    "path": "Business path",
+    "pathHint": "As runners search for it in ATH Móvil: letters, numbers, dots, hyphens and underscores.",
+    "qrChoose": "Upload QR Code",
+    "qrReplace": "Replace QR Code",
+    "qrRemove": "Remove",
+    "qrUploading": "Uploading…",
+    "qrHint": "The QR code exported from the ATH Móvil Business app: PNG, JPG or WebP, up to 2 MB. It’s shown exactly as uploaded.",
+    "save": "Save Account",
+    "cancel": "Cancel",
+    "working": "Saving…",
+    "savedTitle": "Account saved",
+    "savedBody": "Organizers can now pick {label} for their events.",
+    "retiredTitle": "Account retired",
+    "retiredBody": "{label} is no longer offered to runners. Events using it now take cards only until their organizer picks another account.",
+    "restoredTitle": "Account restored",
+    "restoredBody": "{label} is offered again.",
+    "errors": {
+      "title": "Couldn’t save the account",
+      "labelRequired": "Enter a name for the account.",
+      "labelTooLong": "Keep the name under 80 characters.",
+      "pathInvalid": "Enter the business path, like /NeonsRunning.",
+      "pathTaken": "Another account already uses this path.",
+      "qrType": "Use a PNG, JPG or WebP image.",
+      "qrTooLarge": "That image is too large — pick one under 2 MB.",
+      "qrUploadFailed": "Couldn’t upload the QR code — try again in a moment.",
+      "notAdmin": "Only platform admins can change ATH Móvil accounts.",
+      "saveFailed": "Something went wrong — try again in a moment."
     }
   }
 }

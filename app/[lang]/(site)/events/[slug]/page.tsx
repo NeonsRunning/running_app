@@ -9,7 +9,6 @@ import { EventPayments } from "@/components/organizer/event-payments";
 import { EventRegistrations } from "@/components/organizer/event-registrations";
 import { SaveButton } from "@/components/events/saved-events";
 import { ShareRow } from "@/components/events/share-row";
-import { athMovilConfigured } from "@/lib/ath-movil/config";
 import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
 import { getUser } from "@/lib/auth/session";
 import { daysUntil } from "@/lib/data";
@@ -67,7 +66,7 @@ export default async function EventDetailPage(
     : [null, null];
   const showPayments =
     pendingPayments !== null &&
-    (athMovilConfigured() || pendingPayments.length > 0);
+    (Boolean(event.athMovil) || pendingPayments.length > 0);
   const days = daysUntil(event.date);
   const spotsLeft = event.capacity - event.registered;
   const categoryNames = Object.fromEntries(

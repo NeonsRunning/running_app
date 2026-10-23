@@ -74,6 +74,8 @@ export type EventFormValues = {
   routeImagePath: string;
   /** Path of the finisher medal image in the same bucket; empty for none. */
   medalImagePath: string;
+  /** The ATH Móvil account runners pay into; empty to not offer ATH Móvil. */
+  athMovilAccountId: string;
   categories: EventFormCategory[];
 };
 
@@ -119,6 +121,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   imagePath: "",
   routeImagePath: "",
   medalImagePath: "",
+  athMovilAccountId: "",
   categories: [
     { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0 },
     { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0 },

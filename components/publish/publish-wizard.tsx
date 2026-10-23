@@ -30,6 +30,7 @@ import {
   saveEventAction,
   type EventFormState,
 } from "@/lib/events/actions";
+import type { AthMovilAccountRow } from "@/lib/ath-movil/queries";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "@/lib/events/form";
 import { eventImageUrl } from "@/lib/events/images";
 import {
@@ -104,6 +105,7 @@ const FIELD_STEP: Record<string, number> = {
   capacity: 3,
   minimum_age: 3,
   maximum_age: 3,
+  ath_movil_account_id: 3,
   offers_shirt: 4,
   shirt_price: 4,
   shirt_sizes: 4,
@@ -131,8 +133,11 @@ let nextCategoryKey = 1;
 
 export function PublishWizard({
   initial = EMPTY_EVENT_FORM,
+  athMovilAccounts = [],
 }: {
   initial?: EventFormValues;
+  /** The ATH Móvil Business accounts admins listed, retired ones included. */
+  athMovilAccounts?: AthMovilAccountRow[];
 }) {
   const [step, setStep] = useState(0);
   // An existing event can be browsed in any order from the start.
@@ -188,6 +193,15 @@ export function PublishWizard({
   const t = useT();
   const fmt = useFormat();
   const live = status === "published";
+
+  const athOptions = athMovilAccounts.filter(
+    (a) => a.active || a.id === initial.athMovilAccountId,
+  );
+  // A new event with only one account to pick from starts on it.
+  const initialAthAccount =
+    initial.id === null && !initial.athMovilAccountId && athOptions.length === 1
+      ? athOptions[0].id
+      : initial.athMovilAccountId;
 
   const eventName = name.trim() || t("publish.untitled");
   const errors = state?.fieldErrors ?? {};
@@ -993,6 +1007,37 @@ export function PublishWizard({
                 )}
               </Field>
             </div>
+
+            {/* Where ATH Móvil payments go. A retired account stays listed
+                only on the event that already uses it. */}
+            <Field
+              label={t("publish.athMovilAccount")}
+              hint={t(
+                athOptions.length
+                  ? "publish.athMovilAccountHint"
+                  : "publish.athMovilAccountNone",
+              )}
+              error={fieldError("ath_movil_account_id")}
+              className="max-w-md"
+              optional
+            >
+              {(p) => (
+                <Select
+                  {...p}
+                  name="ath_movil_account_id"
+                  defaultValue={initialAthAccount}
+                  disabled={athOptions.length === 0}
+                >
+                  <option value="">{t("publish.athMovilAccountOff")}</option>
+                  {athOptions.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.label} · {a.path}
+                      {a.active ? "" : ` (${t("publish.athMovilAccountRetired")})`}
+                    </option>
+                  ))}
+                </Select>
+              )}
+            </Field>
           </div>
 
           {/* 5 — Extras ------------------------------------------------- */}

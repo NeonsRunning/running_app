@@ -3,7 +3,6 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "./form";
-import { SERVICE_FEE } from "./pricing";
 import { todayIso } from "./queries";
 import { EVENTS_PAGE_SIZE } from "./search";
 import type { Country } from "./vocabulary";
@@ -26,7 +25,7 @@ type SummaryRow = Pick<
 > & { event_categories: Pick<CategoryRow, "capacity">[] };
 type RegistrationRow = Pick<
   Tables<"registrations">,
-  "event_id" | "category_id" | "amount" | "created_at" | "gender" | "birth_date"
+  "event_id" | "category_id" | "amount" | "service_fee" | "sales_tax" | "created_at" | "gender" | "birth_date"
 >;
 
 /** Lifecycle shown on a dashboard card; keys under `labels.eventStatus`. */
@@ -77,9 +76,9 @@ const MONTH_LABELS = [
 ];
 const AGE_GROUPS = ["Under 20", "20–29", "30–39", "40–49", "50+"] as const;
 
-/** What the organizer keeps of a sign-up: the amount, less our fee. */
-function net(amount: number): number {
-  return Math.max(0, Number(amount) - SERVICE_FEE);
+/** What the organizer keeps of a sign-up: the amount, less our fee and the sales tax. */
+function net(r: { amount: number; service_fee: number; sales_tax: number }): number {
+  return Math.max(0, Number(r.amount) - Number(r.service_fee) - Number(r.sales_tax));
 }
 
 /** ISO 8601 week number of a UTC date. */
@@ -167,13 +166,13 @@ export async function getOrganizerEvents(
   if (events.length) {
     const { data: rows } = await supabase
       .from("registrations")
-      .select("event_id, amount")
+      .select("event_id, amount, service_fee, sales_tax")
       .in("event_id", events.map((e) => e.id))
       .eq("status", "confirmed");
     for (const r of rows ?? []) {
       const sum = regs.get(r.event_id) ?? { registered: 0, revenue: 0 };
       sum.registered += 1;
-      sum.revenue += net(r.amount);
+      sum.revenue += net(r);
       regs.set(r.event_id, sum);
     }
   }
@@ -220,7 +219,7 @@ export async function getOrganizerDashboard(
   if (events.length) {
     const { data } = await supabase
       .from("registrations")
-      .select("event_id, category_id, amount, created_at, gender, birth_date")
+      .select("event_id, category_id, amount, service_fee, sales_tax, created_at, gender, birth_date")
       .in("event_id", events.map((e) => e.id))
       // Sign-ups still at the payment step are neither runners nor revenue.
       .eq("status", "confirmed");
@@ -267,7 +266,7 @@ export async function getOrganizerDashboard(
       value: Math.round(
         registrations
           .filter((r) => r.created_at.slice(0, 7) === key)
-          .reduce((sum, r) => sum + net(r.amount), 0),
+          .reduce((sum, r) => sum + net(r), 0),
       ),
     };
   });
@@ -289,7 +288,7 @@ export async function getOrganizerDashboard(
   return {
     totals: {
       registrations: registrations.length,
-      revenue: Math.round(registrations.reduce((sum, r) => sum + net(r.amount), 0)),
+      revenue: Math.round(registrations.reduce((sum, r) => sum + net(r), 0)),
       activeEvents: statuses.filter((s) => s === "Live" || s === "Closing").length,
       drafts: statuses.filter((s) => s === "Draft").length,
     },
@@ -402,6 +401,7 @@ export async function getEventForm(
     imagePath: event.image_path ?? "",
     routeImagePath: event.route_image_path ?? "",
     medalImagePath: event.medal_image_path ?? "",
+    athMovilAccountId: event.ath_movil_account_id ?? "",
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,

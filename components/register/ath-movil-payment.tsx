@@ -1,14 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import { useFormat, useT } from "@/components/i18n/provider";
+import { useToast } from "@/components/ui/toast";
 import {
   MAX_REFERENCE_LENGTH,
   REVIEW_HOURS,
-  athMovilPath,
-  athMovilQrUrl,
+  type AthMovilAccount,
 } from "@/lib/ath-movil/config";
 import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import type { AthMovilSubmission } from "@/lib/events/registrations";
@@ -16,17 +18,20 @@ import type { RunningEvent } from "@/lib/types";
 
 /**
  * Paying with ATH Móvil: the instructions on the payment step, and the screen
- * a runner sees while an admin checks the payment by hand. See
+ * a runner sees while the organizer checks the payment by hand. See
  * `lib/ath-movil/config.ts` for how the pieces fit.
  */
 
 export function AthMovilInstructions({
+  account,
   amount,
   code,
   reference,
   onReferenceChange,
   error,
 }: {
+  /** The event's ATH Móvil Business account: where the money goes. */
+  account: AthMovilAccount;
   /** What the database priced the sign-up at: the exact amount to send. */
   amount: number;
   code: string;
@@ -36,22 +41,22 @@ export function AthMovilInstructions({
 }) {
   const t = useT();
   const fmt = useFormat();
-  const qr = athMovilQrUrl();
-  const path = athMovilPath();
+  const qr = account.qrUrl;
+  const { path } = account;
 
   return (
     <div className="border-2 border-line">
       <div className="grid gap-6 p-5 sm:grid-cols-[auto_1fr] sm:items-center sm:p-7">
         {qr ? (
-          <div className="mx-auto w-48 shrink-0 bg-white p-3 sm:mx-0">
-            {/* A file under public/ or any host: next/image would need the
-                host configured as a remote pattern. */}
+          <div className="mx-auto w-full max-w-72 shrink-0 bg-white p-3 sm:mx-0 sm:w-72">
+            {/* Served from Storage: next/image would need its host
+                configured as a remote pattern. */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={qr}
               alt={t("register.athMovil.qrAlt", { path })}
-              width={168}
-              height={168}
+              width={264}
+              height={264}
               className="block h-auto w-full"
             />
           </div>
@@ -69,8 +74,8 @@ export function AthMovilInstructions({
             <dt>
               <Eyebrow>{t("register.athMovil.businessPath")}</Eyebrow>
             </dt>
-            <dd translate="no" className="mt-1 font-mono text-xl font-bold">
-              {path}
+            <dd className="mt-1">
+              <CopyPath path={path} />
             </dd>
           </div>
           <div>
@@ -142,6 +147,59 @@ export function AthMovilInstructions({
   );
 }
 
+/**
+ * The business path as a button: tapping it copies the path so the runner can
+ * paste it into ATH Móvil's business search.
+ */
+function CopyPath({ path }: { path: string }) {
+  const t = useT();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!copied) return;
+    const id = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(id);
+  }, [copied]);
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(path);
+      setCopied(true);
+    } catch {
+      toast({
+        title: t("share.failedTitle"),
+        body: t("share.failedBody"),
+        tone: "danger",
+      });
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={copy}
+      aria-label={t("register.athMovil.copyPath", { path })}
+      className="group inline-flex max-w-full items-baseline gap-3 text-left"
+    >
+      <span
+        translate="no"
+        className="font-mono text-xl font-bold break-all underline decoration-line-strong decoration-dotted underline-offset-4 transition-colors group-hover:decoration-fg-dim"
+      >
+        {path}
+      </span>
+      <span
+        aria-live="polite"
+        className={`shrink-0 font-mono text-[11px] tracking-wider uppercase transition-colors ${
+          copied ? "text-neon-lime" : "text-fg-dim group-hover:text-fg"
+        }`}
+      >
+        {copied ? t("register.athMovil.copied") : t("register.athMovil.copy")}
+      </span>
+    </button>
+  );
+}
+
 /** The register page once the runner has said they sent the money. */
 export function AthMovilUnderReview({
   event,
@@ -186,7 +244,7 @@ export function AthMovilUnderReview({
               [t("register.athMovil.amountSent"), fmt.money(submission.amount)],
               [t("register.athMovil.reference"), submission.reference],
               [t("register.athMovil.yourCode"), submission.code],
-              [t("register.athMovil.businessPath"), athMovilPath()],
+              [t("register.athMovil.businessPath"), submission.path || "—"],
             ] as const
           ).map(([label, value]) => (
             <div
