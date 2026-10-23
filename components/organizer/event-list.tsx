@@ -136,7 +136,7 @@ function EventCard({
           <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
             {[
               event.date ? fmt.mediumDate(event.date) : t("organizer.noDate"),
-              event.city,
+              event.anywhere ? t("events.anywhere.short") : event.city,
             ]
               .filter(Boolean)
               .join(" · ")}

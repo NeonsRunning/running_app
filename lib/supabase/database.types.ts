@@ -29,6 +29,7 @@ export type Database = {
           full_name: string;
           account_type: Database["public"]["Enums"]["account_type"];
           avatar_url: string | null;
+          avatar_path: string | null;
           bio: string | null;
           city: string | null;
           club: string | null;
@@ -42,6 +43,7 @@ export type Database = {
           full_name: string;
           account_type?: Database["public"]["Enums"]["account_type"];
           avatar_url?: string | null;
+          avatar_path?: string | null;
           bio?: string | null;
           city?: string | null;
           club?: string | null;
@@ -55,6 +57,7 @@ export type Database = {
           full_name?: string;
           account_type?: Database["public"]["Enums"]["account_type"];
           avatar_url?: string | null;
+          avatar_path?: string | null;
           bio?: string | null;
           city?: string | null;
           club?: string | null;
@@ -127,6 +130,7 @@ export type Database = {
           start_time: string | null;
           registration_opens: string | null;
           registration_closes: string | null;
+          anywhere: boolean;
           venue: string | null;
           address: string;
           city: string | null;
@@ -145,6 +149,8 @@ export type Database = {
           shirt_price: number;
           offers_photos: boolean;
           photo_price: number;
+          offers_mail: boolean;
+          shipping_price: number;
           accepts_donations: boolean;
           donation_recipient: string;
           aid_stations: Json;
@@ -171,6 +177,7 @@ export type Database = {
           start_time?: string | null;
           registration_opens?: string | null;
           registration_closes?: string | null;
+          anywhere?: boolean;
           venue?: string | null;
           address?: string;
           city?: string | null;
@@ -189,6 +196,8 @@ export type Database = {
           shirt_price?: number;
           offers_photos?: boolean;
           photo_price?: number;
+          offers_mail?: boolean;
+          shipping_price?: number;
           accepts_donations?: boolean;
           donation_recipient?: string;
           aid_stations?: Json;
@@ -215,6 +224,7 @@ export type Database = {
           start_time?: string | null;
           registration_opens?: string | null;
           registration_closes?: string | null;
+          anywhere?: boolean;
           venue?: string | null;
           address?: string;
           city?: string | null;
@@ -233,6 +243,8 @@ export type Database = {
           shirt_price?: number;
           offers_photos?: boolean;
           photo_price?: number;
+          offers_mail?: boolean;
+          shipping_price?: number;
           accepts_donations?: boolean;
           donation_recipient?: string;
           aid_stations?: Json;
@@ -318,6 +330,8 @@ export type Database = {
           club: string | null;
           shirt_size: Database["public"]["Enums"]["shirt_size"] | null;
           wants_photos: boolean;
+          ships_by_mail: boolean;
+          mailing_address: string | null;
           donation: number;
           amount: number;
           created_at: string;
@@ -468,6 +482,10 @@ export type Database = {
         }[];
       };
       remove_registration: {
+        Args: { p_registration_id: string };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      return_registration_to_pending: {
         Args: { p_registration_id: string };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };

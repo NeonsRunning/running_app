@@ -116,9 +116,7 @@ export default async function EventDetailPage(
           </h1>
 
           <div className="mt-6 flex flex-wrap gap-x-7 gap-y-2 font-mono text-[13px] tracking-[0.1em] text-fg-muted uppercase">
-            <span>
-              {event.city}, {event.region}
-            </span>
+            <span>{event.place}</span>
             <span className="text-neon-yellow">
               {fmt.longDate(event.date)}
             </span>

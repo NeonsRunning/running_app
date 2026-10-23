@@ -35,6 +35,8 @@ export type EventFormValues = {
   startTime: string;
   registrationOpens: string;
   registrationCloses: string;
+  /** Runners take part anywhere in the region: no venue, address or city. */
+  anywhere: boolean;
   venue: string;
   address: string;
   city: string;
@@ -53,6 +55,9 @@ export type EventFormValues = {
   acceptsDonations: boolean;
   /** Who receives the donations, shown to runners beside the amounts. */
   donationRecipient: string;
+  offersMail: boolean;
+  /** Shipping and handling, added at the end of the runner's total. */
+  shippingPrice: string;
   terrain: string;
   difficulty: Difficulty;
   elevationGain: string;
@@ -84,6 +89,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   startTime: "",
   registrationOpens: "",
   registrationCloses: "",
+  anywhere: false,
   venue: "",
   address: "",
   city: "",
@@ -100,6 +106,8 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   photoPrice: "12",
   acceptsDonations: false,
   donationRecipient: "",
+  offersMail: false,
+  shippingPrice: "8",
   terrain: "",
   difficulty: "Moderate",
   elevationGain: "",

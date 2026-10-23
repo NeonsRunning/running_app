@@ -30,6 +30,19 @@ export function formatMediumDate(isoDate: string, locale: Locale): string {
   });
 }
 
+/**
+ * An event's dates: the long single date, or "October 30, 2026 – November 1,
+ * 2026" when it runs over several days.
+ */
+export function formatEventDates(
+  startIso: string,
+  endIso: string | undefined,
+  locale: Locale,
+): string {
+  if (!endIso || endIso <= startIso) return formatLongDate(startIso, locale);
+  return `${formatMediumDate(startIso, locale)} – ${formatMediumDate(endIso, locale)}`;
+}
+
 /** Short weekday for the date blocks on event cards, e.g. "SAT" / "SÁB". */
 export function formatWeekdayShort(isoDate: string, locale: Locale): string {
   return atNoon(isoDate)
@@ -132,6 +145,8 @@ export function createFormatters(locale: Locale) {
   return {
     longDate: (iso: string) => formatLongDate(iso, locale),
     mediumDate: (iso: string) => formatMediumDate(iso, locale),
+    eventDates: (startIso: string, endIso?: string) =>
+      formatEventDates(startIso, endIso, locale),
     weekdayShort: (iso: string) => formatWeekdayShort(iso, locale),
     monthShort: (iso: string) => formatMonthShort(iso, locale),
     monthRange: (startIso: string, endIso: string) =>

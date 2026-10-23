@@ -46,6 +46,12 @@ export function EventPayments({
   });
   const { toast } = useToast();
   const [rows, setRows] = useState(initial);
+  // A registration put back to pending arrives with the revalidated list.
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setRows(initial);
+  }
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmingReject, setConfirmingReject] = useState<string | null>(null);
   const [page, setPage] = useState(1);

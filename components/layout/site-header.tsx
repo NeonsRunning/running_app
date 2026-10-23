@@ -174,9 +174,22 @@ export function SiteHeader() {
                 aria-haspopup="menu"
                 className="flex cursor-pointer items-center gap-2.5 border-2 border-line-strong py-1.5 pr-3 pl-1.5 transition-colors hover:border-fg-dim"
               >
-                <span className="flex h-7 w-7 items-center justify-center bg-linear-to-br from-neon-lime to-neon-green text-[11px] font-black text-ink">
-                  {session.initials}
-                </span>
+                {session.avatarUrl ? (
+                  // A Supabase Storage URL; next/image would need the
+                  // project's host configured as a remote pattern.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={session.avatarUrl}
+                    alt=""
+                    width={28}
+                    height={28}
+                    className="h-7 w-7 object-cover"
+                  />
+                ) : (
+                  <span className="flex h-7 w-7 items-center justify-center bg-linear-to-br from-neon-lime to-neon-green text-[11px] font-black text-ink">
+                    {session.initials}
+                  </span>
+                )}
                 <span className="text-xs font-bold tracking-widest uppercase">
                   {session.name.split(" ")[0]}
                 </span>

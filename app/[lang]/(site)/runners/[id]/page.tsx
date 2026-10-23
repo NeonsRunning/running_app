@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { FollowButton } from "@/components/profile/follow-button";
+import { ProfilePhoto } from "@/components/profile/profile-photo";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
 import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
@@ -16,6 +17,7 @@ import { daysUntil } from "@/lib/data";
 import {
   getRegisteredEventIds,
   getSavedSlugs,
+  getUpcomingRegistrations,
   listPublishedEvents,
   todayIso,
 } from "@/lib/events/queries";
@@ -168,23 +170,28 @@ export default async function RunnerProfilePage(
 
   const isSelf = viewerId !== null && viewerId === runner.id;
 
-  // The calendar, saved and recommended panels all read the published races;
-  // a stranger's view of a profile with nothing on its calendar skips them.
-  const events =
+  // The runner's own sign-ups are private to them, so only their own view of
+  // the page reads them. A race leaves the list once its last day has passed.
+  const [events, ownUpcoming] = await Promise.all([
+    // The calendar, saved and recommended panels all read the published
+    // races; a stranger's view of a profile with nothing on its calendar
+    // skips them.
     isSelf || runner.upcoming.length > 0
-      ? await listPublishedEvents(locale)
-      : [];
+      ? listPublishedEvents(locale)
+      : Promise.resolve([]),
+    isSelf ? getUpcomingRegistrations(runner.id) : Promise.resolve([]),
+  ]);
   const bySlug = new Map(events.map((e) => [e.slug, e]));
 
-  const next = runner.upcoming[0];
-  const nextEvent = next ? bySlug.get(next.eventSlug) : undefined;
-
-  const laterRaces = runner.upcoming
-    .slice(1)
+  const calendar = [...runner.upcoming, ...ownUpcoming]
     .map((u) => ({ ...u, event: bySlug.get(u.eventSlug) }))
     .filter((u): u is typeof u & { event: NonNullable<typeof u.event> } =>
       Boolean(u.event),
     );
+
+  const next = calendar[0];
+  const nextEvent = next?.event;
+  const laterRaces = calendar.slice(1);
 
   // The saved, recommended and settings panels belong to the runner alone,
   // so nobody else pays for the lookups behind them.
@@ -200,7 +207,7 @@ export default async function RunnerProfilePage(
     ? recommendedFor(runner, events, {
         slugs: new Set([
           ...savedSlugs,
-          ...runner.upcoming.map((u) => u.eventSlug),
+          ...calendar.map((u) => u.eventSlug),
         ]),
         ids: new Set(registeredIds),
       })
@@ -225,16 +232,12 @@ export default async function RunnerProfilePage(
           className="absolute inset-0 bg-[repeating-linear-gradient(100deg,rgba(156,255,0,0.05)_0_2px,transparent_2px_40px)]"
         />
         <div className="relative mx-auto flex max-w-[1600px] flex-col gap-7 px-4 py-10 sm:px-6 lg:flex-row lg:items-start lg:gap-9 lg:px-10 lg:py-14">
-          {/* Photo placeholder — the runner's own image would sit here. */}
-          <div
-            aria-hidden="true"
-            className="relative h-28 w-28 shrink-0 overflow-hidden bg-linear-to-br from-[#123300] to-neon-lime sm:h-44 sm:w-44"
-          >
-            <div className="bg-track-lanes absolute inset-0 opacity-40" />
-            <span className="absolute inset-0 flex items-center justify-center font-display text-4xl font-black text-ink/70 sm:text-6xl">
-              {runner.initials}
-            </span>
-          </div>
+          <ProfilePhoto
+            name={runner.name}
+            initials={runner.initials}
+            url={runner.avatarUrl}
+            editable={isSelf}
+          />
 
           <div className="flex-1">
             {subtitle ? (
@@ -254,7 +257,7 @@ export default async function RunnerProfilePage(
               <p className="mt-5 text-[15px] text-fg-dim">
                 {t("runner.daysToStart", {
                   days: fmt.number(daysUntil(nextEvent.date)),
-                  count: runner.upcoming.length,
+                  count: calendar.length,
                 })}
               </p>
             ) : null}
@@ -529,11 +532,16 @@ export default async function RunnerProfilePage(
               <div className="border-b-2 border-line px-5 py-7 sm:px-7">
                 <Eyebrow>{t("runner.nextRace")}</Eyebrow>
                 <div className="mt-4 border-2 border-neon-yellow bg-neon-yellow/6 p-5">
-                  <p className="font-display text-[15px] font-black tracking-widest text-neon-yellow uppercase">
-                    {t("runner.daysToRaceDay", {
-                      days: fmt.number(daysUntil(nextEvent.date)),
-                    })}
-                  </p>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-display text-[15px] font-black tracking-widest text-neon-yellow uppercase">
+                      {t("runner.daysToRaceDay", {
+                        days: fmt.number(daysUntil(nextEvent.date)),
+                      })}
+                    </p>
+                    {next.pending ? (
+                      <Badge tone="outline">{t("runner.pending")}</Badge>
+                    ) : null}
+                  </div>
                   <h3 className="mt-3.5 font-display text-2xl leading-tight font-black uppercase">
                     {nextEvent.name}
                   </h3>
@@ -561,19 +569,30 @@ export default async function RunnerProfilePage(
                       <dt className="text-fg-dim">{t("runner.category")}</dt>
                       <dd>{distanceLabel(t, next.category)}</dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-fg-dim">{t("runner.bib")}</dt>
-                      <dd className="font-mono">#{next.bib}</dd>
-                    </div>
+                    {next.pending ? null : (
+                      <div className="flex justify-between">
+                        <dt className="text-fg-dim">{t("runner.bib")}</dt>
+                        <dd className="font-mono">#{next.bib}</dd>
+                      </div>
+                    )}
                   </dl>
-                  <Button
-                    href={`/events/${nextEvent.slug}`}
-                    block
-                    size="md"
-                    className="mt-5"
-                  >
-                    {t("runner.viewRegistration")}
-                  </Button>
+                  <div className="mt-5 flex flex-col gap-2.5">
+                    <Button
+                      href={`/events/${nextEvent.slug}/register`}
+                      block
+                      size="md"
+                    >
+                      {t("runner.viewRegistration")}
+                    </Button>
+                    <Button
+                      href={`/events/${nextEvent.slug}`}
+                      variant="outline"
+                      block
+                      size="md"
+                    >
+                      {t("runner.viewEvent")}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : null}
@@ -598,13 +617,23 @@ export default async function RunnerProfilePage(
                           {race.event.day} {race.event.month}
                         </span>
                       </div>
-                      <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                        {t("runner.registrationMeta", {
-                          category: distanceLabel(t, race.category),
-                          wave: waveLabel(t, race.wave),
-                          bib: race.bib,
-                        })}
-                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <p className="font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
+                          {race.pending
+                            ? t("runner.registrationMetaPending", {
+                                category: distanceLabel(t, race.category),
+                                wave: waveLabel(t, race.wave),
+                              })
+                            : t("runner.registrationMeta", {
+                                category: distanceLabel(t, race.category),
+                                wave: waveLabel(t, race.wave),
+                                bib: race.bib,
+                              })}
+                        </p>
+                        {race.pending ? (
+                          <Badge tone="outline">{t("runner.pending")}</Badge>
+                        ) : null}
+                      </div>
                     </li>
                   ))}
                 </ul>

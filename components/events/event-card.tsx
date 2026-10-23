@@ -168,7 +168,7 @@ export function EventRow({ event }: { event: RunningEvent }) {
             label={event.statusLabel}
           />
           <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
-            {event.city}, {event.region}
+            {event.place}
           </span>
         </div>
         <h3 className="font-display text-2xl font-black uppercase sm:text-3xl">

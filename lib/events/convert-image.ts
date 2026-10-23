@@ -92,20 +92,35 @@ function canvas(width: number, height: number) {
   };
 }
 
-/** Convert an image file to a resized WebP blob. */
-export async function toWebp(file: File): Promise<Blob> {
+/**
+ * Convert an image file to a resized WebP blob.
+ *
+ * `maxEdge` caps the longest side. `square` crops to the centred square
+ * first — what a profile photo wants — and then caps its side.
+ */
+export async function toWebp(
+  file: File,
+  { maxEdge = MAX_EDGE, square = false }: { maxEdge?: number; square?: boolean } = {},
+): Promise<Blob> {
   if (file.size > MAX_SOURCE_BYTES) throw new ImageConversionError("imageTooLarge");
 
   const bitmap = await decode(file);
   try {
-    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
+    // The source rectangle: the whole image, or its centred square.
+    const side = Math.min(bitmap.width, bitmap.height);
+    const sw = square ? side : bitmap.width;
+    const sh = square ? side : bitmap.height;
+    const sx = (bitmap.width - sw) / 2;
+    const sy = (bitmap.height - sh) / 2;
+
+    const scale = Math.min(1, maxEdge / Math.max(sw, sh));
+    const width = Math.max(1, Math.round(sw * scale));
+    const height = Math.max(1, Math.round(sh * scale));
 
     const { ctx, toBlob } = canvas(width, height);
     if (!ctx) throw new ImageConversionError("imageUnreadable");
     ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(bitmap, 0, 0, width, height);
+    ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, width, height);
 
     const native = await toBlob("image/webp", QUALITY).catch(() => null);
     if (native?.type === "image/webp") return native;

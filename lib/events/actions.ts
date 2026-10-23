@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
 import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
-import { PHOTO_PRICE, SHIRT_PRICE } from "./pricing";
+import { PHOTO_PRICE, SHIPPING_PRICE, SHIRT_PRICE } from "./pricing";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
 import {
@@ -385,18 +385,22 @@ export async function saveEventAction(
     fieldErrors.registration_opens = "opensAfterCloses";
 
   /* Location -------------------------------------------------------------- */
-  const venue = readText(formData, "venue");
-  const address = readText(formData, "address");
-  const city = readText(formData, "city");
+  // A race run anywhere in the region keeps no place of its own; what the
+  // hidden fields still hold is dropped rather than half-shown.
+  const anywhere = formData.get("anywhere") === "on";
+  const place = (key: string) => (anywhere ? "" : readText(formData, key));
+  const venue = place("venue");
+  const address = place("address");
+  const city = place("city");
   const region = readText(formData, "region");
-  const postalCode = readText(formData, "postal_code");
+  const postalCode = place("postal_code");
   const country = readText(formData, "country");
 
   if (venue.length > LIMITS.venue) fieldErrors.venue = "tooLong";
-  else requireFor("venue", Boolean(venue), "venueRequired");
+  else requireFor("venue", anywhere || Boolean(venue), "venueRequired");
   if (address.length > LIMITS.address) fieldErrors.address = "tooLong";
   if (city.length > LIMITS.city) fieldErrors.city = "tooLong";
-  else requireFor("city", Boolean(city), "cityRequired");
+  else requireFor("city", anywhere || Boolean(city), "cityRequired");
   if (region.length > LIMITS.region) fieldErrors.region = "tooLong";
   if (postalCode.length > LIMITS.postalCode) fieldErrors.postal_code = "tooLong";
   if (!isOneOf(COUNTRIES, country)) fieldErrors.country = "countryRequired";
@@ -419,15 +423,19 @@ export async function saveEventAction(
   const offersShirt = formData.get("offers_shirt") === "on";
   const offersPhotos = formData.get("offers_photos") === "on";
   const acceptsDonations = formData.get("accepts_donations") === "on";
+  const offersMail = formData.get("offers_mail") === "on";
   const donationRecipient = readText(formData, "donation_recipient");
   const shirtPrice = readDecimal(readText(formData, "shirt_price"));
   const photoPrice = readDecimal(readText(formData, "photo_price"));
+  const shippingPrice = readDecimal(readText(formData, "shipping_price"));
   const validPrice = (n: number) => !Number.isNaN(n) && n <= 1000;
 
   if (offersShirt && !validPrice(shirtPrice)) fieldErrors.shirt_price = "priceInvalid";
   if (offersShirt && shirtSizes.length === 0)
     fieldErrors.shirt_sizes = "shirtSizesRequired";
   if (offersPhotos && !validPrice(photoPrice)) fieldErrors.photo_price = "priceInvalid";
+  if (offersMail && !validPrice(shippingPrice))
+    fieldErrors.shipping_price = "priceInvalid";
   if (donationRecipient.length > LIMITS.donationRecipient)
     fieldErrors.donation_recipient = "tooLong";
   else if (acceptsDonations && !donationRecipient)
@@ -493,6 +501,7 @@ export async function saveEventAction(
     start_time: startTime || null,
     registration_opens: opens || null,
     registration_closes: closes || null,
+    anywhere,
     venue: venue || null,
     address,
     city: city || null,
@@ -513,6 +522,8 @@ export async function saveEventAction(
     photo_price: validPrice(photoPrice) ? photoPrice : PHOTO_PRICE,
     accepts_donations: acceptsDonations,
     donation_recipient: donationRecipient,
+    offers_mail: offersMail,
+    shipping_price: validPrice(shippingPrice) ? shippingPrice : SHIPPING_PRICE,
     aid_stations: aidStations ?? [],
     schedule: schedule ?? [],
     parking,

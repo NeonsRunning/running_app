@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { SHIRT_SIZES } from "@/lib/events/vocabulary";
+import { isOwnImagePath } from "@/lib/events/images";
+import { AVATAR_BUCKET } from "./avatars";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -79,6 +81,54 @@ export async function updateProfileAction(
   if (error || !data) return { error: "saveFailed" };
 
   // The header renders the name and initials, so the whole tree is stale.
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Profile photo                                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Point the profile at a photo the browser has already uploaded, or at none.
+ *
+ * The file itself never passes through here — `ProfilePhoto` converts and
+ * uploads it straight to storage — so this only checks that the path sits in
+ * the caller's own folder (the database checks it again) and swaps it in.
+ * The photo it replaces is deleted afterwards: nothing else points at it.
+ */
+export async function setAvatarAction(path: string | null): Promise<ProfileState> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "sessionExpired" };
+  const userId = userData.user.id;
+
+  if (path !== null && !isOwnImagePath(path, userId)) {
+    return { error: "photoInvalid" };
+  }
+
+  const { data: before } = await supabase
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .update({ avatar_path: path })
+    .eq("id", userId)
+    .select("id")
+    .maybeSingle();
+
+  if (error || !data) return { error: "saveFailed" };
+
+  const previous = before?.avatar_path;
+  if (previous && previous !== path) {
+    // Best effort: an orphaned file costs storage, not correctness.
+    await supabase.storage.from(AVATAR_BUCKET).remove([previous]);
+  }
+
+  // The header's account chip shows the photo too.
   revalidatePath("/", "layout");
   return { ok: true };
 }

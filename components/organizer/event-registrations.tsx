@@ -9,7 +9,10 @@ import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
 import type { EventRegistrationRow } from "@/lib/events/organizer";
-import { removeRegistrationAction } from "@/lib/events/remove-registration";
+import {
+  removeRegistrationAction,
+  returnRegistrationToPendingAction,
+} from "@/lib/events/remove-registration";
 
 /** One list drives the table header and the CSV export, so they cannot drift. */
 const COLUMN_KEYS = [
@@ -30,8 +33,8 @@ const PAGE_SIZE = 10;
  * The organizer's completed registrations on one event: every paid sign-up,
  * bib assigned, in bib order. Rows come straight from the server render, so a
  * payment confirmed above joins the list on the revalidation that follows.
- * Removing a runner asks first, then drops the row at once rather than waiting
- * for that revalidation.
+ * Removing a runner — or putting an ATH Móvil sign-up back to pending — asks
+ * first, then drops the row at once rather than waiting for that revalidation.
  */
 export function EventRegistrations({
   rows: initial,
@@ -57,12 +60,20 @@ export function EventRegistrations({
   const [page, setPage] = useState(1);
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
   const [confirming, setConfirming] = useState<EventRegistrationRow | null>(null);
+  const [reverting, setReverting] = useState<EventRegistrationRow | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
-  // Ids stay in `removed` after the revalidated rows arrive without them;
-  // filtering them again costs nothing.
+  // Revalidated rows already leave out what was dropped here, so `removed`
+  // starts over with them — a sign-up put back to pending and approved again
+  // must be able to return.
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setRemoved(new Set());
+  }
+
   const rows = useMemo(
     () => initial.filter((r) => !removed.has(r.id)),
     [initial, removed],
@@ -126,6 +137,52 @@ export function EventRegistrations({
     );
   }
 
+  async function revert(row: EventRegistrationRow) {
+    setBusy(row.id);
+    const result = await returnRegistrationToPendingAction(row.id).catch(
+      () => ({ ok: false, error: "revertFailed" }) as const,
+    );
+    setBusy(null);
+
+    if (result.ok || result.error === "alreadyChanged") {
+      setRemoved((ids) => new Set(ids).add(row.id));
+    }
+    toast(
+      result.ok
+        ? {
+            title: t("eventRegistrations.pendingTitle"),
+            body: t("eventRegistrations.pendingBody", { name: row.runnerName }),
+          }
+        : {
+            title: t("eventRegistrations.pendingErrors.title"),
+            body: t(`eventRegistrations.pendingErrors.${result.error}`),
+            tone: "danger",
+          },
+    );
+  }
+
+  function actions(row: EventRegistrationRow) {
+    return (
+      <div className="flex flex-wrap gap-2 md:justify-end">
+        {/* Only ATH Móvil was confirmed by hand; Stripe confirmed card payments. */}
+        {row.paymentMethod === "ath_movil" ? (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy !== null}
+            aria-label={t("eventRegistrations.markPendingAria", {
+              name: row.runnerName,
+            })}
+            onClick={() => setReverting(row)}
+          >
+            {t("eventRegistrations.markPending")}
+          </Button>
+        ) : null}
+        {removeButton(row)}
+      </div>
+    );
+  }
+
   function removeButton(row: EventRegistrationRow) {
     return (
       <Button
@@ -138,7 +195,7 @@ export function EventRegistrations({
         className="hover:border-danger hover:text-danger"
       >
         {busy === row.id
-          ? t("eventRegistrations.removing")
+          ? t("eventRegistrations.working")
           : t("eventRegistrations.remove")}
       </Button>
     );
@@ -151,6 +208,7 @@ export function EventRegistrations({
       t("eventRegistrations.columns.email"),
       t("eventRegistrations.columns.phone"),
       t("eventRegistrations.columns.club"),
+      t("eventRegistrations.columns.mailTo"),
     ];
     const body = shown.map((r) => [
       r.bib ?? "",
@@ -165,6 +223,7 @@ export function EventRegistrations({
       r.email,
       r.phone,
       r.club ?? "",
+      r.mailingAddress ?? "",
     ]);
     const csv = [header, ...body]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -260,6 +319,13 @@ export function EventRegistrations({
                           {row.club ? (
                             <p className="text-[11px] text-fg-faint">{row.club}</p>
                           ) : null}
+                          {row.mailingAddress ? (
+                            <p className="mt-1 text-[11px] whitespace-pre-line text-fg-faint">
+                              {t("eventRegistrations.mailTo", {
+                                address: row.mailingAddress,
+                              })}
+                            </p>
+                          ) : null}
                         </td>
                         <td className="px-4 py-3.5 text-sm">{distance(row)}</td>
                         <td className="px-4 py-3.5 text-sm">
@@ -274,7 +340,7 @@ export function EventRegistrations({
                         <td className="px-4 py-3.5 font-mono text-xs whitespace-nowrap text-fg-dim">
                           {paidOn.format(new Date(row.paidAt))}
                         </td>
-                        <td className="px-4 py-3 text-right">{removeButton(row)}</td>
+                        <td className="px-4 py-3 text-right">{actions(row)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -296,6 +362,13 @@ export function EventRegistrations({
                         <p className="mt-0.5 text-[12px] break-all text-fg-dim">
                           {row.email} · {row.phone}
                         </p>
+                        {row.mailingAddress ? (
+                          <p className="mt-0.5 text-[12px] whitespace-pre-line text-fg-dim">
+                            {t("eventRegistrations.mailTo", {
+                              address: row.mailingAddress,
+                            })}
+                          </p>
+                        ) : null}
                       </div>
                       <span className="font-mono text-base font-bold text-neon-lime tabular-nums">
                         #{row.bib ?? "—"}
@@ -314,7 +387,7 @@ export function EventRegistrations({
                         .filter((v) => v !== null && v !== "")
                         .join(" · ")}
                     </p>
-                    <div className="mt-3">{removeButton(row)}</div>
+                    <div className="mt-3">{actions(row)}</div>
                   </li>
                 ))}
               </ul>
@@ -350,6 +423,21 @@ export function EventRegistrations({
         })}
         confirmLabel={t("eventRegistrations.remove")}
         destructive
+      />
+
+      <ConfirmDialog
+        open={reverting !== null}
+        onClose={() => setReverting(null)}
+        onConfirm={() => {
+          if (reverting) void revert(reverting);
+        }}
+        title={t("eventRegistrations.markPendingTitle", {
+          name: reverting?.runnerName ?? "",
+        })}
+        description={t("eventRegistrations.markPendingDescription", {
+          bib: reverting?.bib ?? "—",
+        })}
+        confirmLabel={t("eventRegistrations.markPending")}
       />
     </section>
   );

@@ -76,7 +76,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
         admin
           .from("events")
           .select(
-            "name, slug, event_date, end_date, start_time, venue, city, donation_recipient",
+            "name, slug, event_date, end_date, start_time, anywhere, venue, city, region, donation_recipient",
           )
           .eq("id", claimed.event_id)
           .single(),
@@ -153,8 +153,10 @@ async function composeEmail({
     | "event_date"
     | "end_date"
     | "start_time"
+    | "anywhere"
     | "venue"
     | "city"
+    | "region"
     | "donation_recipient"
   >;
   category: Pick<Tables<"event_categories">, "distance" | "start_time">;
@@ -178,9 +180,20 @@ async function composeEmail({
             : t(k("donation"))
         } · ${formatMoney(Number(registration.donation), locale)}`
       : null,
+    registration.ships_by_mail ? t(k("mail")) : null,
   ].filter((v): v is string => v !== null);
+  // One line, so the text version reads as a single row too.
+  const mailTo =
+    registration.ships_by_mail && registration.mailing_address
+      ? registration.mailing_address
+          .split(/\s*\n\s*/)
+          .filter(Boolean)
+          .join(", ")
+      : null;
 
-  const location = [event.venue, event.city].filter(Boolean).join(", ");
+  const location = event.anywhere
+    ? t("events.anywhere.place", { region: event.region })
+    : [event.venue, event.city].filter(Boolean).join(", ");
   // A category without its own time starts with the event; an event without
   // one runs any time across its dates, or has not announced it yet.
   const startTime = category.start_time ?? event.start_time;
@@ -198,6 +211,7 @@ async function composeEmail({
     [t(k("start")), start],
     ...(location ? [[t(k("location")), location] as [string, string]] : []),
     ...(extras.length ? [[t(k("extras")), extras.join(" · ")] as [string, string]] : []),
+    ...(mailTo ? [[t(k("mailTo")), mailTo] as [string, string]] : []),
     [
       t(k(athMovil ? "totalAthMovil" : "total")),
       formatMoney(Number(registration.amount), locale),

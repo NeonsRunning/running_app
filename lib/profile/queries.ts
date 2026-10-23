@@ -1,6 +1,7 @@
 import type { Enums, Tables } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { avatarUrl } from "./avatars";
 
 /**
  * Reading profiles.
@@ -25,10 +26,13 @@ export type Profile = {
   id: string;
   handle: string;
   name: string;
-  /** Rendered in the avatar chip until profile photos exist. */
+  /** Stands in for the photo when there is none. */
   initials: string;
   accountType: AccountType;
   isOrganizer: boolean;
+  /** Object path in the `avatars` bucket, for replacing or removing it. */
+  avatarPath: string | null;
+  /** Public URL of the runner's uploaded photo; null without one. */
   avatarUrl: string | null;
   bio: string | null;
   city: string | null;
@@ -49,7 +53,7 @@ export type ProfileDetails = {
 };
 
 const PROFILE_COLUMNS =
-  "id, handle, full_name, account_type, avatar_url, bio, city, club, is_public, created_at";
+  "id, handle, full_name, account_type, avatar_path, bio, city, club, is_public, created_at";
 
 export function initialsOf(name: string): string {
   const parts = name.split(/\s+/).filter(Boolean).slice(0, 2);
@@ -62,7 +66,7 @@ type ProfileRow = Pick<
   | "handle"
   | "full_name"
   | "account_type"
-  | "avatar_url"
+  | "avatar_path"
   | "bio"
   | "city"
   | "club"
@@ -78,7 +82,8 @@ export function toProfile(row: ProfileRow): Profile {
     initials: initialsOf(row.full_name),
     accountType: row.account_type,
     isOrganizer: row.account_type === "organizer",
-    avatarUrl: row.avatar_url,
+    avatarPath: row.avatar_path,
+    avatarUrl: avatarUrl(row.avatar_path),
     bio: row.bio,
     city: row.city,
     club: row.club,

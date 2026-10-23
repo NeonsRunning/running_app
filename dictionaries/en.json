@@ -256,6 +256,7 @@
       "emptyBody": "Try widening the distance or date range — there are 184 races listed across the region, and new ones are published every week.",
       "clearFilters": "Clear filters",
       "markers": "Race markers · {count} shown",
+      "markersAnywhere": "Race markers · {count} shown · {anywhere} anywhere",
       "from": "From {price}",
       "details": "Details",
       "loadingMore": "Loading more races…",
@@ -348,6 +349,11 @@
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}"
+    },
+    "anywhere": {
+      "short": "Anywhere",
+      "place": "Anywhere in {region}",
+      "address": "Run it wherever you like in {region}."
     }
   },
   "search": {
@@ -410,7 +416,8 @@
       "paymentProcessing": "Your payment is still processing. Your registration is confirmed as soon as it clears — check back on this page shortly.",
       "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again.",
       "paymentUnderReview": "Your ATH Móvil payment for this race is being verified. We’ll email you as soon as it’s confirmed.",
-      "referenceInvalid": "Enter the reference number from your ATH Móvil receipt (up to 40 characters)."
+      "referenceInvalid": "Enter the reference number from your ATH Móvil receipt (up to 40 characters).",
+      "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -457,7 +464,13 @@
       "customDonation": "Other amount",
       "customDonationInvalid": "Enter an amount from $0 to {max}.",
       "none": "The organizer doesn’t offer any extras for this race.",
-      "free": "Free"
+      "free": "Free",
+      "mail": "Send by mail",
+      "mailDetail": "Can’t make packet pickup? We mail your medal to you.",
+      "addMail": "Send my medal by mail",
+      "mailingAddress": "Mailing address",
+      "mailingAddressHint": "Street, city, state and ZIP code.",
+      "mailingAddressRequired": "Enter the address to mail your medal to."
     },
     "step4": {
       "title": "Payment",
@@ -472,6 +485,7 @@
       "photos": "Photo pack",
       "donation": "Donation",
       "serviceFee": "Service fee",
+      "shipping": "Shipping & handling",
       "total": "Total",
       "processing": "Processing…",
       "complete": "Complete Registration",
@@ -485,12 +499,10 @@
     "confirmation": {
       "titleLine1": "You’re",
       "titleLine2": "in!",
-      "viewRegistration": "View My Registration",
-      "addToCalendar": "Add to Calendar",
-      "share": "Share",
+      "viewEvent": "See Event",
       "racePass": "Race pass",
       "bibNumber": "Bib number",
-      "bibMeta": "Alex Rivera · {category} · Wave A",
+      "bibMeta": "{name} · {category}",
       "qrTitle": "QR check-in pass",
       "qrBody": "Show this at the check-in tent. Works offline once downloaded.",
       "downloadPass": "Download pass",
@@ -550,6 +562,8 @@
       "photos": "Race photos",
       "donation": "Donation",
       "donationTo": "Donation to {recipient}",
+      "mail": "Sent by mail",
+      "mailTo": "Mail to",
       "total": "Total charged",
       "cta": "View race details",
       "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your card receipt arrives in a separate email.",
@@ -634,6 +648,7 @@
     "start": "Start",
     "bib": "Bib",
     "viewRegistration": "View registration",
+    "viewEvent": "View event",
     "upcoming": "Upcoming",
     "personalBestsPanel": "Personal bests",
     "clubOnly": "Club {club}",
@@ -647,11 +662,35 @@
     "daysToStart": "{days} days to your next start line · {count} races on your calendar this season.",
     "category": "Category",
     "registrationMeta": "{category} · {wave} · bib {bib}",
+    "registrationMetaPending": "{category} · {wave}",
+    "pending": "Pending",
     "savedEvents": "Saved events",
     "findMore": "Find more",
     "recommended": "Recommended for you",
     "recommendedKicker": "Open for sign-up · {city} first",
-    "recommendedKickerAny": "Open for sign-up · filling fastest"
+    "recommendedKickerAny": "Open for sign-up · filling fastest",
+    "photo": {
+      "add": "Add photo",
+      "change": "Change photo",
+      "remove": "Remove photo",
+      "removeTitle": "Remove your photo?",
+      "removeDescription": "Your profile goes back to showing your initials. You can upload a new photo any time.",
+      "alt": "Photo of {name}",
+      "converting": "Preparing…",
+      "uploading": "Uploading…",
+      "saving": "Saving…",
+      "saved": "Profile photo updated",
+      "removed": "Profile photo removed",
+      "errors": {
+        "imageType": "Use a photo: JPG, PNG, WebP or HEIC.",
+        "imageTooLarge": "That image is too large — pick one under 40 MB.",
+        "imageUnreadable": "Couldn’t read that image. Try another photo, or save it as JPG first.",
+        "uploadFailed": "Couldn’t upload the photo — try again in a moment.",
+        "photoInvalid": "That photo can’t be used. Upload it again.",
+        "saveFailed": "Couldn’t save your photo — try again.",
+        "sessionExpired": "Your session expired. Log in again, then try once more."
+      }
+    }
   },
   "auth": {
     "shell": {
@@ -1225,6 +1264,10 @@
     "startTimeHintMultiDay": "Leave empty if runners can start any time between the two dates.",
     "registrationOpens": "Registration opens",
     "registrationCloses": "Registration closes",
+    "locationKind": "Where it happens",
+    "locationVenue": "At a venue",
+    "locationAnywhere": "Anywhere in the region",
+    "locationAnywhereHint": "Runners take part wherever they like, so there is no venue or city. Good for virtual races.",
     "venueName": "Venue name",
     "streetAddress": "Street address",
     "streetPlaceholder": "Street and number",
@@ -1256,7 +1299,11 @@
       "donationRecipient": "Donations go to",
       "donationRecipientHint": "The charity, foundation or cause runners are giving to. Runners see this name before they donate.",
       "donationRecipientPlaceholder": "e.g. Fundación Corre PR",
-      "freeHint": "Enter 0 to include it at no cost."
+      "freeHint": "Enter 0 to include it at no cost.",
+      "mail": "Send by mail",
+      "mailDetail": "Runners who can’t make packet pickup can have their medal mailed. Shipping and handling is added at the end of their total.",
+      "shippingPrice": "Shipping & handling (USD)",
+      "shippingPriceHint": "Added at the end of the runner’s total. Enter 0 to ship free."
     },
     "terrain": "Terrain",
     "terrainPlaceholder": "Closed asphalt, flat",
@@ -1462,17 +1509,31 @@
     "empty": "No completed registrations yet. Runners show up here once their payment is confirmed.",
     "noMatches": "No registrations match that search.",
     "searchPlaceholder": "Search name, bib, email, phone or club",
+    "mailTo": "Mail to: {address}",
     "searchAria": "Search registrations",
     "exportCsv": "Export CSV",
     "card": "Card",
     "athMovil": "ATH Móvil",
     "remove": "Remove",
-    "removing": "Removing…",
+    "working": "Working…",
     "removeAria": "Remove {name} from this event",
     "removeTitle": "Remove {name}?",
     "removeDescription": "Bib {bib} comes off the list and the spot goes back to the race. Their payment is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",
     "removedTitle": "Runner removed",
     "removedBody": "{name} is no longer registered for this event.",
+    "markPending": "Back to pending",
+    "markPendingAria": "Put {name}’s ATH Móvil payment back to pending",
+    "markPendingTitle": "Put {name} back to pending?",
+    "markPendingDescription": "Bib {bib} is released and the sign-up returns to the ATH Móvil payments waiting for review. The runner keeps their spot. Confirming it again assigns the next available bib and resends the confirmation email.",
+    "pendingTitle": "Back to pending",
+    "pendingBody": "{name}’s payment is waiting for review again.",
+    "pendingErrors": {
+      "title": "Couldn’t put the sign-up back to pending",
+      "notAllowed": "Only this event’s organizer can change its registrations.",
+      "alreadyChanged": "This registration was already removed or put back to pending.",
+      "notAthMovil": "Only ATH Móvil payments can go back to pending — card payments are confirmed by Stripe.",
+      "revertFailed": "Something went wrong — try again in a moment."
+    },
     "errors": {
       "title": "Couldn’t remove the runner",
       "notAllowed": "Only this event’s organizer can remove its runners.",
@@ -1492,6 +1553,7 @@
       "email": "Email",
       "phone": "Phone",
       "club": "Club",
+      "mailTo": "Mailing address",
       "actions": "Actions"
     }
   }
