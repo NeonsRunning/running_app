@@ -541,6 +541,10 @@ export type Database = {
           account_path: string | null;
         }[];
       };
+      delete_event: {
+        Args: { p_event_id: string };
+        Returns: Database["public"]["Tables"]["events"]["Row"];
+      };
       remove_registration: {
         Args: { p_registration_id: string };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];

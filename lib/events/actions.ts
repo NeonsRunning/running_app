@@ -611,9 +611,9 @@ export async function saveEventAction(
 }
 
 /**
- * Delete one of the caller's events, and its images with it. Refused once
- * runners have signed up: their registrations hold the event in place by
- * foreign key.
+ * Delete one of the caller's events, and its images with it. Refused once a
+ * runner has paid or an ATH Móvil payment awaits review; unpaid checkouts are
+ * cleared with the event (see `delete_event()`).
  *
  * `unsaved` names images the wizard uploaded since its last save: they are
  * on no row yet, so only the caller knows to drop them.
@@ -627,24 +627,24 @@ export async function deleteEventAction(
   const session = await organizerSession();
   if ("error" in session) return { error: session.error };
 
-  const { data, error } = await session.supabase
-    .from("events")
-    .delete()
-    .eq("id", id)
-    .eq("organizer_id", session.userId)
-    .select("id, image_path, route_image_path, medal_image_path");
+  const { data, error } = await session.supabase.rpc("delete_event", {
+    p_event_id: id,
+  });
 
-  if (error?.code === FOREIGN_KEY_VIOLATION)
-    return { error: "eventHasRegistrations" };
-  if (error) return { error: "deleteFailed" };
-  if (!data?.length) return { error: "eventNotFound" };
+  if (
+    error?.code === RAISED &&
+    (error.message === "eventHasRegistrations" ||
+      error.message === "eventNotFound")
+  )
+    return { error: error.message };
+  if (error || !data) return { error: "deleteFailed" };
 
   // Best effort, as on save: a leftover file costs storage, not correctness.
   const images = [
     ...new Set([
-      data[0].image_path,
-      data[0].route_image_path,
-      data[0].medal_image_path,
+      data.image_path,
+      data.route_image_path,
+      data.medal_image_path,
       // Arrives from the browser: only files in the caller's own folder.
       ...(Array.isArray(unsaved) ? unsaved : []).filter(
         (p) => typeof p === "string" && isOwnImagePath(p, session.userId),
