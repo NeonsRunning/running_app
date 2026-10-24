@@ -35,16 +35,53 @@ export async function getLocaleOf(userId: string): Promise<Locale> {
 
 /** The language of each of many accounts, keyed by id. */
 export async function getLocalesOf(userIds: string[]): Promise<Map<string, Locale>> {
-  const locales = new Map<string, Locale>();
-  if (!userIds.length) return locales;
+  const settings = await getEmailSettingsOf(userIds);
+  return new Map([...settings].map(([id, s]) => [id, s.locale]));
+}
+
+/**
+ * The emails a runner can switch off in settings. Everything not listed here
+ * — payments, refunds, removals, cancellations, kit shipping — always goes.
+ */
+export type EmailPreference = "reminders" | "results" | "updates";
+
+export type EmailSettings = { locale: Locale } & Record<EmailPreference, boolean>;
+
+const DEFAULT_SETTINGS: EmailSettings = {
+  locale: DEFAULT_LOCALE,
+  reminders: true,
+  results: true,
+  updates: true,
+};
+
+/**
+ * Each account's language and email switches, keyed by id. An account with
+ * no row gets the defaults: the default language, every email on.
+ */
+export async function getEmailSettingsOf(
+  userIds: string[],
+): Promise<Map<string, EmailSettings>> {
+  const settings = new Map<string, EmailSettings>();
+  if (!userIds.length) return settings;
   const { data } = await createAdminClient()
     .from("profile_private")
-    .select("id, locale")
+    .select("id, locale, email_reminders, email_results, email_updates")
     .in("id", [...new Set(userIds)]);
   for (const row of data ?? []) {
-    if (isLocale(row.locale)) locales.set(row.id, row.locale);
+    settings.set(row.id, {
+      locale: isLocale(row.locale) ? row.locale : DEFAULT_LOCALE,
+      reminders: row.email_reminders,
+      results: row.email_results,
+      updates: row.email_updates,
+    });
   }
-  return locales;
+  for (const id of userIds) if (!settings.has(id)) settings.set(id, DEFAULT_SETTINGS);
+  return settings;
+}
+
+/** One account's language and email switches. */
+export async function getEmailSettingOf(userId: string): Promise<EmailSettings> {
+  return (await getEmailSettingsOf([userId])).get(userId) ?? DEFAULT_SETTINGS;
 }
 
 export type ConfirmedRunner = {
@@ -55,8 +92,14 @@ export type ConfirmedRunner = {
   locale: Locale;
 };
 
-/** Everyone holding a confirmed spot at an event, in their own language. */
-export async function getConfirmedRunners(eventId: string): Promise<ConfirmedRunner[]> {
+/**
+ * Everyone holding a confirmed spot at an event, in their own language. With
+ * `only`, the runners who switched that email off are left out.
+ */
+export async function getConfirmedRunners(
+  eventId: string,
+  { only }: { only?: EmailPreference } = {},
+): Promise<ConfirmedRunner[]> {
   const { data, error } = await createAdminClient()
     .from("registrations")
     .select("runner_id, email, first_name, last_name, amount")
@@ -65,12 +108,14 @@ export async function getConfirmedRunners(eventId: string): Promise<ConfirmedRun
   if (error) throw new Error(error.message);
   if (!data?.length) return [];
 
-  const locales = await getLocalesOf(data.map((r) => r.runner_id));
-  return data.map((r) => ({
-    email: r.email,
-    firstName: r.first_name,
-    name: `${r.first_name} ${r.last_name}`,
-    amount: Number(r.amount),
-    locale: locales.get(r.runner_id) ?? DEFAULT_LOCALE,
-  }));
+  const settings = await getEmailSettingsOf(data.map((r) => r.runner_id));
+  return data
+    .filter((r) => !only || (settings.get(r.runner_id) ?? DEFAULT_SETTINGS)[only])
+    .map((r) => ({
+      email: r.email,
+      firstName: r.first_name,
+      name: `${r.first_name} ${r.last_name}`,
+      amount: Number(r.amount),
+      locale: settings.get(r.runner_id)?.locale ?? DEFAULT_LOCALE,
+    }));
 }

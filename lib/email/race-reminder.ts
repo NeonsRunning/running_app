@@ -8,7 +8,7 @@ import { puertoRicoToday } from "@/lib/results/evidence";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
-import { getLocalesOf } from "./recipient";
+import { getEmailSettingsOf } from "./recipient";
 
 /**
  * "Your race is tomorrow" — the reminder every confirmed runner gets the day
@@ -17,7 +17,8 @@ import { getLocalesOf } from "./recipient";
  * Sent by `/api/cron/race-reminders`, once a day. Each registration is
  * claimed first, as for the confirmation email: the update that sets
  * `reminder_email_sent_at` while it is still null wins, and a failed send
- * gives the claim back for the next run.
+ * gives the claim back for the next run. A runner who switched reminders off
+ * in settings is claimed and skipped.
  */
 
 /** Rows handled per run; a later run picks up the rest. */
@@ -47,7 +48,7 @@ export async function sendRaceReminders(
   if (error) throw new Error(error.message);
   if (!rows?.length) return { sent: 0, failed: 0 };
 
-  const locales = await getLocalesOf(rows.map((r) => r.runner_id));
+  const settings = await getEmailSettingsOf(rows.map((r) => r.runner_id));
   let sent = 0;
   let failed = 0;
 
@@ -61,11 +62,13 @@ export async function sendRaceReminders(
       .maybeSingle();
     // Sent by a run that overlapped this one.
     if (!claimed) continue;
+    // Switched off in settings. The claim stays, so later runs skip the row.
+    if (settings.get(row.runner_id)?.reminders === false) continue;
 
     try {
       const event = row.events;
       const category = row.event_categories;
-      const locale = locales.get(row.runner_id) ?? DEFAULT_LOCALE;
+      const locale = settings.get(row.runner_id)?.locale ?? DEFAULT_LOCALE;
       const t = await getTranslator(locale);
       const k = (key: string) => `emails.raceReminder.${key}`;
 

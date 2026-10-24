@@ -53,6 +53,8 @@ export type ProfileDetails = {
   /** Null until the runner saves one; the database keeps it all-or-nothing. */
   mailingAddress: MailingAddress | null;
   locale: string;
+  /** The emails the runner can switch off; see `EmailPreference`. */
+  emailPrefs: { reminders: boolean; results: boolean; updates: boolean };
 };
 
 const PROFILE_COLUMNS =
@@ -152,7 +154,7 @@ export async function getProfileDetails(
   const { data, error } = await supabase
     .from("profile_private")
     .select(
-      "birth_date, gender, shirt_size, phone, emergency_contact_name, emergency_contact_phone, address_line1, address_line2, address_city, address_state, address_postal_code, locale",
+      "birth_date, gender, shirt_size, phone, emergency_contact_name, emergency_contact_phone, address_line1, address_line2, address_city, address_state, address_postal_code, locale, email_reminders, email_results, email_updates",
     )
     .eq("id", userId)
     .maybeSingle();
@@ -180,5 +182,26 @@ export async function getProfileDetails(
           }
         : null,
     locale: data.locale,
+    emailPrefs: {
+      reminders: data.email_reminders,
+      results: data.email_results,
+      updates: data.email_updates,
+    },
   };
+}
+
+/**
+ * When the caller asked for their account to be deleted, or null if they
+ * have not. Row-level security shows each runner only their own request.
+ */
+export async function getDeletionRequestedAt(userId: string): Promise<string | null> {
+  if (!hasSupabaseEnv()) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("account_deletion_requests")
+    .select("requested_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data?.requested_at ?? null;
 }

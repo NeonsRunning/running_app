@@ -82,6 +82,9 @@ export type Database = {
           address_state: string | null;
           address_postal_code: string | null;
           locale: string;
+          email_reminders: boolean;
+          email_results: boolean;
+          email_updates: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -99,6 +102,9 @@ export type Database = {
           address_state?: string | null;
           address_postal_code?: string | null;
           locale?: string;
+          email_reminders?: boolean;
+          email_results?: boolean;
+          email_updates?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -116,6 +122,9 @@ export type Database = {
           address_state?: string | null;
           address_postal_code?: string | null;
           locale?: string;
+          email_reminders?: boolean;
+          email_results?: boolean;
+          email_updates?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -563,10 +572,40 @@ export type Database = {
           },
         ];
       };
+      account_deletion_requests: {
+        Row: {
+          user_id: string;
+          requested_at: string;
+          /** When the team's email went out; null until then. */
+          team_notified_at: string | null;
+        };
+        Insert: never;
+        /** Service role only: the server records the team's email. */
+        Update: {
+          team_notified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_requests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
+      request_account_deletion: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["Tables"]["account_deletion_requests"]["Row"];
+      };
+      cancel_account_deletion: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["Tables"]["account_deletion_requests"]["Row"];
+      };
       platform_stats: {
         Args: Record<PropertyKey, never>;
         Returns: {

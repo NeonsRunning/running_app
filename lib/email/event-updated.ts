@@ -180,7 +180,8 @@ function whereLine(e: Event, t: Translate): string {
 }
 
 async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: string) {
-  const runners = await getConfirmedRunners(saved.id);
+  // "Event updates" in settings; a runner can switch these off.
+  const runners = await getConfirmedRunners(saved.id, { only: "updates" });
   const emails: Email[] = [];
 
   for (const { locale, ...runner } of runners) {
