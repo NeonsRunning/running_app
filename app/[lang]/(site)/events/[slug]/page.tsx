@@ -262,8 +262,10 @@ export default async function EventDetailPage(
       {/* ---------------------------------------------------------------- */}
       {/* Body + booking rail                                              */}
       {/* ---------------------------------------------------------------- */}
-      <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[1fr_400px]">
-        <main className="border-line lg:border-r-2">
+      {/* minmax(0, …) columns and min-w-0 keep the scrolling tab strip from
+          stretching the page past a phone's width. */}
+      <div className="mx-auto grid max-w-[1600px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px]">
+        <main className="min-w-0 border-line lg:border-r-2">
           <EventDetailTabs event={event} organizer={organizer} />
         </main>
 
