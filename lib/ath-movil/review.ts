@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { scheduleAthMovilRejectedEmail } from "@/lib/email/ath-movil-rejected";
 import { scheduleRegistrationEmail } from "@/lib/email/registration-confirmed";
 import { createClient } from "@/lib/supabase/server";
 
@@ -20,7 +21,8 @@ export type ReviewResult =
 
 /**
  * Approve: the runner gets their bib and the confirmation email. Reject: the
- * spot is released and the runner can pay again from the register page.
+ * spot is released, the runner is emailed, and can pay again from the
+ * register page.
  */
 export async function reviewAthMovilPaymentAction(
   registrationId: string,
@@ -46,6 +48,7 @@ export async function reviewAthMovilPaymentAction(
   }
 
   if (approve) await scheduleRegistrationEmail(data);
+  else await scheduleAthMovilRejectedEmail(data);
   // Spots left and the runner's own pages change either way.
   revalidatePath("/", "layout");
   return { ok: true };

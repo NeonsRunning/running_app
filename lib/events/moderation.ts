@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/auth/session";
+import { scheduleEventCancelledEmails } from "@/lib/email/event-cancelled";
 import { scheduleEventRemovedEmail } from "@/lib/email/event-removed";
+import { scheduleEventRestoredEmails } from "@/lib/email/event-restored";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -38,7 +40,8 @@ const REMOVE_ERRORS = new Set<string>([
 /**
  * Hide an event from the listing, search and its page. Its registrations
  * and accepted results stay; its organizer is told why by email. Taking
- * down a race not yet run cancels it: refunds to paid runners are manual.
+ * down a race not yet run cancels it: its paid runners are emailed, and
+ * their refunds are manual.
  */
 export async function removeEventAction(
   id: string,
@@ -69,12 +72,16 @@ export async function removeEventAction(
   }
 
   await scheduleEventRemovedEmail(data, trimmed);
+  await scheduleEventCancelledEmails(data);
   // The listing, search, stats and runners' profiles all change.
   revalidatePath("/", "layout");
   return { ok: true };
 }
 
-/** Publish a removed event again, as it was. */
+/**
+ * Publish a removed event again, as it was. Its organizer is emailed, and so
+ * are its runners when the race is still to come.
+ */
 export async function restoreEventAction(id: string): Promise<ModerationResult> {
   if (typeof id !== "string" || !UUID.test(id)) {
     return { ok: false, error: "eventNotFound" };
@@ -95,6 +102,7 @@ export async function restoreEventAction(id: string): Promise<ModerationResult> 
     return { ok: false, error: "saveFailed" };
   }
 
+  await scheduleEventRestoredEmails(data);
   revalidatePath("/", "layout");
   return { ok: true };
 }

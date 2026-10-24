@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/auth/session";
+import { scheduleEventSavedEmails } from "@/lib/email/event-updated";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
 import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
@@ -310,24 +311,11 @@ export async function saveEventAction(
   if ("error" in session) return { error: session.error };
   const { supabase, userId, admin } = session;
 
-  let existing: Pick<
-    Tables<"events">,
-    | "status"
-    | "slug"
-    | "event_date"
-    | "end_date"
-    | "image_path"
-    | "route_image_path"
-    | "medal_image_path"
-  > | null = null;
+  // The whole row: who gets emailed about the save compares it with the new one.
+  let existing: Tables<"events"> | null = null;
   if (id) {
     // An admin edits any organizer's event; anyone else only their own.
-    let query = supabase
-      .from("events")
-      .select(
-        "status, slug, event_date, end_date, image_path, route_image_path, medal_image_path",
-      )
-      .eq("id", id);
+    let query = supabase.from("events").select("*").eq("id", id);
     if (!admin) query = query.eq("organizer_id", userId);
     const { data } = await query.maybeSingle();
     // A removed event is the platform's now; the policy refuses the save too.
@@ -589,6 +577,14 @@ export async function saveEventAction(
         .from("event_categories")
         .select("id, distance")
         .eq("event_id", data.id);
+
+      if (existing) {
+        await scheduleEventSavedEmails({
+          before: existing,
+          saved: data,
+          byAdmin: admin && existing.organizer_id !== userId,
+        });
+      }
 
       revalidatePath("/", "layout");
       return {

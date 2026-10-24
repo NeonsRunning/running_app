@@ -1,5 +1,9 @@
 import "server-only";
 import type Stripe from "stripe";
+import {
+  schedulePaymentRefundedEmail,
+  type RefundReason,
+} from "@/lib/email/payment-refunded";
 import { scheduleRegistrationEmail } from "@/lib/email/registration-confirmed";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -18,7 +22,8 @@ import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
  * A payment that cannot become a registration — the race filled up while the
  * hold had lapsed, the order was repriced in another tab, a second payment for
  * a sign-up that is already confirmed — is refunded in full here. Money never
- * stays with us without a bib to show for it.
+ * stays with us without a bib to show for it, and the runner is told why by
+ * email.
  *
  * Callers that can — server actions, the webhook — revalidate the layout
  * afterwards: spots left changes with every sign-up. A page render cannot.
@@ -41,23 +46,32 @@ export type SettleResult =
  * Errors `confirm_registration_payment()` raises for a payment to refund.
  * `paymentUnderReview`: the runner already sent the money by ATH Móvil.
  */
-const REFUNDABLE = new Set([
+const REFUNDABLE = new Set<string>([
   "registrationMissing",
   "amountMismatch",
   "soldOut",
   "paymentUnderReview",
 ]);
 
-async function refund(paymentIntentId: string) {
+/**
+ * Refund in full and tell the runner. The page and the webhook can both get
+ * here for one payment: the idempotency key makes the second call a replay of
+ * the first, and only the call that created the refund sends the email.
+ */
+async function refund(intent: Stripe.PaymentIntent, reason: RefundReason) {
   try {
-    await getStripe().refunds.create(
-      { payment_intent: paymentIntentId },
-      // The page and the webhook can both get here for one payment.
-      { idempotencyKey: `refund-${paymentIntentId}` },
+    const created = await getStripe().refunds.create(
+      { payment_intent: intent.id },
+      { idempotencyKey: `refund-${intent.id}` },
     );
+    const replayed = Object.entries(created.lastResponse.headers).some(
+      ([name, value]) =>
+        name.toLowerCase() === "idempotent-replayed" && value === "true",
+    );
+    if (!replayed) await schedulePaymentRefundedEmail(intent, reason);
   } catch (err) {
     // Most likely already refunded. Anything else needs a person to look.
-    console.error(`Refund of ${paymentIntentId} failed:`, err);
+    console.error(`Refund of ${intent.id} failed:`, err);
   }
 }
 
@@ -80,7 +94,7 @@ export async function settlePayment(
   if (error || !data) {
     const key = error?.code === "P0001" ? error.message : "";
     if (REFUNDABLE.has(key)) {
-      await refund(intent.id);
+      await refund(intent, key as RefundReason);
       return { ok: false, error: key === "soldOut" ? "soldOut" : "paymentRefunded" };
     }
     // A database hiccup: leave the payment alone so a retry can confirm it.
@@ -89,7 +103,7 @@ export async function settlePayment(
   }
 
   // Confirmed earlier by a different payment: this one is a duplicate.
-  if (data.payment_intent_id !== intent.id) await refund(intent.id);
+  if (data.payment_intent_id !== intent.id) await refund(intent, "duplicate");
   else await scheduleRegistrationEmail(data);
 
   return { ok: true, registration: data };

@@ -585,6 +585,204 @@
       "kept": "Its registrations and payments are kept on record, and runners keep the results already accepted on their profiles.",
       "cta": "Contact Us",
       "footer": "If you think this was a mistake, contact us and we’ll take another look."
+    },
+    "athMovilRejected": {
+      "subject": "Your ATH Móvil payment for {event} wasn’t confirmed",
+      "preheader": "We couldn’t find your payment, so your spot was released.",
+      "heading": "Hi {name},",
+      "intro": "We couldn’t find your ATH Móvil payment for {event}, so your registration wasn’t confirmed and your spot was released.",
+      "race": "Race",
+      "amount": "Amount",
+      "reference": "Reference you sent",
+      "charged": "If you were charged, contact us with your ATH Móvil receipt and we’ll sort it out. Otherwise, you can register and pay again.",
+      "cta": "Register again",
+      "footer": "You’re receiving this because you started a registration for {event} on NEONS RUNNING."
+    },
+    "paymentRefunded": {
+      "subject": "We refunded your payment for {event}",
+      "subjectNoEvent": "We refunded your race payment",
+      "preheader": "Your card payment couldn’t become a registration, so we refunded it in full.",
+      "heading": "Your payment was refunded",
+      "reasons": {
+        "soldOut": "The race filled up before your payment went through, so we couldn’t give you a spot and refunded your payment in full.",
+        "registrationMissing": "Your registration was no longer open by the time your payment cleared, so we refunded it in full.",
+        "amountMismatch": "Your order changed after this payment started, so we refunded this payment in full. Check your registration before paying again.",
+        "paymentUnderReview": "You already sent an ATH Móvil payment for this registration, which is being reviewed, so we refunded the card payment in full.",
+        "duplicate": "Your registration was already confirmed with an earlier payment, so we refunded this second charge in full. Your spot is unchanged."
+      },
+      "timing": "Refunds usually take 5 to 10 business days to show on your statement.",
+      "race": "Race",
+      "amount": "Amount refunded",
+      "ctaRegister": "Back to the race",
+      "ctaView": "View your registration",
+      "footer": "You’re receiving this because you paid for a race registration on NEONS RUNNING. Your card provider may also send a refund receipt."
+    },
+    "eventCancelled": {
+      "subject": "{event} has been cancelled",
+      "preheader": "Your race won’t take place. Here’s what happens next.",
+      "heading": "Hi {name},",
+      "intro": "We’re sorry to let you know that {event} has been cancelled and won’t take place on NEONS RUNNING.",
+      "race": "Race",
+      "date": "Was scheduled for",
+      "paid": "You paid",
+      "refund": "We’ll contact you about your options, including a refund where it applies, under the cancellation policy for this event. If you have questions in the meantime, contact us.",
+      "cta": "Contact Us",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
+    },
+    "registrationRemoved": {
+      "subject": "Your registration for {event} was cancelled",
+      "preheader": "You’re no longer on the runner list for this race.",
+      "heading": "Hi {name},",
+      "intro": "Your registration for {event} has been cancelled, and you’re no longer on its runner list.",
+      "race": "Race",
+      "amount": "You paid",
+      "next": "If you think this was a mistake, or have questions about a refund, contact us and we’ll look into it.",
+      "nextFree": "If you think this was a mistake, contact us and we’ll look into it.",
+      "cta": "Contact Us",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
+    },
+    "registrationPending": {
+      "subject": "Your payment for {event} is being reviewed again",
+      "preheader": "Your spot is held while we check your ATH Móvil payment.",
+      "heading": "Hi {name},",
+      "intro": "Your ATH Móvil payment for {event} is being reviewed again, so your registration is back to pending and your bib number has been released.",
+      "race": "Race",
+      "amount": "Amount",
+      "next": "Your spot is still held. We’ll email you again as soon as the payment is confirmed, or if we can’t find it.",
+      "cta": "View race",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
+    },
+    "resultAccepted": {
+      "subject": "Your result for {event} is official",
+      "preheader": "Your finish time is now on your profile.",
+      "heading": "Nice run, {name}!",
+      "intro": "Your finish time for {event} was accepted. It’s now on your NEONS RUNNING profile.",
+      "race": "Race",
+      "time": "Finish time",
+      "next": "Share your profile with friends and keep the streak going.",
+      "cta": "View your profile",
+      "footer": "You’re receiving this because you sent a result for {event} on NEONS RUNNING."
+    },
+    "resultRejected": {
+      "subject": "Your result for {event} needs another look",
+      "preheader": "Your finish time wasn’t accepted yet. You can send new evidence.",
+      "heading": "Hi {name},",
+      "intro": "The finish time you sent for {event} couldn’t be accepted.",
+      "race": "Race",
+      "time": "Time you sent",
+      "note": "Reviewer’s note",
+      "next": "You can send a new screenshot of your finish from the race page.",
+      "cta": "Send new evidence",
+      "footer": "You’re receiving this because you sent a result for {event} on NEONS RUNNING."
+    },
+    "paymentToReview": {
+      "subject": "ATH Móvil payment to review: {runner}, {event}",
+      "preheader": "A runner’s spot is held until you review their payment.",
+      "heading": "Hi {name},",
+      "headingNoName": "Hi,",
+      "intro": "{runner} sent an ATH Móvil payment for {event}. Their spot is held until you find the payment in ATH Móvil Business and approve or reject it.",
+      "race": "Race",
+      "runner": "Runner",
+      "amount": "Amount",
+      "reference": "Reference",
+      "cta": "Review payment",
+      "footer": "You’re receiving this because you organize {event} on NEONS RUNNING."
+    },
+    "resultToReview": {
+      "subject": "Result to review: {runner}, {event}",
+      "preheader": "A runner sent a finish time with a screenshot.",
+      "heading": "Hi {name},",
+      "headingNoName": "Hi,",
+      "intro": "{runner} sent a finish time for {event}. Check their screenshot and accept the result or send it back.",
+      "race": "Race",
+      "runner": "Runner",
+      "time": "Finish time",
+      "cta": "Review result",
+      "footer": "You’re receiving this because you organize {event} on NEONS RUNNING."
+    },
+    "eventRestored": {
+      "subject": "{event} is back on NEONS RUNNING",
+      "heading": "Hi {name},",
+      "headingNoName": "Hi,",
+      "intro": "We restored {event}. It’s published again, just as it was, and appears in listings and search.",
+      "cta": "View event",
+      "footer": "You’re receiving this because you organize {event} on NEONS RUNNING."
+    },
+    "eventReinstated": {
+      "subject": "Good news: {event} is back on",
+      "preheader": "The race is going ahead and your registration still stands.",
+      "heading": "Hi {name},",
+      "intro": "We recently told you {event} was cancelled. It’s back on, and your registration still stands.",
+      "race": "Race",
+      "date": "Date",
+      "refunded": "If you were refunded after the cancellation, contact us so we can sort out your spot.",
+      "cta": "View race details",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
+    },
+    "eventEditedByAdmin": {
+      "subject": "We updated {event}",
+      "heading": "Hi {name},",
+      "headingNoName": "Hi,",
+      "intro": "A NEONS RUNNING admin made changes to {event}.",
+      "changed": "Sections changed",
+      "next": "Take a look to make sure everything is right. You can keep editing it as usual.",
+      "cta": "View event",
+      "footer": "You’re receiving this because you organize {event} on NEONS RUNNING. If something looks wrong, contact us."
+    },
+    "eventChanged": {
+      "subject": "Update: {event} has changed",
+      "preheader": "The date, start time or place of your race has changed.",
+      "heading": "Hi {name},",
+      "intro": "Some race-day details for {event} have changed. Your registration still stands.",
+      "whenNow": "Date & start (new)",
+      "whenBefore": "Previously",
+      "whereNow": "Location (new)",
+      "whereBefore": "Previously",
+      "next": "Check the race page for the latest details before race day.",
+      "cta": "View race details",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
+    },
+    "raceReminder": {
+      "subject": "Tomorrow: {event}",
+      "preheader": "Your race starts tomorrow at {start}.",
+      "heading": "Race day is almost here, {name}!",
+      "intro": "{event} is tomorrow. Here’s everything you need.",
+      "race": "Race",
+      "bib": "Bib number",
+      "distance": "Distance",
+      "date": "Date",
+      "start": "Start time",
+      "location": "Location",
+      "tips": "Get a good night’s sleep, check the race page for parking and the schedule, and arrive early to pick up your kit.",
+      "cta": "View race details",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING.",
+      "preheaderNoTime": "Your race is tomorrow. Here are your details.",
+      "tipsAnywhere": "Pick your route, charge your watch or phone, and keep a screenshot of your finish."
+    },
+    "contactMessage": {
+      "subject": "Contact form: {topic} from {name}",
+      "heading": "New message from the contact form",
+      "intro": "Reply to this email to answer the sender directly.",
+      "name": "Name",
+      "email": "Email",
+      "topic": "Topic",
+      "language": "Page language",
+      "message": "Message",
+      "footer": "Sent from the contact form on NEONS RUNNING."
+    },
+    "kitShipped": {
+      "subject": "Your race kit for {event} is on its way",
+      "preheader": "The organizer just mailed your kit.",
+      "heading": "It’s in the mail, {name}!",
+      "intro": "The organizer of {event} just shipped your race kit.",
+      "race": "Race",
+      "bib": "Bib number",
+      "mailTo": "Mailed to",
+      "tracking": "Tracking number",
+      "next": "Use the tracking number on the carrier’s website to follow your package. If it doesn’t arrive, contact us.",
+      "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
+      "cta": "View race details",
+      "footer": "You’re receiving this because you chose to have your kit for {event} mailed to you on NEONS RUNNING."
     }
   },
   "results": {
@@ -1057,7 +1255,14 @@
     "messagePlaceholder": "Include the race name and your bib number if it is about a specific event.",
     "checkFormTitle": "Check the form",
     "checkFormBody": "A few fields still need attention.",
-    "submit": "Send message"
+    "submit": "Send message",
+    "sending": "Sending…",
+    "errors": {
+      "title": "Message not sent",
+      "invalid": "Some fields are missing or too long. Check the form and try again.",
+      "unavailable": "The contact form is unavailable right now. Try again later.",
+      "sendFailed": "Something went wrong sending your message. Try again in a moment."
+    }
   },
   "settings": {
     "title": "Settings",
@@ -1697,7 +1902,35 @@
       "phone": "Phone",
       "club": "Club",
       "mailTo": "Mailing address",
-      "actions": "Actions"
+      "actions": "Actions",
+      "shipped": "Shipped on",
+      "tracking": "Tracking number"
+    },
+    "markShipped": "Mark shipped",
+    "markShippedAria": "Mark {name}’s kit as shipped",
+    "editTracking": "Edit tracking",
+    "addTracking": "Add tracking",
+    "editTrackingAria": "Edit the tracking number for {name}’s kit",
+    "shippedOn": "Shipped {date}",
+    "trackingValue": "Tracking: {tracking}",
+    "shipTitle": "Mark {name}’s kit as shipped?",
+    "shipDescription": "We’ll email {name} that their kit is on its way. This can’t be undone.",
+    "trackingTitle": "Tracking number for {name}",
+    "trackingDescription": "Saving a new tracking number doesn’t email {name} again.",
+    "trackingLabel": "Tracking number",
+    "trackingHint": "From the carrier’s receipt, so the runner can follow the package.",
+    "saveTracking": "Save tracking",
+    "shippedTitle": "Kit marked as shipped",
+    "shippedBody": "We’re emailing {name} that it’s on its way.",
+    "trackingSavedTitle": "Tracking saved",
+    "trackingSavedBody": "The tracking number for {name}’s kit was updated.",
+    "shipErrors": {
+      "title": "Couldn’t mark it shipped",
+      "notAllowed": "Only this event’s organizer can mark kits as shipped.",
+      "registrationMissing": "This sign-up was removed or changed. Reload the page to see the latest list.",
+      "notMailed": "This runner picks up their kit, so there’s nothing to ship.",
+      "trackingTooLong": "That tracking number is too long. Check it and try again.",
+      "shipFailed": "Something went wrong — try again in a moment."
     }
   },
   "adminAccounts": {

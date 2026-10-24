@@ -9,6 +9,7 @@ import { getTranslator } from "@/lib/i18n/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail } from "./brevo";
+import { escape, INK, LIME, LINE, MUTED } from "./layout";
 
 /**
  * "You're in" — the email a runner gets once their payment confirms a
@@ -124,20 +125,6 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
 /* -------------------------------------------------------------------------- */
 /* Content                                                                    */
 /* -------------------------------------------------------------------------- */
-
-const INK = "#050505";
-const LIME = "#9cff00";
-const MUTED = "#6b6b6b";
-const LINE = "#e6e6e6";
-
-export function escape(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 async function composeEmail({
   registration,

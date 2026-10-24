@@ -36,6 +36,9 @@ export const DISTANCES = Object.keys(DISTANCE_KM) as Distance[];
 export const DIFFICULTIES: Difficulty[] = ["Easy", "Moderate", "Hard"];
 
 export const SHIRT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"] as const;
+
+/** Longest carrier tracking number on a mailed kit; mirrors `mark_kit_shipped()`. */
+export const MAX_TRACKING_LENGTH = 100;
 export type ShirtSize = (typeof SHIRT_SIZES)[number];
 
 export const COUNTRIES = ["PR", "US", "DO", "other"] as const;

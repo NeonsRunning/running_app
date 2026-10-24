@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { scheduleReviewRequestedEmail } from "@/lib/email/review-requested";
+import { scheduleResultReviewedEmail } from "@/lib/email/result-reviewed";
 import { createClient } from "@/lib/supabase/server";
 import {
   EVIDENCE_BUCKET,
@@ -70,7 +72,7 @@ export async function submitRaceResultAction(
   // The file this one replaces, if any, to clean up after.
   const { data: previous } = await supabase
     .from("race_results")
-    .select("evidence_path")
+    .select("evidence_path, status")
     .eq("runner_id", auth.user.id)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -94,6 +96,13 @@ export async function submitRaceResultAction(
     await supabase.storage.from(EVIDENCE_BUCKET).remove([previous.evidence_path]);
   }
 
+  // A replacement for one still waiting adds nothing new to review.
+  if (previous?.status !== "pending") {
+    await scheduleReviewRequestedEmail(data.registration_id, {
+      kind: "result",
+      finishSeconds: data.finish_seconds,
+    });
+  }
   revalidatePath("/", "layout");
   return { ok: true };
 }
@@ -104,7 +113,8 @@ export type ReviewResult =
 
 /**
  * Accept: the result goes on the runner's profile, with the event's medal.
- * Reject: the runner sees `note` and can send new evidence.
+ * Reject: the runner sees `note` and can send new evidence. Either way the
+ * runner is emailed.
  */
 export async function reviewRaceResultAction(
   resultId: string,
@@ -137,6 +147,7 @@ export async function reviewRaceResultAction(
     return { ok: false, error: "reviewFailed" };
   }
 
+  await scheduleResultReviewedEmail(data);
   revalidatePath("/", "layout");
   return { ok: true };
 }

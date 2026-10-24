@@ -15,6 +15,8 @@ const ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 export type Email = {
   to: { email: string; name?: string };
+  /** Where a reply goes, when not to the sender. */
+  replyTo?: { email: string; name?: string };
   subject: string;
   html: string;
   text: string;
@@ -50,6 +52,7 @@ export async function sendEmail(email: Email): Promise<void> {
         name: process.env.BREVO_SENDER_NAME || "NEONS RUNNING",
       },
       to: [email.to],
+      replyTo: email.replyTo,
       subject: email.subject,
       htmlContent: email.html,
       textContent: email.text,
@@ -61,4 +64,26 @@ export async function sendEmail(email: Email): Promise<void> {
   if (!response.ok) {
     throw new Error(`Brevo answered ${response.status}: ${await response.text()}`);
   }
+}
+
+/**
+ * Hand many emails to Brevo, a few at a time, so one bad address never stops
+ * the rest. Resolves with how many Brevo refused; each refusal is logged.
+ */
+export async function sendEmails(emails: Email[], concurrency = 5): Promise<number> {
+  let next = 0;
+  let failed = 0;
+  async function worker() {
+    while (next < emails.length) {
+      const email = emails[next++];
+      try {
+        await sendEmail(email);
+      } catch (err) {
+        failed++;
+        console.error(`Email to ${email.to.email} (${email.tags?.join(",")}) failed:`, err);
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, emails.length) }, worker));
+  return failed;
 }

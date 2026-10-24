@@ -1,21 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
-import { useT } from "@/components/i18n/provider";
+import { useLocale, useT } from "@/components/i18n/provider";
+import { sendContactMessageAction } from "@/lib/contact/actions";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function ContactForm() {
   const { toast } = useToast();
   const t = useT();
+  const locale = useLocale();
+  const [pending, startTransition] = useTransition();
   const [values, setValues] = useState({
     name: "",
     email: "",
     topic: "registration",
     message: "",
+    // Honeypot: hidden from people, filled in by bots.
+    website: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
@@ -40,7 +45,13 @@ export function ContactForm() {
           className="mt-6"
           onClick={() => {
             setSent(false);
-            setValues({ name: "", email: "", topic: "registration", message: "" });
+            setValues({
+              name: "",
+              email: "",
+              topic: "registration",
+              message: "",
+              website: "",
+            });
           }}
         >
           {t("contactForm.sendAnother")}
@@ -69,7 +80,16 @@ export function ContactForm() {
           });
           return;
         }
-        setSent(true);
+        startTransition(async () => {
+          const result = await sendContactMessageAction({ ...values, locale });
+          if (result.ok) setSent(true);
+          else
+            toast({
+              title: t("contactForm.errors.title"),
+              body: t(`contactForm.errors.${result.error}`),
+              tone: "danger",
+            });
+        });
       }}
       className="flex flex-col gap-6"
     >
@@ -128,8 +148,29 @@ export function ContactForm() {
         )}
       </Field>
 
-      <Button type="submit" size="xl" className="self-start">
-        {t("contactForm.submit")}
+      {/* Off-screen rather than display:none, which some bots skip. */}
+      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+        <label>
+          Website
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={values.website}
+            onChange={(e) => setValues({ ...values, website: e.target.value })}
+          />
+        </label>
+      </div>
+
+      <Button
+        type="submit"
+        size="xl"
+        className="self-start"
+        disabled={pending}
+        aria-busy={pending}
+      >
+        {pending ? t("contactForm.sending") : t("contactForm.submit")}
       </Button>
     </form>
   );

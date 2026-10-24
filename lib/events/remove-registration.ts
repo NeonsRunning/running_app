@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { scheduleRegistrationChangedEmail } from "@/lib/email/registration-changed";
 import { createClient } from "@/lib/supabase/server";
 
 /**
  * Taking a runner off an event's list. The event's organizer — or a platform
  * admin — removes a completed sign-up; whether the caller may is decided by
  * `remove_registration()`. No money moves: refunds stay a manual step in
- * Stripe or the ATH Móvil Business app.
+ * Stripe or the ATH Móvil Business app. Either way the runner is emailed.
  */
 
 export type RemoveRegistrationResult =
@@ -41,6 +42,7 @@ export async function removeRegistrationAction(
     return { ok: false, error: "removeFailed" };
   }
 
+  await scheduleRegistrationChangedEmail(data, "removed");
   // Spots left, sign-up counts and the runner's own pages all change.
   revalidatePath("/", "layout");
   return { ok: true };
@@ -87,6 +89,7 @@ export async function returnRegistrationToPendingAction(
     return { ok: false, error: "revertFailed" };
   }
 
+  await scheduleRegistrationChangedEmail(data, "pending");
   // The pending list, sign-up figures and the runner's own pages all change.
   revalidatePath("/", "layout");
   return { ok: true };

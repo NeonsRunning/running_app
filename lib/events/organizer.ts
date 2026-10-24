@@ -445,6 +445,9 @@ export type EventRegistrationRow = {
   club: string | null;
   /** Where to mail the kit; null when the runner picks it up. */
   mailingAddress: string | null;
+  /** When the mailed kit was marked shipped; null until then. */
+  shippedAt: string | null;
+  shippingTracking: string | null;
   amount: number;
   paymentMethod: Tables<"registrations">["payment_method"];
   /** When the payment was confirmed; the sign-up time if it never recorded one. */
@@ -468,7 +471,7 @@ export async function getEventRegistrations(
   const { data, error } = await supabase
     .from("registrations")
     .select(
-      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
+      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
     )
     .eq("event_id", eventId)
     .eq("status", "confirmed")
@@ -489,6 +492,8 @@ export async function getEventRegistrations(
     shirtSize: r.shirt_size,
     club: r.club,
     mailingAddress: r.ships_by_mail ? r.mailing_address : null,
+    shippedAt: r.ships_by_mail ? r.shipped_at : null,
+    shippingTracking: r.ships_by_mail ? r.shipping_tracking : null,
     amount: Number(r.amount),
     paymentMethod: r.payment_method,
     paidAt: r.paid_at ?? r.created_at,
