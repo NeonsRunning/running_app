@@ -63,10 +63,13 @@ const DYNAMIC_PREFIXES = [
   "emails.",
   // Profile photo: upload phases and error codes from the action.
   "runner.photo.",
+  // Medal delivery errors, as keys from the action.
+  "runner.medalDeliveryErrors.",
   // Finish evidence: upload phases and error codes from the actions.
   "raceResult.phase.",
   "raceResult.errors.",
   "resultReview.errors.",
+  "resultFinishers.errors.",
   // Keys the contact action returns: `contactForm.errors.${result.error}`.
   "contactForm.errors.",
 ];

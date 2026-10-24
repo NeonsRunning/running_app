@@ -428,6 +428,7 @@ export async function getEventForm(
     medalImagePath: event.medal_image_path ?? "",
     athMovilAccountId: event.ath_movil_account_id ?? "",
     acceptsResults: event.accepts_results,
+    mailsMedals: event.mails_medals,
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,
@@ -461,6 +462,33 @@ export type EventRegistrationRow = {
   paidAt: string;
   /** The organizer accepted this runner's finish, so the sign-up stays. */
   hasAcceptedResult: boolean;
+  /** A disqualified finish keeps the sign-up too, as the record. */
+  hasDisqualifiedResult: boolean;
+  /** The finisher medal, on races that mail medals; null on the rest. */
+  medal: MedalShipping | null;
+};
+
+export type MedalShipping = {
+  /** The runner chose the mail; otherwise they pick it up in person. */
+  byMail: boolean;
+  /** Earned, as `medal_earned()` decides for the mail: once the race is over. */
+  finished: boolean;
+  /** Earned for a pickup, which can happen at the finish on race day. */
+  canHandOut: boolean;
+  /** Null until the runner gives one. */
+  address: string | null;
+  shippedAt: string | null;
+  tracking: string | null;
+  pickedUpAt: string | null;
+};
+
+/** What decides whether an event's runners are owed their medal yet. */
+export type MedalRule = {
+  mailsMedals: boolean;
+  acceptsResults: boolean;
+  /** The race's first and last day; null for an undated event. */
+  firstDay: string | null;
+  lastDay: string | null;
 };
 
 /**
@@ -471,6 +499,7 @@ export type EventRegistrationRow = {
 export async function getEventRegistrations(
   eventId: string,
   eventDate: string | null,
+  medals: MedalRule,
 ): Promise<EventRegistrationRow[]> {
   if (!hasSupabaseEnv()) return [];
 
@@ -479,7 +508,7 @@ export async function getEventRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
+        "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_mailing_address, medal_shipped_at, medal_tracking, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
       )
       .eq("event_id", eventId)
       .eq("status", "confirmed")
@@ -488,9 +517,18 @@ export async function getEventRegistrations(
       .order("id")
       .range(from, to),
   );
-  if (error) return [];
+  if (error) {
+    // Most often a column the database does not have yet: a migration
+    // still to push.
+    console.error(`Registrations for ${eventId} failed to load:`, error.message);
+    return [];
+  }
 
   const raceDay = eventDate ?? todayIso();
+  // The same rule as `medal_earned()`, which has the final say.
+  const today = todayIso();
+  const raceOver = medals.lastDay !== null && medals.lastDay < today;
+  const raceStarted = medals.firstDay !== null && medals.firstDay <= today;
   return data.map((r) => ({
     id: r.id,
     bib: r.bib,
@@ -509,6 +547,24 @@ export async function getEventRegistrations(
     paymentMethod: r.payment_method,
     paidAt: r.paid_at ?? r.created_at,
     hasAcceptedResult: r.result?.status === "accepted",
+    hasDisqualifiedResult: r.result?.status === "disqualified",
+    // A medal handed over before the race stopped mailing them stays on record.
+    medal:
+      medals.mailsMedals || r.medal_shipped_at || r.medal_picked_up_at
+        ? {
+            byMail: r.medal_by_mail,
+            finished: medals.acceptsResults
+              ? r.result?.status === "accepted"
+              : raceOver,
+            canHandOut: medals.acceptsResults
+              ? r.result?.status === "accepted"
+              : raceStarted,
+            address: r.medal_mailing_address,
+            shippedAt: r.medal_shipped_at,
+            tracking: r.medal_tracking,
+            pickedUpAt: r.medal_picked_up_at,
+          }
+        : null,
   }));
 }
 

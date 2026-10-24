@@ -147,6 +147,7 @@ function toEvent(
     routeImage: eventImageUrl(row.route_image_path),
     medalImage: eventImageUrl(row.medal_image_path),
     acceptsResults: row.accepts_results,
+    mailsMedals: row.mails_medals,
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,
@@ -502,6 +503,129 @@ export async function getUpcomingRegistrations(
       wave: "Open",
       pending: r.status === "pending",
     }));
+}
+
+/** A race kit or finisher medal on its way to the runner by mail. */
+export type MailItem = {
+  kind: "kit" | "medal";
+  registrationId: string;
+  eventName: string;
+  eventSlug: string;
+  eventDate: string | null;
+  /** Whether the event page still exists to link to. */
+  eventListed: boolean;
+  /**
+   * `waiting`: a mailed medal not earned yet — `waitingFor` says what for.
+   * `preparing`: the organizer has yet to mail it.
+   * `pickup`: a medal the runner picks up in person; `pickedUp` once they have.
+   */
+  status: "waiting" | "preparing" | "shipped" | "pickup" | "pickedUp";
+  waitingFor: "result" | "raceDay" | null;
+  /** Null until the organizer marks it shipped. */
+  shippedAt: string | null;
+  tracking: string | null;
+  pickedUpAt: string | null;
+  /** A medal's way and address, which the runner may change until it is handed over. */
+  medalByMail: boolean;
+  medalAddress: string | null;
+};
+
+/**
+ * What the runner has coming, whatever the race date: the kits they paid to
+ * have mailed, and the finisher medals of races that mail them — by mail or
+ * picked up, as the runner chose, since they may switch until it is handed
+ * over. A tracking number matters after the race leaves the calendar. A medal
+ * whose finish was disqualified is left out unless it was already handed over.
+ *
+ * Still to come first — a mailed medal missing its address at the very top —
+ * then the most recently handed over.
+ */
+export async function getMailItems(runnerId: string): Promise<MailItem[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("registrations")
+    .select(
+      "id, ships_by_mail, shipped_at, shipping_tracking, medal_by_mail, medal_mailing_address, medal_shipped_at, medal_tracking, medal_picked_up_at, event:events(name, slug, event_date, last_day, status, mails_medals, accepts_results), result:race_results!race_results_registration_id_fkey (status)",
+    )
+    .eq("runner_id", runnerId)
+    .eq("status", "confirmed");
+
+  if (error || !data) return [];
+
+  const today = todayIso();
+  const items = data.flatMap((r): MailItem[] => {
+    const ev = r.event;
+    if (!ev) return [];
+    const base = {
+      registrationId: r.id,
+      eventName: ev.name,
+      eventSlug: ev.slug,
+      eventDate: ev.event_date,
+      eventListed: ev.status === "published",
+    };
+    const out: MailItem[] = [];
+
+    if (r.ships_by_mail) {
+      out.push({
+        ...base,
+        kind: "kit",
+        status: r.shipped_at ? "shipped" : "preparing",
+        waitingFor: null,
+        shippedAt: r.shipped_at,
+        tracking: r.shipping_tracking,
+        pickedUpAt: null,
+        medalByMail: false,
+        medalAddress: null,
+      });
+    }
+
+    const result = r.result?.status ?? null;
+    const handedOver = r.medal_shipped_at ?? r.medal_picked_up_at;
+    if (handedOver || (ev.mails_medals && result !== "disqualified")) {
+      // The same rule as `medal_earned()` for the mail.
+      const finished = ev.accepts_results
+        ? result === "accepted"
+        : ev.last_day !== null && ev.last_day < today;
+      out.push({
+        ...base,
+        kind: "medal",
+        status: r.medal_shipped_at
+          ? "shipped"
+          : r.medal_picked_up_at
+            ? "pickedUp"
+            : !r.medal_by_mail
+              ? "pickup"
+              : finished
+                ? "preparing"
+                : "waiting",
+        waitingFor:
+          handedOver || finished || !r.medal_by_mail
+            ? null
+            : ev.accepts_results
+              ? "result"
+              : "raceDay",
+        shippedAt: r.medal_shipped_at,
+        tracking: r.medal_tracking,
+        pickedUpAt: r.medal_picked_up_at,
+        medalByMail: r.medal_by_mail,
+        medalAddress: r.medal_mailing_address,
+      });
+    }
+    return out;
+  });
+
+  const done = (i: MailItem) => i.status === "shipped" || i.status === "pickedUp";
+  const rank = (i: MailItem) =>
+    done(i) ? 2 : i.kind === "medal" && i.medalByMail && !i.medalAddress ? 0 : 1;
+  return items.sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (done(a) && done(b)
+        ? (b.shippedAt ?? b.pickedUpAt ?? "").localeCompare(a.shippedAt ?? a.pickedUpAt ?? "")
+        : (a.eventDate ?? "").localeCompare(b.eventDate ?? "")),
+  );
 }
 
 /** Upcoming and ongoing races organizers published, soonest first. */

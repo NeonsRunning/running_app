@@ -78,6 +78,8 @@ export type EventFormValues = {
   athMovilAccountId: string;
   /** Runners may send finish evidence for the organizer to review. */
   acceptsResults: boolean;
+  /** Finishers get the medal mailed to the address they gave at sign-up. */
+  mailsMedals: boolean;
   categories: EventFormCategory[];
 };
 
@@ -125,6 +127,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   medalImagePath: "",
   athMovilAccountId: "",
   acceptsResults: false,
+  mailsMedals: false,
   categories: [
     { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0 },
     { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0 },

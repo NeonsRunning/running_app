@@ -350,7 +350,8 @@
       "medalPlaceholderAlt": "Placeholder event medal",
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
-      "aidStationLabel": "Aid station {n}"
+      "aidStationLabel": "Aid station {n}",
+      "medalMailed": "Finishers can pick it up in person or have it mailed, at no extra cost — you choose when you sign up."
     },
     "anywhere": {
       "short": "Anywhere",
@@ -476,7 +477,15 @@
       "addMail": "Send my medal by mail",
       "mailingAddress": "Mailing address",
       "mailingAddressHint": "Street, city, state and ZIP code.",
-      "mailingAddressRequired": "Enter the address to mail your medal to."
+      "mailingAddressRequired": "Enter the address to mail your medal to.",
+      "medalMail": "Finisher medal",
+      "medalMailDetail": "Finish the race and the organizer mails your medal to this address.",
+      "medalMailDetailWithKit": "Your kit and your finisher medal both go to this address.",
+      "included": "Included",
+      "medalDelivery": "How you get your medal",
+      "medalByMail": "Mail it to me",
+      "medalPickup": "I’ll pick it up",
+      "medalPickupDetail": "Pick up your medal in person when you finish. You can switch to the mail from your profile later."
     },
     "step4": {
       "title": "Payment",
@@ -517,6 +526,17 @@
       "totalCharged": "Total charged",
       "registrationConfirmed": "Registration confirmed",
       "paymentReceived": "Payment received"
+    },
+    "finished": {
+      "titleLine1": "Race",
+      "titleLine2": "complete!",
+      "raceHistory": "See my race history",
+      "officialTime": "Official time",
+      "pace": "Pace",
+      "distance": "Distance",
+      "medalEarned": "Medal earned",
+      "medalBody": "It’s already in your profile’s achievements.",
+      "resultAccepted": "Result accepted"
     },
     "paymentMethod": {
       "group": "Payment method",
@@ -679,6 +699,18 @@
       "cta": "Send new evidence",
       "footer": "You’re receiving this because you sent a result for {event} on NEONS RUNNING."
     },
+    "resultDisqualified": {
+      "subject": "Your result for {event} was disqualified",
+      "preheader": "Your finish time and medal were removed from your profile.",
+      "heading": "Hi {name},",
+      "intro": "Your result for {event} was disqualified by the organizer. Your finish time and the event’s medal are no longer on your NEONS RUNNING profile.",
+      "race": "Race",
+      "time": "Time you sent",
+      "note": "Reason",
+      "next": "If you think this is a mistake, reply to this email or contact us and we’ll review it.",
+      "cta": "View your profile",
+      "footer": "You’re receiving this because you sent a result for {event} on NEONS RUNNING."
+    },
     "paymentToReview": {
       "subject": "ATH Móvil payment to review: {runner}, {event}",
       "preheader": "A runner’s spot is held until you review their payment.",
@@ -808,8 +840,21 @@
       "tracking": "Tracking number",
       "next": "Use the tracking number on the carrier’s website to follow your package. If it doesn’t arrive, contact us.",
       "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
-      "cta": "View race details",
+      "cta": "Track it on your profile",
       "footer": "You’re receiving this because you chose to have your kit for {event} mailed to you on NEONS RUNNING."
+    },
+    "medalShipped": {
+      "subject": "Your finisher medal for {event} is on its way",
+      "preheader": "The organizer just mailed your medal.",
+      "heading": "Your medal is in the mail, {name}!",
+      "intro": "You finished {event}, and the organizer just mailed your finisher medal.",
+      "race": "Race",
+      "mailTo": "Mailed to",
+      "tracking": "Tracking number",
+      "next": "Use the tracking number on the carrier’s website to follow your package. It’s on your profile too. If it doesn’t arrive, contact us.",
+      "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
+      "cta": "Track it on your profile",
+      "footer": "You’re receiving this because you finished {event} on NEONS RUNNING and asked for your finisher medal by mail."
     }
   },
   "results": {
@@ -872,7 +917,7 @@
     "careerStats": "Career statistics",
     "races": "Races",
     "raced": "Raced",
-    "podiums": "Podiums",
+    "completed": "Completed",
     "personalBests": "Personal bests",
     "achievements": "Achievements",
     "locked": "Locked · {detail}",
@@ -945,7 +990,49 @@
     "resultUnderReview": "Under review",
     "resultRejected": "Sent back",
     "resendEvidence": "Send again",
-    "noPendingResults": "Nothing waiting. After a race that takes finish evidence, send your screenshot from its event page — it shows up here until the organizer reviews it."
+    "disqualifiedNote": "Disqualified by the organizer: “{reason}”",
+    "disqualifiedBody": "The organizer disqualified this result. Contact us if you think it’s a mistake.",
+    "resultDisqualified": "Disqualified",
+    "noPendingResults": "Nothing waiting. After a race that takes finish evidence, send your screenshot from its event page — it shows up here until the organizer reviews it.",
+    "kitPreparing": "Preparing",
+    "kitPreparingBody": "The organizer hasn’t mailed it yet. We’ll email you when they do.",
+    "kitShipped": "Shipped",
+    "kitShippedOn": "Shipped {date}",
+    "trackingNumber": "Tracking number",
+    "noTracking": "The organizer didn’t add a tracking number. If it doesn’t arrive in the next few days, contact us.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyTracking": "Copy tracking number {tracking}",
+    "mail": "Mail",
+    "mailKit": "Race kit",
+    "mailMedal": "Finisher medal",
+    "medalWaiting": "After you finish",
+    "medalWaitingResult": "The organizer mails it once they accept your finish.",
+    "medalWaitingRaceDay": "The organizer mails it after race day.",
+    "medalAddress": "Medal mailing address",
+    "medalMailTo": "Mail to: {address}",
+    "medalAddressMissing": "Add the address to mail your medal to.",
+    "addMedalAddress": "Add address",
+    "medalDelivery": "How you get your medal",
+    "medalByMail": "Mail it to me",
+    "medalPickup": "I’ll pick it up",
+    "medalPickupBody": "You’ll pick it up in person.",
+    "medalPickupMeta": "Pick up in person",
+    "medalPickupBadge": "Pickup",
+    "medalPickedUp": "Picked up",
+    "medalPickedUpOn": "Picked up {date}",
+    "switchToMail": "Mail it to me instead",
+    "changeMedalDelivery": "Change",
+    "medalMailSaved": "Your medal will be mailed",
+    "medalPickupSaved": "You’ll pick up your medal",
+    "medalDeliveryErrors": {
+      "title": "Couldn’t save your choice",
+      "notAllowed": "This sign-up can’t be changed anymore. Reload the page to see the latest.",
+      "medalsOff": "This race no longer mails medals.",
+      "alreadyShipped": "Your medal has already shipped.",
+      "pickedUp": "You’ve already picked up your medal.",
+      "saveFailed": "Something went wrong — try again in a moment."
+    }
   },
   "auth": {
     "shell": {
@@ -1731,6 +1818,11 @@
     "results": {
       "title": "Finish evidence",
       "detail": "From race day, registered runners can send a screenshot of their run (Strava, Nike Run Club, a watch app) with their finish time. You accept or reject each one from the event page; accepted runners get the result and this medal on their profile."
+    },
+    "medalMail": {
+      "title": "Offer finisher medals by mail",
+      "detail": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Mailed medals go out once race day is over: you mark each one shipped from the event page and we email the runner. Pickups you mark as runners collect them.",
+      "detailResults": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Once you accept a runner’s finish evidence, you mark their medal shipped from the event page and we email them, or mark it picked up when they collect it."
     }
   },
   "organizerOnly": {
@@ -1831,6 +1923,9 @@
     "rejected": "Sent back",
     "rejectedNote": "The organizer’s note: “{note}”. Send new evidence below.",
     "rejectedBody": "The organizer couldn’t verify this finish. Send a clearer screenshot below.",
+    "disqualified": "Disqualified",
+    "disqualifiedNote": "The organizer disqualified your result: “{reason}”. It and the medal were removed from your profile.",
+    "disqualifiedBody": "The organizer disqualified your result. It and the medal were removed from your profile.",
     "errors": {
       "title": "Couldn’t send your result",
       "evidenceRequired": "Choose a screenshot of your run first.",
@@ -1845,6 +1940,7 @@
       "raceNotStarted": "You can send your result from race day.",
       "notRegistered": "Only runners with a confirmed registration can send a result.",
       "resultAlreadyAccepted": "Your result for this event was already accepted.",
+      "resultDisqualified": "Your result for this event was disqualified, so you can’t send new evidence. Contact us if you think it’s a mistake.",
       "submitFailed": "Something went wrong — try again in a moment."
     }
   },
@@ -1876,6 +1972,43 @@
       "reviewFailed": "Something went wrong — try again in a moment."
     }
   },
+  "resultFinishers": {
+    "title": "Reviewed results",
+    "count": "{count} accepted · {rejected} sent back · {disqualified} disqualified",
+    "body": "Every finish you’ve reviewed. Accepted ones go fastest first; the ones you sent back sit at the end until the runner sends new evidence. If a runner cheated, disqualify their result: it and the medal come off their profile, they’re emailed your reason, and they can’t send evidence again.",
+    "searchPlaceholder": "Search name or bib",
+    "searchAria": "Search reviewed results",
+    "noMatches": "No results match that search.",
+    "empty": "No reviewed results yet. Finishes show up here once you accept or send them back.",
+    "accepted": "Accepted",
+    "rejected": "Sent back",
+    "disqualified": "Disqualified",
+    "evidence": "Evidence",
+    "disqualify": "Disqualify",
+    "disqualifyAria": "Disqualify {name}’s result",
+    "confirmBody": "{name}’s result and medal will be removed from their profile, and they won’t be able to send evidence again. Only a NEONS RUNNING admin can undo this.",
+    "reason": "Reason",
+    "reasonHint": "Why the result is disqualified — the runner sees this.",
+    "disqualifyYes": "Disqualify Result",
+    "cancel": "Cancel",
+    "working": "Saving…",
+    "reasonShown": "“{reason}” · {date}",
+    "rejectedNoNote": "Sent back without a note · {date}",
+    "reinstate": "Reinstate",
+    "reinstateAria": "Reinstate {name}’s result",
+    "disqualifiedTitle": "Result disqualified",
+    "disqualifiedBody": "{name}’s result and medal are off their profile.",
+    "reinstatedTitle": "Result reinstated",
+    "reinstatedBody": "{name}’s result and medal are back on their profile.",
+    "errors": {
+      "title": "Couldn’t save the change",
+      "notAllowed": "Only this event’s organizer or an admin can do this.",
+      "alreadyChanged": "This result was already changed — reload to see it.",
+      "reasonRequired": "Enter the reason the runner will see.",
+      "disqualifyFailed": "Something went wrong — try again in a moment.",
+      "reinstateFailed": "Something went wrong — try again in a moment."
+    }
+  },
   "eventRegistrations": {
     "title": "Registrations",
     "count": "{count} completed",
@@ -1895,6 +2028,7 @@
     "removedTitle": "Runner removed",
     "removedBody": "{name} is no longer registered for this event.",
     "resultLocked": "Result accepted — can’t be removed",
+    "disqualifiedLocked": "Result disqualified — kept as the record",
     "markPending": "Back to pending",
     "markPendingAria": "Put {name}’s ATH Móvil payment back to pending",
     "markPendingTitle": "Put {name} back to pending?",
@@ -1907,6 +2041,7 @@
       "alreadyChanged": "This registration was already removed or put back to pending.",
       "notAthMovil": "Only ATH Móvil payments can go back to pending — card payments are confirmed by Stripe.",
       "resultAccepted": "This runner’s result was accepted — their sign-up can’t go back to pending.",
+      "resultDisqualified": "This runner’s result was disqualified — their sign-up can’t go back to pending.",
       "revertFailed": "Something went wrong — try again in a moment."
     },
     "errors": {
@@ -1914,6 +2049,7 @@
       "notAllowed": "Only this event’s organizer can remove its runners.",
       "alreadyRemoved": "This runner was already removed.",
       "resultAccepted": "This runner’s result was accepted — their sign-up can’t be removed.",
+      "resultDisqualified": "This runner’s result was disqualified — their sign-up is kept as the record and can’t be removed.",
       "removeFailed": "Something went wrong — try again in a moment."
     },
     "columns": {
@@ -1932,7 +2068,12 @@
       "mailTo": "Mailing address",
       "actions": "Actions",
       "shipped": "Shipped on",
-      "tracking": "Tracking number"
+      "tracking": "Tracking number",
+      "medalMailTo": "Medal mailing address",
+      "medalShipped": "Medal shipped on",
+      "medalTracking": "Medal tracking number",
+      "medalDelivery": "Medal",
+      "medalPickedUp": "Medal picked up on"
     },
     "markShipped": "Mark shipped",
     "markShippedAria": "Mark {name}’s kit as shipped",
@@ -1958,7 +2099,44 @@
       "registrationMissing": "This sign-up was removed or changed. Reload the page to see the latest list.",
       "notMailed": "This runner picks up their kit, so there’s nothing to ship.",
       "trackingTooLong": "That tracking number is too long. Check it and try again.",
-      "shipFailed": "Something went wrong — try again in a moment."
+      "shipFailed": "Something went wrong — try again in a moment.",
+      "medalsOff": "This race doesn’t mail medals. Turn it on in the event’s settings first.",
+      "notFinished": "This runner hasn’t finished yet, so their medal can’t ship.",
+      "addressMissing": "This runner hasn’t given an address for their medal yet.",
+      "pickupTitle": "Couldn’t mark it picked up",
+      "pickupChosen": "This runner chose to pick up their medal, so there’s nothing to mail.",
+      "mailChosen": "This runner asked for their medal by mail. Mark it shipped instead.",
+      "pickedUp": "This runner already picked up their medal.",
+      "shipped": "This runner’s medal was already mailed."
+    },
+    "medal": {
+      "filter": "Medals to mail ({count})",
+      "mailTo": "Medal to: {address}",
+      "notFinished": "Medal: not finished",
+      "noAddress": "Medal: no address yet",
+      "markShipped": "Mark medal shipped",
+      "markShippedAria": "Mark {name}’s medal as shipped",
+      "editTrackingAria": "Edit the tracking number for {name}’s medal",
+      "shippedOn": "Medal shipped {date}",
+      "shipTitle": "Mark {name}’s medal as shipped?",
+      "shipDescription": "We’ll email {name} that their finisher medal is on its way. This can’t be undone.",
+      "trackingTitle": "Medal tracking number for {name}",
+      "trackingDescription": "Saving a new tracking number doesn’t email {name} again.",
+      "shippedTitle": "Medal marked as shipped",
+      "shippedBody": "We’re emailing {name} that it’s on its way.",
+      "trackingSavedTitle": "Tracking saved",
+      "trackingSavedBody": "The tracking number for {name}’s medal was updated.",
+      "pickupChosen": "Medal: pickup",
+      "pickupNotYet": "Medal: pickup, not finished",
+      "pickedUpOn": "Medal picked up {date}",
+      "markPickedUp": "Mark picked up",
+      "markPickedUpAria": "Mark {name}’s medal as picked up",
+      "pickupTitle": "Did {name} pick up their medal?",
+      "pickupDescription": "Bib #{bib}. This records the pickup and can’t be undone.",
+      "pickedUpTitle": "Medal marked as picked up",
+      "pickedUpBody": "{name}’s medal is recorded as picked up.",
+      "deliveryMail": "Mail",
+      "deliveryPickup": "Pickup"
     }
   },
   "cancelledRegistrations": {

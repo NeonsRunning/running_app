@@ -140,6 +140,8 @@ export type RunningEvent = {
   athMovil?: AthMovilAccount;
   /** Runners may send finish evidence after race day; set on bookable races. */
   acceptsResults?: boolean;
+  /** Finishers get the medal mailed, so sign-up asks for an address. */
+  mailsMedals?: boolean;
 };
 
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */

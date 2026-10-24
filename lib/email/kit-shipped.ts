@@ -1,5 +1,6 @@
 import "server-only";
 import { after } from "next/server";
+import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { localizePath } from "@/lib/i18n/config";
 import { getTranslator } from "@/lib/i18n/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -48,7 +49,7 @@ async function sendKitShippedEmail(registrationId: string, origin: string) {
 
   try {
     const [{ data: event }, locale] = await Promise.all([
-      admin.from("events").select("name, slug").eq("id", claimed.event_id).single(),
+      admin.from("events").select("name").eq("id", claimed.event_id).single(),
       getLocaleOf(claimed.runner_id),
     ]);
     if (!event) throw new Error("Event not found.");
@@ -77,9 +78,10 @@ async function sendKitShippedEmail(registrationId: string, origin: string) {
             : []),
         ],
         outro: [t(k(claimed.shipping_tracking ? "next" : "nextNoTracking"))],
+        // The profile keeps the tracking number once this email is buried.
         cta: {
           label: t(k("cta")),
-          url: `${origin}${localizePath(`/events/${event.slug}`, locale)}`,
+          url: `${origin}${localizePath(SELF_PROFILE_PATH, locale)}#mail`,
         },
         footer: t(k("footer"), { event: event.name }),
       }),

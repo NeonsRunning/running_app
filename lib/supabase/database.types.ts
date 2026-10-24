@@ -187,6 +187,8 @@ export type Database = {
           ath_movil_account_id: string | null;
           /** Runners may submit finish evidence for review. */
           accepts_results: boolean;
+          /** Finishers get the medal mailed, at no extra cost. */
+          mails_medals: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -236,6 +238,7 @@ export type Database = {
           medal_image_path?: string | null;
           ath_movil_account_id?: string | null;
           accepts_results?: boolean;
+          mails_medals?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -285,6 +288,7 @@ export type Database = {
           medal_image_path?: string | null;
           ath_movil_account_id?: string | null;
           accepts_results?: boolean;
+          mails_medals?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -387,6 +391,14 @@ export type Database = {
           shipped_at: string | null;
           shipping_email_sent_at: string | null;
           shipping_tracking: string | null;
+          /** The runner chose to have the medal mailed rather than pick it up. */
+          medal_by_mail: boolean;
+          /** Where the finisher medal goes, when mailed. */
+          medal_mailing_address: string | null;
+          medal_shipped_at: string | null;
+          medal_tracking: string | null;
+          medal_email_sent_at: string | null;
+          medal_picked_up_at: string | null;
           /** The reference number on the runner's ATH Móvil receipt. */
           payment_reference: string | null;
           /** Set while an ATH Móvil payment waits for an admin's review. */
@@ -421,6 +433,7 @@ export type Database = {
           shipped_at?: string | null;
           shipping_email_sent_at?: string | null;
           shipping_tracking?: string | null;
+          medal_email_sent_at?: string | null;
           amount_refunded?: number;
           refunded_at?: string | null;
           disputed_at?: string | null;
@@ -541,6 +554,10 @@ export type Database = {
           submitted_at: string;
           reviewed_at: string | null;
           reviewed_by: string | null;
+          disqualified_at: string | null;
+          disqualified_by: string | null;
+          /** Why the result was disqualified; shown to the runner. */
+          disqualification_reason: string | null;
         };
         Insert: never;
         Update: never;
@@ -745,6 +762,18 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: Database["public"]["Tables"]["events"]["Row"];
       };
+      mark_medal_shipped: {
+        Args: { p_registration_id: string; p_tracking?: string | null };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      mark_medal_picked_up: {
+        Args: { p_registration_id: string };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      set_medal_delivery: {
+        Args: { p_registration_id: string; p_by_mail: boolean; p_address?: string | null };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
       mark_kit_shipped: {
         Args: { p_registration_id: string; p_tracking?: string | null };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
@@ -789,6 +818,14 @@ export type Database = {
       };
       review_race_result: {
         Args: { p_result_id: string; p_accept: boolean; p_note?: string | null };
+        Returns: Database["public"]["Tables"]["race_results"]["Row"];
+      };
+      disqualify_race_result: {
+        Args: { p_result_id: string; p_reason: string };
+        Returns: Database["public"]["Tables"]["race_results"]["Row"];
+      };
+      reinstate_race_result: {
+        Args: { p_result_id: string };
         Returns: Database["public"]["Tables"]["race_results"]["Row"];
       };
       admin_remove_event: {
@@ -845,7 +882,7 @@ export type Database = {
       event_status: "draft" | "published" | "removed";
       registration_status: "pending" | "confirmed" | "cancelled";
       payment_method: "stripe" | "ath_movil";
-      result_status: "pending" | "accepted" | "rejected";
+      result_status: "pending" | "accepted" | "rejected" | "disqualified";
       profile_gender: "f" | "m" | "x";
       shirt_size: "XS" | "S" | "M" | "L" | "XL" | "XXL";
     };

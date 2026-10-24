@@ -424,6 +424,7 @@ export async function saveEventAction(
   const acceptsDonations = formData.get("accepts_donations") === "on";
   const offersMail = formData.get("offers_mail") === "on";
   const acceptsResults = formData.get("accepts_results") === "on";
+  const mailsMedals = formData.get("mails_medals") === "on";
   const donationRecipient = readText(formData, "donation_recipient");
   const shirtPrice = readDecimal(readText(formData, "shirt_price"));
   const photoPrice = readDecimal(readText(formData, "photo_price"));
@@ -543,6 +544,7 @@ export async function saveEventAction(
     medal_image_path: medalImagePath || null,
     ath_movil_account_id: athMovilAccountId || null,
     accepts_results: acceptsResults,
+    mails_medals: mailsMedals,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a

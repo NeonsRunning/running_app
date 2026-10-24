@@ -6,7 +6,9 @@ import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
+import { CopyTracking } from "@/components/profile/copy-tracking";
 import { FollowButton } from "@/components/profile/follow-button";
+import { MedalDelivery } from "@/components/profile/medal-delivery";
 import { ProfilePhoto } from "@/components/profile/profile-photo";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
 import { EventCardCompact } from "@/components/events/event-card";
@@ -16,11 +18,14 @@ import { daysUntil } from "@/lib/data";
 import { puertoRicoDate } from "@/lib/dates";
 import {
   getRegisteredEventIds,
+  getMailItems,
   getSavedSlugs,
   getUpcomingRegistrations,
   listPublishedEvents,
   todayIso,
 } from "@/lib/events/queries";
+import { formatMailingAddress } from "@/lib/profile/address";
+import { getProfileDetails } from "@/lib/profile/queries";
 import { getRunnerView, type RunnerView } from "@/lib/profile/view";
 import { formatFinishTime } from "@/lib/results/evidence";
 import { listRunnerResults } from "@/lib/results/queries";
@@ -197,13 +202,24 @@ export default async function RunnerProfilePage(
 
   // The saved, recommended and pending panels belong to the runner alone,
   // so nobody else pays for the lookups behind them.
-  const [savedSlugs, registeredIds, ownResults] = isSelf
+  const [savedSlugs, registeredIds, ownResults, mail] = isSelf
     ? await Promise.all([
         getSavedSlugs(runner.id),
         getRegisteredEventIds(runner.id),
         listRunnerResults(runner.id, { includeUnreviewed: true }),
+        getMailItems(runner.id),
       ])
-    : [[], [], []];
+    : [[], [], [], []];
+  // A medal with no address yet — picked up, or mailed but missing one — opens
+  // the form on the one saved in settings; nobody else needs the lookup.
+  const details = mail.some(
+    (m) => m.kind === "medal" && !m.medalAddress && !m.shippedAt && !m.pickedUpAt,
+  )
+    ? await getProfileDetails(runner.id)
+    : null;
+  const settingsAddress = details?.mailingAddress
+    ? formatMailingAddress(details.mailingAddress)
+    : "";
   // Accepted ones are already in the race history.
   const pendingResults = ownResults.filter((r) => r.status !== "accepted");
   const recommended = isSelf
@@ -305,8 +321,10 @@ export default async function RunnerProfilePage(
         aria-label={t("runner.careerStats")}
         className="mx-auto grid max-w-[1600px] grid-cols-2 gap-0.5 border-b-2 border-line bg-line lg:grid-cols-4"
       >
+        {/* Every race on the record, finished or still ahead; the finished
+            ones get their own count below. */}
         <StatCard
-          value={runner.stats.races}
+          value={runner.stats.races + calendar.length}
           label={t("runner.races")}
           className="bg-ink"
         />
@@ -318,8 +336,8 @@ export default async function RunnerProfilePage(
           className="bg-ink"
         />
         <StatCard
-          value={runner.stats.podiums}
-          label={t("runner.podiums")}
+          value={runner.stats.races}
+          label={t("runner.completed")}
           className="bg-ink"
         />
         <StatCard
@@ -451,6 +469,14 @@ export default async function RunnerProfilePage(
                             ? t("runner.rejectedNote", { note: r.reviewNote })
                             : t("runner.rejectedBody")}
                         </p>
+                      ) : r.status === "disqualified" ? (
+                        <p className="mt-3 max-w-[60ch] text-[14px] text-fg-muted">
+                          {r.disqualificationReason
+                            ? t("runner.disqualifiedNote", {
+                                reason: r.disqualificationReason,
+                              })
+                            : t("runner.disqualifiedBody")}
+                        </p>
                       ) : null}
                     </div>
                     <div className="flex flex-col items-end gap-2">
@@ -459,6 +485,8 @@ export default async function RunnerProfilePage(
                       </span>
                       {r.status === "pending" ? (
                         <Badge tone="yellow">{t("runner.resultUnderReview")}</Badge>
+                      ) : r.status === "disqualified" ? (
+                        <Badge tone="danger">{t("runner.resultDisqualified")}</Badge>
                       ) : (
                         <>
                           <Badge tone="danger">{t("runner.resultRejected")}</Badge>
@@ -474,6 +502,100 @@ export default async function RunnerProfilePage(
                         </>
                       )}
                     </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
+          {/* Kits and medals by mail — the runner's own, and only when there
+              are any. The "shipped" emails link here by its id. */}
+          {mail.length > 0 ? (
+            <section
+              id="mail"
+              className="scroll-mt-24 border-b-2 border-line px-4 py-10 sm:px-8 lg:px-10"
+            >
+              <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+                {t("runner.mail")}
+              </h2>
+
+              <ul className="mt-6 border-t-2 border-line">
+                {mail.map((s) => (
+                  <li
+                    key={`${s.kind}-${s.registrationId}`}
+                    className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-line py-5"
+                  >
+                    <div className="min-w-0">
+                      <p className="mb-1 font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                        {t(s.kind === "kit" ? "runner.mailKit" : "runner.mailMedal")}
+                      </p>
+                      {s.eventListed ? (
+                        <Link
+                          href={`/events/${s.eventSlug}`}
+                          className="font-display text-lg font-black uppercase hover:text-neon-lime"
+                        >
+                          {s.eventName}
+                        </Link>
+                      ) : (
+                        <p className="font-display text-lg font-black uppercase">
+                          {s.eventName}
+                        </p>
+                      )}
+                      <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
+                        {s.shippedAt
+                          ? t("runner.kitShippedOn", {
+                              date: fmt.mediumDate(puertoRicoDate(s.shippedAt)),
+                            })
+                          : s.pickedUpAt
+                            ? t("runner.medalPickedUpOn", {
+                                date: fmt.mediumDate(puertoRicoDate(s.pickedUpAt)),
+                              })
+                            : s.status === "pickup"
+                              ? t("runner.medalPickupMeta")
+                              : s.waitingFor === "result"
+                                ? t("runner.medalWaitingResult")
+                                : s.waitingFor === "raceDay"
+                                  ? t("runner.medalWaitingRaceDay")
+                                  : t("runner.kitPreparingBody")}
+                      </p>
+                      {s.kind === "medal" && !s.shippedAt && !s.pickedUpAt ? (
+                        <MedalDelivery
+                          registrationId={s.registrationId}
+                          byMail={s.medalByMail}
+                          address={s.medalAddress}
+                          fallback={settingsAddress}
+                        />
+                      ) : null}
+                      {s.shippedAt ? (
+                        <div className="mt-3">
+                          {s.tracking ? (
+                            <>
+                              <p className="font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
+                                {t("runner.trackingNumber")}
+                              </p>
+                              <div className="mt-1.5">
+                                <CopyTracking tracking={s.tracking} />
+                              </div>
+                            </>
+                          ) : (
+                            <p className="max-w-[60ch] text-[14px] text-fg-muted">
+                              {t("runner.noTracking")}
+                            </p>
+                          )}
+                        </div>
+                      ) : null}
+                    </div>
+                    {s.status === "shipped" ? (
+                      <Badge tone="lime">{t("runner.kitShipped")}</Badge>
+                    ) : s.status === "pickedUp" ? (
+                      <Badge tone="lime">{t("runner.medalPickedUp")}</Badge>
+                    ) : s.status === "pickup" ? (
+                      <Badge tone="outline">{t("runner.medalPickupBadge")}</Badge>
+                    ) : s.status === "preparing" ? (
+                      <Badge tone="outline">{t("runner.kitPreparing")}</Badge>
+                    ) : (
+                      <Badge tone="outline">{t("runner.medalWaiting")}</Badge>
+                    )}
                   </li>
                 ))}
               </ul>

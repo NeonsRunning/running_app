@@ -84,7 +84,7 @@ const STEP_COLUMNS: [string, (keyof Event)[]][] = [
   ],
   ["image", ["image_path"]],
   ["route", ["route_image_path"]],
-  ["medal", ["medal_image_path", "accepts_results"]],
+  ["medal", ["medal_image_path", "accepts_results", "mails_medals"]],
 ];
 
 const differs = (a: Event, b: Event, column: keyof Event) =>

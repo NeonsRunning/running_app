@@ -17,6 +17,7 @@ import {
   AthMovilUnderReview,
 } from "@/components/register/ath-movil-payment";
 import { paymentCode } from "@/lib/ath-movil/config";
+import { formatFinishTime, formatPace } from "@/lib/results/evidence";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
 import {
@@ -40,7 +41,7 @@ import {
   type AthMovilSubmission,
   type ConfirmedSignUp,
 } from "@/lib/events/registrations";
-import type { RunningEvent } from "@/lib/types";
+import type { RaceCategory, RunningEvent } from "@/lib/types";
 
 /**
  * Five-step registration: race → runner → extras → payment → confirmation.
@@ -56,6 +57,9 @@ import type { RunningEvent } from "@/lib/types";
  * the amount to it from the ATH Móvil app, types in the receipt's reference, and the
  * flow ends on a "payment under review" screen instead of the bib until an
  * admin approves it.
+ *
+ * A runner whose result the organizer has accepted has finished the race:
+ * instead of the bib, they land on a finisher screen with their time.
  *
  * For the fixture races nothing is persisted or charged: step 4 says so and
  * stands in for the round-trip with a timer, and the fields open with the
@@ -150,6 +154,7 @@ export function RegistrationFlow({
   initialShirtSize = null,
   initialMailingAddress = "",
   existing = null,
+  finishSeconds = null,
   athMovil = null,
 }: {
   event: RunningEvent;
@@ -160,6 +165,8 @@ export function RegistrationFlow({
   initialMailingAddress?: string;
   /** Set when the runner has already signed up: opens on the confirmation. */
   existing?: ConfirmedRegistration | null;
+  /** The runner's accepted finish time: opens on the finisher screen instead. */
+  finishSeconds?: number | null;
   /** Set when an ATH Móvil payment is waiting for review, or was rejected. */
   athMovil?: AthMovilStatus;
 }) {
@@ -177,11 +184,15 @@ export function RegistrationFlow({
   const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
   const photoPrice = extras.photoPrice;
   const shippingPrice = extras.shippingPrice;
+  // Not an extra — it costs nothing — but it needs the address, so it sits
+  // with them.
+  const mailsMedals = Boolean(event.bookable && event.mailsMedals);
   const hasExtras =
     shirtPrice !== null ||
     photoPrice !== null ||
     extras.donationRecipient !== null ||
-    shippingPrice !== null;
+    shippingPrice !== null ||
+    mailsMedals;
 
   const [confirmed, setConfirmed] = useState(existing);
   const [step, setStep] = useState(existing ? 5 : 1);
@@ -221,6 +232,12 @@ export function RegistrationFlow({
   const [wantsMail, setWantsMail] = useState(false);
   const [mailingAddress, setMailingAddress] = useState(initialMailingAddress);
   const [addressError, setAddressError] = useState(false);
+  // Mailed or picked up, free either way. A race run anywhere has no finish
+  // to pick it up at, so the mail comes first there.
+  const [medalChoice, setMedalByMail] = useState(Boolean(event.anywhere));
+  const medalByMail = mailsMedals && medalChoice;
+  // One address serves the kit and the medal alike.
+  const needsAddress = wantsMail || medalByMail;
   const [presetDonation, setPresetDonation] = useState<number>(0);
   // What the runner typed in "Other amount"; while it holds anything it wins
   // over the preset buttons.
@@ -280,6 +297,30 @@ export function RegistrationFlow({
       ? t("register.step3.free")
       : `+${Number.isInteger(price) ? fmt.moneyWhole(price) : fmt.money(price)}`;
 
+  /** Where a mailed kit, or a mailed medal, goes. */
+  const addressField = (
+    <Field
+      label={t("register.step3.mailingAddress")}
+      hint={t("register.step3.mailingAddressHint")}
+      error={addressError ? t("register.step3.mailingAddressRequired") : undefined}
+      className="mt-5"
+    >
+      {(p) => (
+        <Textarea
+          {...p}
+          rows={3}
+          maxLength={300}
+          autoComplete="shipping street-address"
+          value={mailingAddress}
+          onChange={(e) => {
+            setMailingAddress(e.target.value);
+            if (e.target.value.trim()) setAddressError(false);
+          }}
+        />
+      )}
+    </Field>
+  );
+
   /** A key under `register.errors`, or Stripe's own words about the card. */
   function fail(key: string | null, message?: string) {
     toast({
@@ -326,7 +367,7 @@ export function RegistrationFlow({
       setDonationError(true);
       return;
     }
-    if (step === 3 && wantsMail && !mailingAddress.trim()) {
+    if (step === 3 && needsAddress && !mailingAddress.trim()) {
       setAddressError(true);
       return;
     }
@@ -341,7 +382,8 @@ export function RegistrationFlow({
         wantsPhotos,
         donation,
         shipsByMail: wantsMail,
-        mailingAddress: wantsMail ? mailingAddress : "",
+        medalByMail,
+        mailingAddress: needsAddress ? mailingAddress : "",
         locale,
       })
         .then((result) => {
@@ -424,6 +466,20 @@ export function RegistrationFlow({
 
   if (review && !done) {
     return <AthMovilUnderReview event={event} submission={review} />;
+  }
+
+  if (done && confirmed && finishSeconds !== null) {
+    return (
+      <Finished
+        event={event}
+        category={category}
+        bib={confirmed.bib}
+        name={confirmed.name}
+        finishSeconds={finishSeconds}
+        t={t}
+        fmt={fmt}
+      />
+    );
   }
 
   if (done) {
@@ -981,32 +1037,63 @@ export function RegistrationFlow({
                         />
                       </div>
                     </div>
-                    {wantsMail ? (
-                      <Field
-                        label={t("register.step3.mailingAddress")}
-                        hint={t("register.step3.mailingAddressHint")}
-                        error={
-                          addressError
-                            ? t("register.step3.mailingAddressRequired")
-                            : undefined
-                        }
-                        className="mt-5"
-                      >
-                        {(p) => (
-                          <Textarea
-                            {...p}
-                            rows={3}
-                            maxLength={300}
-                            autoComplete="shipping street-address"
-                            value={mailingAddress}
-                            onChange={(e) => {
-                              setMailingAddress(e.target.value);
-                              if (e.target.value.trim()) setAddressError(false);
-                            }}
-                          />
-                        )}
-                      </Field>
-                    ) : null}
+                    {/* With the medal mailed too, the field sits with it. */}
+                    {wantsMail && !medalByMail ? addressField : null}
+                  </div>
+                ) : null}
+
+                {mailsMedals ? (
+                  <div className="border-t-2 border-line p-5 first:border-t-0 sm:p-7">
+                    <div className="flex items-start justify-between gap-5">
+                      <div>
+                        <h2 className="font-display text-xl font-black uppercase">
+                          {t("register.step3.medalMail")}
+                        </h2>
+                        <p className="mt-1.5 text-sm text-fg-dim">
+                          {t(
+                            !medalByMail
+                              ? "register.step3.medalPickupDetail"
+                              : wantsMail
+                                ? "register.step3.medalMailDetailWithKit"
+                                : "register.step3.medalMailDetail",
+                          )}
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-display text-xl font-black text-neon-yellow">
+                        {t("register.step3.included")}
+                      </span>
+                    </div>
+                    <div
+                      role="radiogroup"
+                      aria-label={t("register.step3.medalDelivery")}
+                      className="mt-5 flex flex-wrap gap-2"
+                    >
+                      {[true, false].map((mail) => (
+                        <button
+                          key={String(mail)}
+                          type="button"
+                          role="radio"
+                          aria-checked={medalByMail === mail}
+                          onClick={() => {
+                            setMedalByMail(mail);
+                            setAddressError(false);
+                          }}
+                          className={cn(
+                            "border-2 px-4 py-3 text-sm font-bold",
+                            medalByMail === mail
+                              ? "border-neon-lime bg-neon-lime text-ink"
+                              : "border-line-strong text-fg-muted hover:border-fg-dim",
+                          )}
+                        >
+                          {t(
+                            mail
+                              ? "register.step3.medalByMail"
+                              : "register.step3.medalPickup",
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    {medalByMail ? addressField : null}
                   </div>
                 ) : null}
               </div>
@@ -1430,6 +1517,147 @@ function Confirmation({
           <Badge tone="green">
             {t("register.confirmation.paymentReceived")}
           </Badge>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------------- */
+/* Finished                                                             */
+/* -------------------------------------------------------------------- */
+
+/** Stand-in for a race whose organizer has not added the medal yet. */
+const MEDAL_PLACEHOLDER = "/medals/placeholder.svg";
+
+/**
+ * The race is behind them: the confirmation's layout, with the finish time
+ * and the medal where the bib and the receipt were.
+ */
+function Finished({
+  event,
+  category,
+  bib,
+  name,
+  finishSeconds,
+  t,
+  fmt,
+}: {
+  event: RunningEvent;
+  category: RaceCategory;
+  bib: number;
+  name: string;
+  finishSeconds: number;
+  t: Translate;
+  fmt: Formatters;
+}) {
+  const categoryName = distanceLabel(t, category.name);
+  return (
+    <div className="grid lg:grid-cols-[1fr_460px]">
+      <section className="relative overflow-hidden border-line px-4 py-14 sm:px-8 lg:border-r-2 lg:px-12 lg:py-24">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(135deg,#050505_0%,#1f1d00_60%,#5c5200_130%)]"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.05)_0_12px,transparent_12px_24px)]"
+        />
+        <div className="relative">
+          <div className="animate-pop-in flex h-20 w-20 items-center justify-center bg-neon-lime text-4xl">
+            🏅
+          </div>
+          <h1 className="animate-rise-in mt-7 font-display text-6xl leading-[0.85] font-black tracking-[-0.04em] uppercase sm:text-7xl lg:text-8xl">
+            {t("register.finished.titleLine1")}
+            <br />
+            <span className="text-neon-yellow">
+              {t("register.finished.titleLine2")}
+            </span>
+          </h1>
+          <p className="mt-6 font-display text-2xl font-extrabold uppercase">
+            {event.name}
+          </p>
+          <p className="mt-1.5 font-mono text-[13px] tracking-[0.14em] text-fg-muted uppercase">
+            {fmt.longDate(event.date)}
+          </p>
+
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+            <Button href="/runners/me" size="lg">
+              {t("register.finished.raceHistory")}
+            </Button>
+            <Button href={`/events/${event.slug}`} size="lg" variant="outline">
+              {t("register.confirmation.viewEvent")}
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      <aside className="px-4 py-10 sm:px-8 lg:px-10">
+        <div className="border-2 border-line bg-carbon">
+          <div className="flex items-center justify-between border-b-2 border-line px-5 py-4">
+            <span className="font-mono text-[11px] tracking-[0.18em] text-neon-yellow uppercase">
+              {t("register.finished.officialTime")}
+            </span>
+            <span className="font-mono text-[11px] tracking-[0.18em] text-fg-faint">
+              #{bib}
+            </span>
+          </div>
+
+          <div className="px-5 py-8 text-center">
+            <p className="font-display text-7xl leading-none font-black tracking-[-0.04em] tabular-nums sm:text-8xl">
+              {formatFinishTime(finishSeconds)}
+            </p>
+            <p className="mt-3 font-mono text-[12px] tracking-[0.16em] text-neon-lime uppercase">
+              {t("register.confirmation.bibMeta", {
+                name,
+                category: categoryName,
+              })}
+            </p>
+          </div>
+
+          <dl className="grid grid-cols-2 border-t-2 border-line">
+            <div className="border-r-2 border-line px-5 py-4">
+              <dt>
+                <Eyebrow>{t("register.finished.pace")}</Eyebrow>
+              </dt>
+              <dd className="mt-1.5 font-bold tabular-nums">
+                {formatPace(finishSeconds, category.distanceKm)}
+              </dd>
+            </div>
+            <div className="px-5 py-4">
+              <dt>
+                <Eyebrow>{t("register.finished.distance")}</Eyebrow>
+              </dt>
+              <dd className="mt-1.5 font-bold tabular-nums">
+                {fmt.distance(category.distanceKm)}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <figure className="mt-5 flex items-center gap-5 border-2 border-line px-5 py-5">
+          {/* A Supabase Storage URL, like the cover; see `EventCover`. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={event.medalImage ?? MEDAL_PLACEHOLDER}
+            alt={
+              event.medalImage
+                ? t("events.tabs.medalAlt", { name: event.name })
+                : t("events.tabs.medalPlaceholderAlt")
+            }
+            decoding="async"
+            className="aspect-square w-24 shrink-0 bg-carbon object-contain p-2"
+          />
+          <figcaption>
+            <Eyebrow>{t("register.finished.medalEarned")}</Eyebrow>
+            <p className="mt-2 text-[13px] leading-relaxed text-fg-dim">
+              {t("register.finished.medalBody")}
+            </p>
+          </figcaption>
+        </figure>
+
+        <div className="mt-5 flex items-center gap-3">
+          <Badge tone="green">{t("register.finished.resultAccepted")}</Badge>
         </div>
       </aside>
     </div>
