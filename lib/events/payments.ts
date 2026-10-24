@@ -6,6 +6,7 @@ import {
 } from "@/lib/email/payment-refunded";
 import { scheduleRegistrationEmail } from "@/lib/email/registration-confirmed";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logCritical } from "@/lib/log";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
@@ -91,11 +92,13 @@ async function refund(
     // Refunded already — by an earlier call whose idempotency key has since
     // expired, or by hand in the dashboard. The runner has their money.
     if ((err as { code?: string }).code === "charge_already_refunded") return true;
-    console.error(
-      `REFUND FAILED: ${intent.id} (${intent.amount_received} cents, ` +
-        `registration ${intent.metadata?.registration_id}, ${reason}) is still charged:`,
-      err,
-    );
+    logCritical("REFUND_FAILED", "A refund failed; the runner is still charged.", {
+      paymentIntent: intent.id,
+      amountCents: intent.amount_received,
+      registration: intent.metadata?.registration_id ?? null,
+      reason,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 }
@@ -195,10 +198,11 @@ export async function recordDispute(dispute: Stripe.Dispute): Promise<boolean> {
   const paymentIntent = intentId(dispute.payment_intent);
   if (!paymentIntent) return true;
 
-  console.error(
-    `PAYMENT DISPUTED: ${paymentIntent} (${dispute.amount} cents) is ${dispute.status}; ` +
-      "answer it in the Stripe dashboard.",
-  );
+  logCritical("PAYMENT_DISPUTED", "A payment was disputed; answer it in the Stripe dashboard.", {
+    paymentIntent,
+    amountCents: dispute.amount,
+    status: dispute.status,
+  });
 
   const { error } = await createAdminClient()
     .from("registrations")

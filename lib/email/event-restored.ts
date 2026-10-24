@@ -9,7 +9,7 @@ import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
 import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners, getRecipient } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * "Your event is back" — sent when a platform admin restores a removed

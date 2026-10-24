@@ -7,6 +7,7 @@ import { scheduleReviewRequestedEmail } from "@/lib/email/review-requested";
 import { getStripe, hasStripeEnv, toCents } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isLocale } from "@/lib/i18n/config";
+import { LIMITS, withinLimits } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { settlePayment } from "./payments";
 import { SHIRT_SIZES, isOneOf } from "./vocabulary";
@@ -255,6 +256,13 @@ export async function startRegistrationPaymentAction(
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "sessionExpired" };
 
+  // Each call can open a Stripe PaymentIntent (going back and changing an
+  // extra reprices it); a script toggling the donation must not open thousands.
+  const allowed = await withinLimits([
+    { action: "checkout:user", who: userData.user.id, limit: LIMITS.checkoutPerUser },
+  ]);
+  if (!allowed) return { ok: false, error: "rateLimited" };
+
   // A payment already opened for this race. If it went through — another
   // tab, or the confirmation never came back — finish that sign-up instead
   // of repricing it.
@@ -328,17 +336,26 @@ export async function startRegistrationPaymentAction(
       if (intent && PAYABLE.has(intent.status)) {
         await stripe.paymentIntents.cancel(intent.id).catch(() => null);
       }
-      intent = await stripe.paymentIntents.create({
-        amount: cents,
-        currency: "usd",
-        automatic_payment_methods: { enabled: true },
-        receipt_email: reg.email,
-        metadata: {
-          registration_id: reg.id,
-          event_id: reg.event_id,
-          runner_id: reg.runner_id,
+      intent = await stripe.paymentIntents.create(
+        {
+          amount: cents,
+          currency: "usd",
+          automatic_payment_methods: { enabled: true },
+          receipt_email: reg.email,
+          metadata: {
+            registration_id: reg.id,
+            event_id: reg.event_id,
+            runner_id: reg.runner_id,
+          },
         },
-      });
+        {
+          // A double click or a second tab runs this twice at once; both
+          // must get the same PaymentIntent, or one is left payable but
+          // unrecorded. The PaymentIntent already on file is part of the
+          // key, so replacing a cancelled or repriced one makes a new one.
+          idempotencyKey: `pi-${reg.id}-${cents}-${existing?.payment_intent_id ?? "none"}`,
+        },
+      );
       const { error: saveError } = await createAdminClient()
         .from("registrations")
         .update({ payment_intent_id: intent.id })

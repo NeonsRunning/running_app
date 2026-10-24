@@ -10,6 +10,7 @@ import {
   notifyTeamOfDeletionCancelled,
   notifyTeamOfDeletionRequest,
 } from "@/lib/email/account-deletion";
+import { LIMITS as RATE_LIMITS, withinLimits } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -285,7 +286,7 @@ export async function updateMailingAddressAction(
 export type DeletionRequestResult =
   | { ok: true; requestedAt: string }
   /** A key under `settings.errors`. */
-  | { ok: false; error: "sessionExpired" | "saveFailed" };
+  | { ok: false; error: "sessionExpired" | "saveFailed" | "rateLimited" };
 
 /**
  * Ask for the account to be deleted. Files the request — or returns the one
@@ -300,6 +301,12 @@ export async function requestAccountDeletionAction(): Promise<DeletionRequestRes
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "sessionExpired" };
+
+  // Each one emails the team.
+  const allowed = await withinLimits([
+    { action: "deletion:user", who: userData.user.id, limit: RATE_LIMITS.deletionPerUser },
+  ]);
+  if (!allowed) return { ok: false, error: "rateLimited" };
 
   const { data, error } = await supabase.rpc("request_account_deletion");
   if (error || !data) {
@@ -316,7 +323,7 @@ export async function requestAccountDeletionAction(): Promise<DeletionRequestRes
 export type CancelDeletionResult =
   | { ok: true }
   /** A key under `settings.errors`. */
-  | { ok: false; error: "sessionExpired" | "saveFailed" };
+  | { ok: false; error: "sessionExpired" | "saveFailed" | "rateLimited" };
 
 /**
  * Withdraw the deletion request. If the team had already been emailed about
@@ -328,6 +335,12 @@ export async function cancelAccountDeletionAction(): Promise<CancelDeletionResul
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "sessionExpired" };
+
+  // Each one emails the team.
+  const allowed = await withinLimits([
+    { action: "deletion:user", who: userData.user.id, limit: RATE_LIMITS.deletionPerUser },
+  ]);
+  if (!allowed) return { ok: false, error: "rateLimited" };
 
   const { data, error } = await supabase.rpc("cancel_account_deletion");
   if (error && !(error.code === "P0001" && error.message === "notRequested")) {
@@ -389,7 +402,7 @@ export async function setEmailPreferenceAction(
 export type DataExportResult =
   | { ok: true; filename: string; json: string }
   /** A key under `settings.errors`. */
-  | { ok: false; error: "sessionExpired" | "saveFailed" };
+  | { ok: false; error: "sessionExpired" | "saveFailed" | "rateLimited" };
 
 /**
  * Everything the platform holds about the caller, as one JSON document the
@@ -406,6 +419,12 @@ export async function exportMyDataAction(): Promise<DataExportResult> {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData.user;
   if (!user) return { ok: false, error: "sessionExpired" };
+
+  // Each one reads the whole account.
+  const allowed = await withinLimits([
+    { action: "export:user", who: user.id, limit: RATE_LIMITS.exportPerUser },
+  ]);
+  if (!allowed) return { ok: false, error: "rateLimited" };
 
   const [profile, details, registrations, results, saved, events, deletion] =
     await Promise.all([

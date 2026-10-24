@@ -7,7 +7,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
 import { getLocaleOf } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * "Your kit is on its way" — the email a runner who chose "send by mail"

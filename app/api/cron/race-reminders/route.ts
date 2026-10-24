@@ -1,6 +1,6 @@
 import { isCronRequest } from "@/lib/cron";
 import { sendRaceReminders } from "@/lib/email/race-reminder";
-import { siteOrigin } from "@/lib/email/registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * Sends tomorrow's race reminders. Call it every hour — Vercel Cron, or any

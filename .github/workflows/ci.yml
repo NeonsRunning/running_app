@@ -30,9 +30,8 @@ jobs:
       # No Supabase, Stripe or Brevo variables: the app builds signed out,
       # with payments and email reporting themselves unavailable.
       - run: npm run build
-      # Critical only for now: a transitive high-severity advisory
-      # (source-map-js) is waiting on `npm audit fix`.
-      - run: npm audit --omit=dev --audit-level=critical
+      # Runtime dependencies only; dev tooling never ships.
+      - run: npm audit --omit=dev --audit-level=high
 
   database:
     name: Migrations and database tests

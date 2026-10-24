@@ -51,6 +51,27 @@ describe("registrationTotal", () => {
   });
 });
 
+/**
+ * The same sign-up `supabase/tests/database/pricing.test.sql` registers
+ * through `register_for_event()`. Both must arrive at $92.51: if the fee or
+ * the tax rate changes in one place only, one of the two tests fails, so the
+ * form never shows a total the database will not charge.
+ */
+describe("registrationTotal agrees with register_for_event()", () => {
+  it("prices the shared sign-up at $92.51", () => {
+    const { tax, total } = registrationTotal({
+      price: 30,
+      extras: { shirtPrice: 22, photoPrice: 12, shippingPrice: 8, donationRecipient: "" },
+      shirt: true,
+      photos: true,
+      donation: 10,
+      mail: true,
+    });
+    expect(tax).toBe(8.51);
+    expect(total).toBe(92.51);
+  });
+});
+
 describe("parseDonation", () => {
   it.each([
     ["", 0],

@@ -1,14 +1,15 @@
 import "server-only";
-import { headers } from "next/headers";
 import { after } from "next/server";
 import { clock } from "@/lib/events/queries";
 import { DEFAULT_LOCALE, isLocale, localizePath, type Locale } from "@/lib/i18n/config";
 import { formatClock, formatLongDate, formatMoney } from "@/lib/i18n/format";
 import { distanceLabel } from "@/lib/i18n/labels";
 import { getTranslator } from "@/lib/i18n/server";
+import { siteOrigin } from "@/lib/site-url";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
-import { hasBrevoEnv, sendEmail } from "./brevo";
+import { hasBrevoEnv } from "./brevo";
+import { queueEmails } from "./outbox";
 import { escape, INK, LIME, LINE, MUTED } from "./layout";
 
 /**
@@ -16,9 +17,11 @@ import { escape, INK, LIME, LINE, MUTED } from "./layout";
  * registration.
  *
  * `settlePayment()` schedules it for every confirmation it sees, and more
- * than one caller can see the same one, so sending is claimed first: the
- * update that sets `confirmation_email_sent_at` while it is still null wins,
- * and only the winner sends. A send that fails gives the claim back.
+ * than one caller can see the same one, so it is claimed first: the update
+ * that sets `confirmation_email_sent_at` while it is still null wins, and
+ * only the winner writes the email. It goes through the outbox
+ * (lib/email/outbox.ts), which retries a failed send, so a Brevo hiccup no
+ * longer loses it. If it cannot even be queued, the claim is given back.
  *
  * Runs after the response with `after()`, so neither the confirmation screen
  * nor the webhook waits on Brevo, and an email failure never turns into a
@@ -26,23 +29,6 @@ import { escape, INK, LIME, LINE, MUTED } from "./layout";
  */
 
 type Registration = Tables<"registrations">;
-
-/**
- * Where the email's links point. `NEXT_PUBLIC_SITE_URL` wins; otherwise the
- * request that confirmed the payment says which host we are — the webhook is
- * addressed to it too. Read before `after()`: a page render cannot read
- * headers from inside the callback.
- */
-export async function siteOrigin(): Promise<string> {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configured) return configured.replace(/\/$/, "");
-
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto =
-    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
-}
 
 export async function scheduleRegistrationEmail(
   registration: Registration,
@@ -104,16 +90,18 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       eventUrl: `${origin}${localizePath(`/events/${event.slug}`, locale)}`,
     });
 
-    await sendEmail({
-      to: {
-        email: claimed.email,
-        name: `${claimed.first_name} ${claimed.last_name}`,
+    await queueEmails([
+      {
+        to: {
+          email: claimed.email,
+          name: `${claimed.first_name} ${claimed.last_name}`,
+        },
+        ...email,
+        tags: ["registration-confirmed"],
       },
-      ...email,
-      tags: ["registration-confirmed"],
-    });
+    ]);
   } catch (err) {
-    // Give the claim back so the next confirmation of this payment retries.
+    // Not even queued: give the claim back so a later confirmation retries.
     await admin
       .from("registrations")
       .update({ confirmation_email_sent_at: null })

@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logCritical } from "@/lib/log";
 import type { Json } from "@/lib/supabase/database.types";
 import { chunk } from "@/lib/supabase/paginate";
 import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
@@ -26,9 +27,9 @@ function backoffMinutes(attempt: number): number {
 }
 
 /**
- * Write these emails to the outbox and start sending them. Resolves once they
- * are safely written; sending carries on for up to `budgetMs`, and whatever is
- * left is the cron's.
+ * Write these emails to the outbox and start sending them. Throws only if
+ * they could not be written; once written, sending carries on for up to
+ * `budgetMs`, and whatever is left or fails is the cron's.
  */
 export async function queueEmails(
   emails: Email[],
@@ -45,7 +46,11 @@ export async function queueEmails(
     );
     if (error) throw new Error(`Queueing ${run.length} emails failed: ${error.message}`);
   }
-  await drainOutbox({ budgetMs });
+  // Queued is enough for the caller: a failure from here on is the outbox's
+  // to retry, and must not make the caller think the emails were lost.
+  await drainOutbox({ budgetMs }).catch((err) => {
+    console.error("Sending from the outbox failed; the cron will retry:", err);
+  });
 }
 
 /**
@@ -133,7 +138,11 @@ async function sendOne(row: {
       .update({ last_error: message, next_attempt_at: retryAt.toISOString() })
       .eq("id", row.id);
     if (attempt >= MAX_ATTEMPTS) {
-      console.error(`EMAIL GAVE UP after ${attempt} tries: outbox ${row.id}:`, message);
+      logCritical("EMAIL_GAVE_UP", "An email used up its retries and will not be sent.", {
+        outbox: row.id,
+        attempts: attempt,
+        error: message,
+      });
     } else {
       console.error(`Email ${row.id} failed (try ${attempt}), retrying at ${retryAt.toISOString()}:`, message);
     }

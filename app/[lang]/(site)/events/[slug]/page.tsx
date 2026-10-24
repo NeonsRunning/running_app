@@ -6,6 +6,7 @@ import { SpecCell } from "@/components/ui/card";
 import { Progress } from "@/components/ui/misc";
 import { EventDetailTabs } from "@/components/events/event-detail-tabs";
 import { EventPayments } from "@/components/organizer/event-payments";
+import { CancelledRegistrations } from "@/components/organizer/cancelled-registrations";
 import { EventRegistrations } from "@/components/organizer/event-registrations";
 import { EventResults } from "@/components/organizer/event-results";
 import { ResultSubmission } from "@/components/results/result-submission";
@@ -14,7 +15,7 @@ import { ShareRow } from "@/components/events/share-row";
 import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
 import { getUser, isPlatformAdmin } from "@/lib/auth/session";
 import { daysUntil } from "@/lib/data";
-import { getEventRegistrations } from "@/lib/events/organizer";
+import { getCancelledRegistrations, getEventRegistrations } from "@/lib/events/organizer";
 import { findEvent, getOwnRegistration } from "@/lib/events/queries";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import { getOwnResult, listEventResultSubmissions } from "@/lib/results/queries";
@@ -63,13 +64,14 @@ export default async function EventDetailPage(
   const user = await getUser();
   const canManage =
     Boolean(user) && (user?.id === organizer.id || (await isPlatformAdmin()));
-  const [pendingPayments, registrations, pendingResults] = canManage
+  const [pendingPayments, registrations, pendingResults, cancelled] = canManage
     ? await Promise.all([
         listEventAthMovilSubmissions(event.id),
         getEventRegistrations(event.id, event.date),
         listEventResultSubmissions(event.id),
+        getCancelledRegistrations(event.id),
       ])
-    : [null, null, null];
+    : [null, null, null, null];
   // Shown while the event takes results, and after it stops for as long as
   // anything is left to review.
   const showResults =
@@ -225,6 +227,13 @@ export default async function EventDetailPage(
             rows={registrations}
             categories={categoryNames}
             slug={event.slug}
+          />
+          {/* Runners taken off the event, kept for their refunds. */}
+          <CancelledRegistrations
+            rows={cancelled ?? []}
+            categories={categoryNames}
+            t={t}
+            fmt={fmt}
           />
         </div>
       ) : null}

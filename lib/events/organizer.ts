@@ -26,10 +26,20 @@ type SummaryRow = Pick<
   Tables<"events">,
   "id" | "status" | "last_day" | "registration_closes" | "capacity" | "event_date"
 > & { event_categories: Pick<CategoryRow, "capacity">[] };
-type RegistrationRow = Pick<
-  Tables<"registrations">,
-  "event_id" | "category_id" | "amount" | "service_fee" | "sales_tax" | "created_at" | "gender" | "birth_date"
->;
+/**
+ * What `organizer_dashboard_summary()` returns: figures added up in the
+ * database. Numbers may arrive as strings or numbers depending on size, so
+ * they are read through `Number()`.
+ */
+type OrganizerSummary = {
+  per_event: { event_id: string; registered: number; revenue: number }[];
+  /** Paid sign-ups and revenue per UTC day, from the oldest chart bucket on. */
+  daily: { day: string; registrations: number; revenue: number }[];
+  /** Runners per age group (labels as in `AGE_GROUPS`) and gender. */
+  demographics: { age_group: string; gender: "f" | "m" | "x"; count: number }[];
+};
+
+const EMPTY_SUMMARY: OrganizerSummary = { per_event: [], daily: [], demographics: [] };
 
 /**
  * Lifecycle shown on a dashboard card; keys under `labels.eventStatus`.
@@ -86,12 +96,12 @@ const MONTH_LABELS = [
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
+/**
+ * The demographics chart's rows. `organizer_dashboard_summary()` buckets
+ * runners into these same labels; change both together. Revenue there is
+ * what the organizer keeps: the amount less our fee and the sales tax.
+ */
 const AGE_GROUPS = ["Under 20", "20–29", "30–39", "40–49", "50+"] as const;
-
-/** What the organizer keeps of a sign-up: the amount, less our fee and the sales tax. */
-function net(r: { amount: number; service_fee: number; sales_tax: number }): number {
-  return Math.max(0, Number(r.amount) - Number(r.service_fee) - Number(r.sales_tax));
-}
 
 /** ISO 8601 week number of a UTC date. */
 function isoWeek(date: Date): number {
@@ -107,15 +117,6 @@ function ageOn(birthDate: string, on: string): number {
   const [by, bm, bd] = birthDate.split("-").map(Number);
   const [ey, em, ed] = on.split("-").map(Number);
   return ey - by - (em < bm || (em === bm && ed < bd) ? 1 : 0);
-}
-
-function ageGroup(birthDate: string, on: string): (typeof AGE_GROUPS)[number] {
-  const age = ageOn(birthDate, on);
-  if (age < 20) return "Under 20";
-  if (age < 30) return "20–29";
-  if (age < 40) return "30–39";
-  if (age < 50) return "40–49";
-  return "50+";
 }
 
 function dashboardStatus(
@@ -175,22 +176,14 @@ export async function getOrganizerEvents(
   if (error || !data) return { events: [], total: 0 };
   const events = data as EventRow[];
 
+  // Added up in the database: one row per event, not one per runner.
   const regs = new Map<string, { registered: number; revenue: number }>();
   if (events.length) {
-    const { data: rows } = await selectAll((from, to) =>
-      supabase
-        .from("registrations")
-        .select("id, event_id, amount, service_fee, sales_tax")
-        .in("event_id", events.map((e) => e.id))
-        .eq("status", "confirmed")
-        .order("id")
-        .range(from, to),
-    );
-    for (const r of rows) {
-      const sum = regs.get(r.event_id) ?? { registered: 0, revenue: 0 };
-      sum.registered += 1;
-      sum.revenue += net(r);
-      regs.set(r.event_id, sum);
+    const { data: rows } = await supabase.rpc("event_signup_totals", {
+      p_event_ids: events.map((e) => e.id),
+    });
+    for (const r of rows ?? []) {
+      regs.set(r.event_id, { registered: Number(r.registered), revenue: Number(r.revenue) });
     }
   }
 
@@ -232,88 +225,84 @@ export async function getOrganizerDashboard(
     .eq("organizer_id", organizerId);
   const events = (eventData ?? []) as SummaryRow[];
 
-  let registrations: RegistrationRow[] = [];
-  if (events.length) {
-    // Every page of them, and joined on the organizer rather than listing
-    // event ids: an organizer with hundreds of events would overflow the URL.
-    const { data } = await selectAll((from, to) =>
-      supabase
-        .from("registrations")
-        .select(
-          "id, event_id, category_id, amount, service_fee, sales_tax, created_at, gender, birth_date, event:events!inner(organizer_id)",
-        )
-        .eq("event.organizer_id", organizerId)
-        // Sign-ups still at the payment step are neither runners nor revenue.
-        .eq("status", "confirmed")
-        .order("id")
-        .range(from, to),
-    );
-    registrations = data;
-  }
-
   const today = todayIso();
   const now = new Date();
 
-  /* Per event ------------------------------------------------------------- */
-  const byEvent = new Map<string, RegistrationRow[]>();
-  for (const r of registrations) {
-    byEvent.set(r.event_id, [...(byEvent.get(r.event_id) ?? []), r]);
-  }
-
-  const statuses = events.map((e) =>
-    dashboardStatus(e, byEvent.get(e.id)?.length ?? 0, capacityOf(e), today),
-  );
-
-  /* Weekly sign-ups, last 12 ISO weeks ending this one -------------------- */
+  // The oldest chart bucket: the Monday 11 weeks before this week's, or the
+  // first of the month 5 months back, whichever is earlier (UTC, as before).
   const weekStarts = Array.from({ length: WEEKS }, (_, i) => {
     const d = new Date(now);
     d.setUTCHours(0, 0, 0, 0);
     d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) - (WEEKS - 1 - i) * 7);
     return d;
   });
+  const monthStarts = Array.from(
+    { length: MONTHS },
+    (_, i) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (MONTHS - 1 - i), 1)),
+  );
+  const since = new Date(Math.min(weekStarts[0].getTime(), monthStarts[0].getTime()));
+
+  // Added up in the database, which returns a few dozen numbers rather than
+  // every paid registration. Row-level security decides what it counts.
+  const summary = events.length
+    ? await supabase
+        .rpc("organizer_dashboard_summary", {
+          p_organizer_id: organizerId,
+          p_since: since.toISOString(),
+          p_today: today,
+        })
+        .then(({ data }) => (data as OrganizerSummary | null) ?? EMPTY_SUMMARY)
+    : EMPTY_SUMMARY;
+
+  /* Per event ------------------------------------------------------------- */
+  const perEvent = new Map(summary.per_event.map((e) => [e.event_id, e]));
+  const statuses = events.map((e) =>
+    dashboardStatus(e, Number(perEvent.get(e.id)?.registered ?? 0), capacityOf(e), today),
+  );
+
+  /* Weekly sign-ups, last 12 ISO weeks ending this one -------------------- */
+  const days = summary.daily.map((d) => ({ ...d, at: Date.parse(`${d.day}T00:00:00Z`) }));
   const registrationsSeries = weekStarts.map((start, i) => {
     const end = weekStarts[i + 1]?.getTime() ?? Infinity;
     return {
       label: `W${isoWeek(start)}`,
-      value: registrations.filter((r) => {
-        const t = Date.parse(r.created_at);
-        return t >= start.getTime() && t < end;
-      }).length,
+      value: days
+        .filter((d) => d.at >= start.getTime() && d.at < end)
+        .reduce((sum, d) => sum + Number(d.registrations), 0),
     };
   });
 
   /* Monthly revenue, last 6 months ending this one ------------------------ */
-  const revenueSeries = Array.from({ length: MONTHS }, (_, i) => {
-    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (MONTHS - 1 - i), 1));
+  const revenueSeries = monthStarts.map((d) => {
     const key = d.toISOString().slice(0, 7);
     return {
       label: MONTH_LABELS[d.getUTCMonth()],
       value: Math.round(
-        registrations
-          .filter((r) => r.created_at.slice(0, 7) === key)
-          .reduce((sum, r) => sum + net(r), 0),
+        days
+          .filter((day) => day.day.slice(0, 7) === key)
+          .reduce((sum, day) => sum + Number(day.revenue), 0),
       ),
     };
   });
 
   /* Age group × gender, at each runner's age on race day ------------------ */
-  const eventDate = new Map(events.map((e) => [e.id, e.event_date ?? today]));
   const demographics = AGE_GROUPS.map((label) => ({ label, women: 0, men: 0 }));
-  for (const r of registrations) {
-    const group = demographics.find(
-      (g) => g.label === ageGroup(r.birth_date, eventDate.get(r.event_id) ?? today),
-    );
+  for (const row of summary.demographics) {
+    const group = demographics.find((g) => g.label === row.age_group);
     if (!group) continue;
     // The chart has two series; "x" registrations count in the totals above
     // but not in this split.
-    if (r.gender === "f") group.women += 1;
-    else if (r.gender === "m") group.men += 1;
+    if (row.gender === "f") group.women += Number(row.count);
+    else if (row.gender === "m") group.men += Number(row.count);
   }
+
+  const registrations = summary.per_event.reduce((sum, e) => sum + Number(e.registered), 0);
+  const revenue = summary.per_event.reduce((sum, e) => sum + Number(e.revenue), 0);
 
   return {
     totals: {
-      registrations: registrations.length,
-      revenue: Math.round(registrations.reduce((sum, r) => sum + net(r), 0)),
+      registrations,
+      revenue: Math.round(revenue),
       activeEvents: statuses.filter((s) => s === "Live" || s === "Closing").length,
       drafts: statuses.filter((s) => s === "Draft").length,
     },
@@ -520,5 +509,67 @@ export async function getEventRegistrations(
     paymentMethod: r.payment_method,
     paidAt: r.paid_at ?? r.created_at,
     hasAcceptedResult: r.result?.status === "accepted",
+  }));
+}
+
+/** A runner the organizer or an admin took off the event: what refunding them needs. */
+export type CancelledRegistrationRow = {
+  id: string;
+  bib: number | null;
+  runnerName: string;
+  email: string;
+  categoryId: string;
+  /** What they paid, in dollars. */
+  amount: number;
+  paymentMethod: "stripe" | "ath_movil" | null;
+  /** The ATH Móvil receipt's reference, to find the payment to refund. */
+  paymentReference: string | null;
+  cancelledAt: string;
+  /** Refunded through Stripe so far, in dollars; 0 when none is recorded. */
+  amountRefunded: number;
+  /** Stripe's dispute status when the runner's bank disputed the payment. */
+  disputeStatus: string | null;
+};
+
+/**
+ * One event's cancelled registrations, most recent first. Kept as the record
+ * of the payment, so whoever refunds the runner knows what they paid and how.
+ * Card refunds made in Stripe show up here on their own (the webhook records
+ * them); ATH Móvil refunds are not recorded. Read through RLS, like the
+ * completed list.
+ */
+export async function getCancelledRegistrations(
+  eventId: string,
+): Promise<CancelledRegistrationRow[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .from("registrations")
+      .select(
+        "id, bib, first_name, last_name, email, category_id, amount, payment_method, payment_reference, cancelled_at, amount_refunded, dispute_status",
+      )
+      .eq("event_id", eventId)
+      .eq("status", "cancelled")
+      .order("cancelled_at", { ascending: false })
+      .order("id")
+      .range(from, to),
+  );
+  if (error) return [];
+
+  return data.map((r) => ({
+    id: r.id,
+    bib: r.bib,
+    runnerName: `${r.first_name} ${r.last_name}`,
+    email: r.email,
+    categoryId: r.category_id,
+    amount: Number(r.amount),
+    paymentMethod: r.payment_method,
+    paymentReference: r.payment_reference,
+    // Always set on a cancelled row (a check constraint says so).
+    cancelledAt: r.cancelled_at ?? "",
+    amountRefunded: Number(r.amount_refunded),
+    disputeStatus: r.dispute_status,
   }));
 }

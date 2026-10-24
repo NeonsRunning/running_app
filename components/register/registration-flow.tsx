@@ -1223,6 +1223,8 @@ export function RegistrationFlow({
                   variant="outline"
                   size="lg"
                   className="mt-3"
+                  // Going back mid-request would be undone when it returns.
+                  disabled={submitting}
                   onClick={() => setStep((s) => Math.max(1, s - 1))}
                 >
                   {t("register.summary.back")}
@@ -1272,8 +1274,9 @@ export function RegistrationFlow({
           {step > 1 ? (
             <button
               type="button"
+              disabled={submitting}
               onClick={() => setStep((s) => Math.max(1, s - 1))}
-              className="min-h-14 border-l-2 border-line px-5 text-xs font-bold tracking-wider text-fg-dim uppercase"
+              className="min-h-14 border-l-2 border-line px-5 text-xs font-bold tracking-wider text-fg-dim uppercase disabled:opacity-40"
             >
               {t("register.summary.back")}
             </button>

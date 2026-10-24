@@ -75,10 +75,15 @@ export const MAX_REFERENCE_LENGTH = 40;
 
 /**
  * A short code the runner writes in the ATH Móvil message, so a reviewer can
- * match the payment to the sign-up at a glance: "NR-3F9A1C".
+ * match the payment to the sign-up at a glance: "NR-3F9A1C2D".
+ *
+ * Eight hex characters: with six, two payments waiting for review start
+ * sharing a code after a few thousand submissions. It grew from six, and a
+ * code is the start of the registration id either way, so a message written
+ * with an old six-character code is still the start of the code shown now.
  */
 export function paymentCode(registrationId: string): string {
-  return `NR-${registrationId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+  return `NR-${registrationId.replace(/-/g, "").slice(0, 8).toUpperCase()}`;
 }
 
 /** How long runners are told verification can take. */

@@ -757,6 +757,20 @@ export type Database = {
         Args: { p_registration_id: string };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
+      /** See `OrganizerSummary` in lib/events/organizer.ts for the shape. */
+      organizer_dashboard_summary: {
+        Args: { p_organizer_id: string; p_since: string; p_today: string };
+        Returns: Json;
+      };
+      event_signup_totals: {
+        Args: { p_event_ids: string[] };
+        Returns: { event_id: string; registered: number; revenue: number }[];
+      };
+      /** Service role only: count a call, and say whether it is within the limit. */
+      hit_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window: string };
+        Returns: boolean;
+      };
       can_review_ath_movil_payment: {
         Args: { p_registration_id: string };
         Returns: boolean;

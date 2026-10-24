@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:db": "supabase test db",
     "db:push": "supabase db push",
-    "db:types": "supabase gen types typescript --linked > lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > lib/supabase/database.types.ts",
+    "db:functions": "node scripts/sql-functions.mjs"
   },
   "dependencies": {
     "@jsquash/webp": "^1.5.0",

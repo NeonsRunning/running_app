@@ -1344,6 +1344,7 @@ export function PublishWizard({
                 <EventCover event={{ type, image: url }} className="aspect-video" />
               )}
               error={fieldError("image_path")}
+              disabled={pending}
             />
           </div>
 
@@ -1370,6 +1371,7 @@ export function PublishWizard({
                 />
               )}
               error={fieldError("route_image_path")}
+              disabled={pending}
             />
           </div>
 
@@ -1396,6 +1398,7 @@ export function PublishWizard({
                 />
               )}
               error={fieldError("medal_image_path")}
+              disabled={pending}
             />
             <div className="border-2 border-line bg-carbon p-5">
               <ExtraToggle

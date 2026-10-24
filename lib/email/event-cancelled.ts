@@ -9,7 +9,7 @@ import { hasBrevoEnv, type Email } from "./brevo";
 import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * "Your race was cancelled" — the email every confirmed runner gets when a

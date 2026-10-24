@@ -33,6 +33,7 @@ export function ImageStep({
   onChange,
   preview,
   error,
+  disabled = false,
 }: {
   /** Form field that carries the path. */
   name: "image_path" | "route_image_path" | "medal_image_path";
@@ -47,6 +48,12 @@ export function ImageStep({
   preview: (url: string | undefined) => ReactNode;
   /** A server-side error, already translated. */
   error?: string;
+  /**
+   * While the wizard is saving. A swap mid-save would delete the file the
+   * save is storing (it is not `savedPath` yet), leaving the event pointing
+   * at nothing.
+   */
+  disabled?: boolean;
 }) {
   const t = useT();
   const inputId = useId();
@@ -55,6 +62,7 @@ export function ImageStep({
   /** Converting, then uploading; null when idle. */
   const [phase, setPhase] = useState<"converting" | "uploading" | null>(null);
   const uploading = phase !== null;
+  const busy = uploading || disabled;
   const [dragging, setDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string>();
 
@@ -110,7 +118,7 @@ export function ImageStep({
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files[0];
-    if (file && !uploading) void upload(file);
+    if (file && !busy) void upload(file);
   }
 
   const dropHandlers = {
@@ -133,7 +141,7 @@ export function ImageStep({
         // .heic files under image/* alone.
         accept="image/*,.heic,.heif"
         className="sr-only"
-        disabled={uploading}
+        disabled={busy}
         aria-describedby={messageId}
         aria-invalid={shownError ? true : undefined}
         onChange={(e) => {
@@ -197,7 +205,7 @@ export function ImageStep({
           <Button
             variant="outline"
             size="md"
-            disabled={uploading}
+            disabled={busy}
             onClick={() => inputRef.current?.click()}
           >
             {t(`${messages}.replace`)}
@@ -206,7 +214,7 @@ export function ImageStep({
             variant="ghost"
             size="md"
             className="text-danger"
-            disabled={uploading}
+            disabled={busy}
             onClick={remove}
           >
             {t(`${messages}.remove`)}

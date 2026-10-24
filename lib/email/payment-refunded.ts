@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
 import { getLocaleOf } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * "We refunded your payment" — the email a runner gets when `settlePayment()`

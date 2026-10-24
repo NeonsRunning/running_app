@@ -268,6 +268,31 @@ Or paste `supabase/migrations/20260824120000_profiles.sql` into the SQL editor
 in the dashboard. It is idempotent in the part that matters: accounts that
 existed before it ran are backfilled at the end.
 
+### Changing a SQL function
+
+Migrations are append-only, so a function changed several times lives in full
+in every migration that changed it, and only the last one counts. To change
+one, copy **its latest definition** into a new migration and edit that:
+copying an older one silently drops whatever was added since.
+
+```bash
+npm run db:functions               # every function and the migration that defines it now
+npm run db:functions save_event    # just one
+```
+
+Prices are worked out twice, in `register_for_event()` (what is charged) and
+`lib/events/pricing.ts` (what the form shows). `supabase/tests/database/pricing.test.sql`
+and `lib/events/pricing.test.ts` price the same sign-up; change the fee or the
+tax rate in both places, or one of them fails.
+
+### Testing it
+
+`npm run test:db` runs the pgTAP tests in `supabase/tests` against a local
+database (`supabase start`, which needs Docker); CI runs them on every pull
+request, after applying every migration to a fresh database. They insert
+test users and events inside a transaction they roll back — run them only
+against a throwaway database, never a real project's SQL editor.
+
 ## ATH Móvil payments
 
 Next to Stripe, runners can pay with ATH Móvil. There is no API behind it: the
@@ -383,7 +408,39 @@ On Vercel, a `vercel.json` cron entry sends the header by itself:
 ```
 
 The database schedules its own clean-ups with `pg_cron`: abandoned checkouts
-hourly, sent outbox rows after 30 days.
+hourly, sent outbox rows after 30 days, rate-limit counters after 2 days.
+
+### Watching for failures
+
+There is no monitoring service; failures go to the hosting platform's logs.
+The ones someone has to act on are written by `logCritical` (`lib/log.ts`) as
+one line starting with `CRITICAL` followed by JSON, so a single search finds
+them all and a log drain or alert can match on them:
+
+```
+CRITICAL {"code":"REFUND_FAILED","message":"A refund failed; the runner is still charged.","paymentIntent":"pi_…"}
+```
+
+| Code | What to do |
+|---|---|
+| `REFUND_FAILED` | Stripe is retrying through the webhook; if it keeps failing, refund the PaymentIntent by hand. |
+| `PAYMENT_DISPUTED` | Answer the dispute in the Stripe dashboard before its deadline. |
+| `EMAIL_GAVE_UP` | An outbox email failed 8 times; its row in `email_outbox` has the error. |
+| `DELETION_REQUEST_NOT_EMAILED` / `DELETION_CANCELLATION_NOT_EMAILED` | Check `account_deletion_requests` and tell the team by hand. |
+| `RATE_LIMIT_UNAVAILABLE` | The database could not count rate limits; calls are being let through. |
+| `SITE_URL_MISSING` | Set `NEXT_PUBLIC_SITE_URL` in production. |
+
+Log lines carry ids, never names, email addresses or phone numbers.
+
+### Rate limits
+
+Server actions that cost something per call are throttled through
+`hit_rate_limit()` (`lib/rate-limit.ts`): contact messages (5 an hour per IP,
+3 per address), confirmation and password-reset emails (10 an hour per IP, 5
+per address), checkouts (30 an hour per account), deletion requests (5 a day)
+and data exports (10 an hour). Keys are hashed before they are stored. The
+caller's IP comes from `x-forwarded-for`, which Vercel sets; behind another
+proxy, make sure it overwrites that header rather than appending to it.
 
 ## Accessibility
 
