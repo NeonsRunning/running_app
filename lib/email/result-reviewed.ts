@@ -8,7 +8,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
 import { getEmailSettingOf } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * The email a runner gets once the organizer — or an admin — reviews the

@@ -422,7 +422,8 @@
       "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it.",
       "holdLimitReached": "Your spot was held for 2 hours without a payment, so it was released. You can try again in 15 minutes.",
       "referenceUsed": "That reference number was already used for another registration. Check the receipt in your ATH Móvil app and enter the reference for this payment.",
-      "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment."
+      "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment.",
+      "rateLimited": "Too many checkout attempts in the last hour. Wait a little and try again."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -1287,7 +1288,8 @@
       "title": "Message not sent",
       "invalid": "Some fields are missing or too long. Check the form and try again.",
       "unavailable": "The contact form is unavailable right now. Try again later.",
-      "sendFailed": "Something went wrong sending your message. Try again in a moment."
+      "sendFailed": "Something went wrong sending your message. Try again in a moment.",
+      "rateLimited": "You’ve sent several messages in a short time. Wait an hour and try again, or email us directly."
     }
   },
   "settings": {
@@ -1340,7 +1342,8 @@
       "addressLineTooLong": "Keep each address line under 100 characters.",
       "addressCityRequired": "Enter the city.",
       "addressStateInvalid": "Pick a state or territory.",
-      "postalCodeInvalid": "Use a 5-digit ZIP code, e.g. 00901."
+      "postalCodeInvalid": "Use a 5-digit ZIP code, e.g. 00901.",
+      "rateLimited": "You’ve done that several times already. Try again later."
     },
     "notifications": "Notifications",
     "notificationsDescription": "Race-critical alerts always arrive by email. Everything else is up to you.",
@@ -1957,6 +1960,24 @@
       "trackingTooLong": "That tracking number is too long. Check it and try again.",
       "shipFailed": "Something went wrong — try again in a moment."
     }
+  },
+  "cancelledRegistrations": {
+    "title": "Removed runners",
+    "count": "{count} removed",
+    "body": "Runners taken off this event, kept so their payments can be refunded. Card refunds made in Stripe show up here on their own; ATH Móvil refunds are made in the ATH Móvil Business app and aren’t recorded here.",
+    "columns": {
+      "bib": "Bib",
+      "runner": "Runner",
+      "distance": "Distance",
+      "paid": "Paid",
+      "removed": "Removed",
+      "refund": "Refund"
+    },
+    "refundedFull": "Refunded",
+    "refundedPartly": "{amount} refunded",
+    "notRefunded": "Not refunded yet",
+    "notRecorded": "Not recorded",
+    "disputed": "Disputed: {status}"
   },
   "adminAccounts": {
     "metaTitle": "ATH Móvil accounts",

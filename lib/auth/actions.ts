@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
+import { siteOrigin } from "@/lib/site-url";
 import { redirect } from "next/navigation";
 import {
   DEFAULT_LOCALE,
@@ -9,6 +9,7 @@ import {
   localizePath,
   type Locale,
 } from "@/lib/i18n/config";
+import { clientIp, LIMITS, withinLimits } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { authErrorKey } from "./errors";
 import { SELF_PROFILE_PATH, safeNextPath } from "./routes";
@@ -55,21 +56,15 @@ function readText(formData: FormData, name: string): string {
 }
 
 /**
- * Absolute origin for the links Supabase emails out.
- *
- * `NEXT_PUBLIC_SITE_URL` wins when set — it is the only value that survives a
- * preview deployment or a proxy that rewrites Host. Otherwise the forwarded
- * headers describe the URL the runner actually typed.
+ * Whether another Supabase email (confirmation, password reset) may go to
+ * this address from this caller. Supabase limits sends project-wide; this
+ * keeps one caller from spending that allowance on one inbox.
  */
-async function siteOrigin(): Promise<string> {
-  const configured = process.env.NEXT_PUBLIC_SITE_URL;
-  if (configured) return configured.replace(/\/$/, "");
-
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto =
-    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+async function authEmailAllowed(action: string, email: string): Promise<boolean> {
+  return withinLimits([
+    { action: `${action}:ip`, who: await clientIp(), limit: LIMITS.authEmailPerIp },
+    { action: `${action}:email`, who: email, limit: LIMITS.authEmailPerEmail },
+  ]);
 }
 
 /** Absolute URL for an email link, carrying the page to land on afterwards. */
@@ -187,6 +182,7 @@ export async function resendVerificationAction(
   const locale = readLocale(formData);
   const email = readText(formData, "email");
   if (!email) return { error: "missingEmail" };
+  if (!(await authEmailAllowed("auth:resend", email))) return { error: "rateLimited" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resend({
@@ -217,6 +213,9 @@ export async function requestPasswordResetAction(
   const email = readText(formData, "email");
 
   if (!EMAIL_RE.test(email)) return { fieldErrors: { email: "emailInvalid" } };
+  // Says nothing about whether the address has an account: the limit counts
+  // the asking, whoever the address belongs to.
+  if (!(await authEmailAllowed("auth:reset", email))) return { error: "rateLimited" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {

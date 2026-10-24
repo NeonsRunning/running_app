@@ -4,6 +4,7 @@ import { hasBrevoEnv, sendEmail } from "@/lib/email/brevo";
 import { renderEmail } from "@/lib/email/layout";
 import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
 import { getTranslator } from "@/lib/i18n/server";
+import { clientIp, LIMITS, withinLimits } from "@/lib/rate-limit";
 
 /**
  * The contact form: the visitor's message goes to the team's inbox —
@@ -19,7 +20,7 @@ import { getTranslator } from "@/lib/i18n/server";
 export type ContactResult =
   | { ok: true }
   /** A key under `contactForm.errors`. */
-  | { ok: false; error: "invalid" | "unavailable" | "sendFailed" };
+  | { ok: false; error: "invalid" | "unavailable" | "sendFailed" | "rateLimited" };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const TOPICS = new Set(["registration", "refund", "results", "organizer", "other"]);
@@ -61,6 +62,14 @@ export async function sendContactMessageAction(input: {
 
   const inbox = process.env.CONTACT_EMAIL || process.env.BREVO_SENDER_EMAIL;
   if (!hasBrevoEnv() || !inbox) return { ok: false, error: "unavailable" };
+
+  // Each message is an email from the Brevo account that also sends payment
+  // confirmations and refund notices; a flood must not use up its quota.
+  const allowed = await withinLimits([
+    { action: "contact:ip", who: await clientIp(), limit: LIMITS.contactPerIp },
+    { action: "contact:email", who: email, limit: LIMITS.contactPerEmail },
+  ]);
+  if (!allowed) return { ok: false, error: "rateLimited" };
 
   // The team reads every message in one language, whatever the page was in.
   const t = await getTranslator(DEFAULT_LOCALE);

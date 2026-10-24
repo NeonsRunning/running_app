@@ -8,7 +8,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
 import { getRecipient } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * "Something is waiting for you" — the email an organizer gets when a runner

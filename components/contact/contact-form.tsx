@@ -129,9 +129,7 @@ export function ContactForm() {
             </option>
             <option value="refund">{t("contactForm.topicRefund")}</option>
             <option value="results">{t("contactForm.topicResults")}</option>
-            <option value="organizer">
-              {t("contactForm.topicOrganizer")}
-            </option>
+            <option value="organizer">{t("contactForm.topicOrganizer")}</option>
             <option value="other">{t("contactForm.topicOther")}</option>
           </Select>
         )}
@@ -149,7 +147,10 @@ export function ContactForm() {
       </Field>
 
       {/* Off-screen rather than display:none, which some bots skip. */}
-      <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute left-[-9999px] h-px w-px overflow-hidden"
+      >
         <label>
           Website
           <input

@@ -422,7 +422,8 @@
       "mailingAddressInvalid": "Escribe la dirección a la que enviamos tu medalla (hasta 300 caracteres). Regresa al paso de extras y revísala.",
       "holdLimitReached": "Tu espacio estuvo reservado 2 horas sin pago, así que se liberó. Puedes intentarlo otra vez en 15 minutos.",
       "referenceUsed": "Ese número de referencia ya se usó en otra inscripción. Revisa el recibo en tu app de ATH Móvil y escribe la referencia de este pago.",
-      "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago."
+      "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago.",
+      "rateLimited": "Demasiados intentos de pago en la última hora. Espera un poco y vuelve a intentarlo."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
     "confirmToastBody": "Dorsal n.º 1048 confirmado para {event}.",
@@ -1287,7 +1288,8 @@
       "title": "Mensaje no enviado",
       "invalid": "Faltan campos o alguno es demasiado largo. Revisa el formulario e inténtalo de nuevo.",
       "unavailable": "El formulario de contacto no está disponible ahora. Inténtalo más tarde.",
-      "sendFailed": "Algo falló al enviar tu mensaje. Inténtalo de nuevo en un momento."
+      "sendFailed": "Algo falló al enviar tu mensaje. Inténtalo de nuevo en un momento.",
+      "rateLimited": "Enviaste varios mensajes en poco tiempo. Espera una hora y vuelve a intentarlo, o escríbenos directamente."
     }
   },
   "settings": {
@@ -1340,7 +1342,8 @@
       "addressLineTooLong": "Cada línea de la dirección no puede pasar de 100 caracteres.",
       "addressCityRequired": "Escribe la ciudad.",
       "addressStateInvalid": "Elige un estado o territorio.",
-      "postalCodeInvalid": "Usa un código postal de 5 dígitos, p. ej. 00901."
+      "postalCodeInvalid": "Usa un código postal de 5 dígitos, p. ej. 00901.",
+      "rateLimited": "Ya hiciste eso varias veces. Inténtalo más tarde."
     },
     "notifications": "Notificaciones",
     "notificationsDescription": "Los avisos críticos de carrera siempre llegan por correo. El resto lo decides tú.",
@@ -1957,6 +1960,24 @@
       "trackingTooLong": "Ese número de rastreo es demasiado largo. Revísalo e inténtalo de nuevo.",
       "shipFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     }
+  },
+  "cancelledRegistrations": {
+    "title": "Corredores removidos",
+    "count": "{count} removidos",
+    "body": "Corredores que se sacaron de este evento, guardados para poder reembolsar sus pagos. Los reembolsos con tarjeta hechos en Stripe aparecen aquí solos; los de ATH Móvil se hacen en la app ATH Móvil Business y no se registran aquí.",
+    "columns": {
+      "bib": "Número",
+      "runner": "Corredor",
+      "distance": "Distancia",
+      "paid": "Pagó",
+      "removed": "Removido",
+      "refund": "Reembolso"
+    },
+    "refundedFull": "Reembolsado",
+    "refundedPartly": "{amount} reembolsados",
+    "notRefunded": "Sin reembolsar",
+    "notRecorded": "No registrado",
+    "disputed": "En disputa: {status}"
   },
   "adminAccounts": {
     "metaTitle": "Cuentas de ATH Móvil",

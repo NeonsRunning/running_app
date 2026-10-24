@@ -7,6 +7,7 @@ import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { ConfirmDialog, Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
+import { toCsv } from "@/lib/csv";
 import { puertoRicoDate } from "@/lib/dates";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
 import type { EventRegistrationRow } from "@/lib/events/organizer";
@@ -350,9 +351,8 @@ export function EventRegistrations({
       r.shippedAt ? puertoRicoDate(r.shippedAt) : "",
       r.shippingTracking ?? "",
     ]);
-    const csv = [header, ...body]
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+    // Formula-safe: runners type their own names, clubs and addresses.
+    const csv = toCsv([header, ...body]);
 
     // A BOM, so Excel opens accented names as UTF-8.
     const blob = new Blob(["﻿", csv], { type: "text/csv;charset=utf-8" });

@@ -3,6 +3,7 @@ import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 import { getTranslator } from "@/lib/i18n/server";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { logCritical } from "@/lib/log";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
 import { getRecipient } from "./recipient";
@@ -25,7 +26,9 @@ import { getRecipient } from "./recipient";
 export async function notifyTeamOfDeletionRequest(userId: string): Promise<boolean> {
   const inbox = process.env.CONTACT_EMAIL || process.env.BREVO_SENDER_EMAIL;
   if (!hasBrevoEnv() || !inbox) {
-    console.error(`DELETION REQUEST NOT EMAILED: ${userId} (email is not configured).`);
+    logCritical("DELETION_REQUEST_NOT_EMAILED", "Email is not configured; the team was not told.", {
+      user: userId,
+    });
     return false;
   }
 
@@ -107,7 +110,10 @@ export async function notifyTeamOfDeletionRequest(userId: string): Promise<boole
       .from("account_deletion_requests")
       .update({ team_notified_at: null })
       .eq("user_id", userId);
-    console.error(`DELETION REQUEST NOT EMAILED: ${userId}:`, err);
+    logCritical("DELETION_REQUEST_NOT_EMAILED", "Emailing the team failed; it can be sent again.", {
+      user: userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
     return false;
   }
 }
@@ -126,7 +132,9 @@ export async function notifyTeamOfDeletionCancelled(
 ): Promise<void> {
   const inbox = process.env.CONTACT_EMAIL || process.env.BREVO_SENDER_EMAIL;
   if (!hasBrevoEnv() || !inbox) {
-    console.error(`DELETION CANCELLATION NOT EMAILED: ${userId} (email is not configured).`);
+    logCritical("DELETION_CANCELLATION_NOT_EMAILED", "Email is not configured; the team was not told.", {
+      user: userId,
+    });
     return;
   }
 
@@ -157,7 +165,10 @@ export async function notifyTeamOfDeletionCancelled(
       tags: ["account-deletion-cancelled"],
     });
   } catch (err) {
-    console.error(`DELETION CANCELLATION NOT EMAILED: ${userId}:`, err);
+    logCritical("DELETION_CANCELLATION_NOT_EMAILED", "Emailing the team failed; tell them by hand.", {
+      user: userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
   }
 }
 

@@ -28,6 +28,14 @@ export function Modal({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
+  // The latest onClose, read when Escape is pressed. Callers often pass a new
+  // function on every render; depending on it would re-run the effect below
+  // on each keystroke in a field inside the dialog, and every re-run hands
+  // focus back to the first button.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -46,7 +54,7 @@ export function Modal({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab") return;
@@ -72,7 +80,7 @@ export function Modal({
       document.body.style.overflow = prevOverflow;
       restoreTo.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   const t = useT();
 

@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { useFormat, useT } from "@/components/i18n/provider";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
+import { toCsv } from "@/lib/csv";
 import type { Participant } from "@/lib/types";
 
 /**
@@ -90,9 +91,8 @@ export function ParticipantTable({ initial }: { initial: Participant[] }) {
       p.paid ? t("participants.csv.paid") : t("participants.csv.unpaid"),
       p.checkedIn ? t("participants.csv.yes") : t("participants.csv.no"),
     ]);
-    const csv = [header, ...body]
-      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
+    // Formula-safe: names are typed by runners.
+    const csv = toCsv([header, ...body]);
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);

@@ -80,7 +80,8 @@ export async function sendEmails(emails: Email[], concurrency = 5): Promise<numb
         await sendEmail(email);
       } catch (err) {
         failed++;
-        console.error(`Email to ${email.to.email} (${email.tags?.join(",")}) failed:`, err);
+        // No address in the log: tags say which email, Brevo's logs say to whom.
+        console.error(`Email (${email.tags?.join(",")}) failed:`, err);
       }
     }
   }

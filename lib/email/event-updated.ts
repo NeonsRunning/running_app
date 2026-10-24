@@ -11,7 +11,7 @@ import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
 import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners, getRecipient } from "./recipient";
-import { siteOrigin } from "./registration-confirmed";
+import { siteOrigin } from "@/lib/site-url";
 
 /**
  * What a save in the event wizard tells other people. Both compare the row
