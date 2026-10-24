@@ -16,7 +16,12 @@ export type RemoveRegistrationResult =
   /** A key under `eventRegistrations.errors`. */
   | {
       ok: false;
-      error: "notAllowed" | "alreadyRemoved" | "resultAccepted" | "removeFailed";
+      error:
+        | "notAllowed"
+        | "alreadyRemoved"
+        | "resultAccepted"
+        | "resultDisqualified"
+        | "removeFailed";
     };
 
 export async function removeRegistrationAction(
@@ -36,6 +41,8 @@ export async function removeRegistrationAction(
     if (key === "notAllowed") return { ok: false, error: "notAllowed" };
     // The runner's finish was accepted; the sign-up now carries their result.
     if (key === "resultAccepted") return { ok: false, error: "resultAccepted" };
+    // Disqualified: the sign-up keeps the record.
+    if (key === "resultDisqualified") return { ok: false, error: "resultDisqualified" };
     // Removed a moment ago, from another tab or by an admin.
     if (key === "registrationMissing") return { ok: false, error: "alreadyRemoved" };
     console.error(`Removing ${registrationId} failed:`, error?.message);
@@ -58,6 +65,7 @@ export type ReturnToPendingResult =
         | "alreadyChanged"
         | "notAthMovil"
         | "resultAccepted"
+        | "resultDisqualified"
         | "revertFailed";
     };
 
@@ -83,6 +91,7 @@ export async function returnRegistrationToPendingAction(
     if (key === "notAllowed") return { ok: false, error: "notAllowed" };
     if (key === "notAthMovil") return { ok: false, error: "notAthMovil" };
     if (key === "resultAccepted") return { ok: false, error: "resultAccepted" };
+    if (key === "resultDisqualified") return { ok: false, error: "resultDisqualified" };
     // Removed or reverted a moment ago, from another tab or by an admin.
     if (key === "registrationMissing") return { ok: false, error: "alreadyChanged" };
     console.error(`Returning ${registrationId} to pending failed:`, error?.message);

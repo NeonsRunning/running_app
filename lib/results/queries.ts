@@ -39,6 +39,8 @@ export type OwnResult = {
   status: ResultStatus;
   finishSeconds: number;
   reviewNote: string | null;
+  /** Why it was disqualified, once it is. */
+  disqualificationReason: string | null;
   submittedAt: string;
   evidenceUrl: string | null;
 };
@@ -53,7 +55,9 @@ export async function getOwnResult(
   const supabase = await createClient();
   const { data } = await supabase
     .from("race_results")
-    .select("status, finish_seconds, review_note, submitted_at, evidence_path")
+    .select(
+      "status, finish_seconds, review_note, disqualification_reason, submitted_at, evidence_path",
+    )
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
     .maybeSingle();
@@ -64,9 +68,32 @@ export async function getOwnResult(
     status: data.status,
     finishSeconds: data.finish_seconds,
     reviewNote: data.review_note,
+    disqualificationReason: data.disqualification_reason,
     submittedAt: data.submitted_at,
     evidenceUrl: urls.get(data.evidence_path) ?? null,
   };
+}
+
+/**
+ * The caller's accepted finish time for an event, in seconds, or null while
+ * they have no result the organizer accepted. Skips the evidence link
+ * `getOwnResult` signs, which the finisher screen does not show.
+ */
+export async function getOwnFinish(
+  runnerId: string,
+  eventId: string,
+): Promise<number | null> {
+  if (!hasSupabaseEnv()) return null;
+
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("race_results")
+    .select("finish_seconds")
+    .eq("runner_id", runnerId)
+    .eq("event_id", eventId)
+    .eq("status", "accepted")
+    .maybeSingle();
+  return data?.finish_seconds ?? null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -119,6 +146,64 @@ export async function listEventResultSubmissions(
 }
 
 /* -------------------------------------------------------------------------- */
+/* The organizer's finishers                                                  */
+/* -------------------------------------------------------------------------- */
+
+export type EventFinisherRow = ResultSubmissionRow & {
+  status: "accepted" | "rejected" | "disqualified";
+  /** The organizer's note, on a rejection. */
+  reviewNote: string | null;
+  reviewedAt: string | null;
+  disqualificationReason: string | null;
+  disqualifiedAt: string | null;
+};
+
+/**
+ * One event's reviewed results: the accepted ones and those disqualified
+ * since, fastest first, then the ones sent back. Read through RLS, so it is
+ * empty for anyone but the event's organizer and admins.
+ */
+export async function listEventFinishers(
+  eventId: string,
+): Promise<EventFinisherRow[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("race_results")
+    .select(
+      "id, status, finish_seconds, submitted_at, reviewed_at, review_note, evidence_path, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
+    )
+    .eq("event_id", eventId)
+    .in("status", ["accepted", "rejected", "disqualified"])
+    .order("finish_seconds");
+  if (error || !data) return [];
+
+  const urls = await signEvidence(data.map((r) => r.evidence_path));
+  const rows: EventFinisherRow[] = data.map((r) => ({
+    id: r.id,
+    status:
+      r.status === "disqualified" || r.status === "rejected" ? r.status : "accepted",
+    runnerName: r.registration
+      ? `${r.registration.first_name} ${r.registration.last_name}`.trim()
+      : "",
+    bib: r.registration?.bib == null ? "" : String(r.registration.bib),
+    distance: r.category?.distance ?? "5K",
+    finishSeconds: r.finish_seconds,
+    submittedAt: r.submitted_at,
+    evidenceUrl: urls.get(r.evidence_path) ?? null,
+    reviewNote: r.review_note,
+    reviewedAt: r.reviewed_at,
+    disqualificationReason: r.disqualification_reason,
+    disqualifiedAt: r.disqualified_at,
+  }));
+  // A rejected time was never a finish, so it does not rank among them.
+  return rows.sort(
+    (a, b) => Number(a.status === "rejected") - Number(b.status === "rejected"),
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* A runner's results, for their profile                                      */
 /* -------------------------------------------------------------------------- */
 
@@ -135,6 +220,7 @@ export type RunnerResultRow = {
   distanceKm: number;
   finishSeconds: number;
   reviewNote: string | null;
+  disqualificationReason: string | null;
   submittedAt: string;
   reviewedAt: string | null;
 };
@@ -154,7 +240,7 @@ export async function listRunnerResults(
   let query = supabase
     .from("race_results")
     .select(
-      "id, status, finish_seconds, review_note, submitted_at, reviewed_at, event:events!race_results_event_id_fkey (name, slug, status, event_date, medal_image_path), category:event_categories!race_results_category_id_fkey (distance, distance_km)",
+      "id, status, finish_seconds, review_note, disqualification_reason, submitted_at, reviewed_at, event:events!race_results_event_id_fkey (name, slug, status, event_date, medal_image_path), category:event_categories!race_results_category_id_fkey (distance, distance_km)",
     )
     .eq("runner_id", runnerId);
   // An organizer looking at a runner would otherwise see the pending ones
@@ -180,6 +266,7 @@ export async function listRunnerResults(
               distanceKm: Number(r.category.distance_km),
               finishSeconds: r.finish_seconds,
               reviewNote: r.review_note,
+              disqualificationReason: r.disqualification_reason,
               submittedAt: r.submitted_at,
               reviewedAt: r.reviewed_at,
             },

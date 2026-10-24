@@ -14,10 +14,12 @@ import { siteOrigin } from "@/lib/site-url";
  * The email a runner gets once the organizer — or an admin — reviews the
  * finish time they sent. Accepted: it is on their profile, with the event's
  * medal. Sent back: the reviewer's note, if any, and a link to send new
- * evidence from the race page.
+ * evidence from the race page. Disqualified later: the reason, and that the
+ * result and medal are off their profile.
  *
- * `review_race_result()` answers a pending result once, so no claim is
- * needed. Written to the address on the runner's registration.
+ * `review_race_result()` answers a pending result once, and
+ * `disqualify_race_result()` an accepted one, so no claim is needed. Written
+ * to the address on the runner's registration.
  */
 
 type Result = Tables<"race_results">;
@@ -45,15 +47,21 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
     getEmailSettingOf(result.runner_id),
   ]);
   if (!event || !reg) throw new Error("Event or registration not found.");
+  const disqualified = result.status === "disqualified";
   // "Results posted" in settings; the runner can switch it off. The result
-  // itself shows on their race page either way.
-  if (!settings.results) return;
+  // itself shows on their race page either way. A disqualification takes
+  // something away, so they hear of it regardless.
+  if (!settings.results && !disqualified) return;
   const { locale } = settings;
 
   const accepted = result.status === "accepted";
+  const template = accepted
+    ? "resultAccepted"
+    : disqualified
+      ? "resultDisqualified"
+      : "resultRejected";
   const t = await getTranslator(locale);
-  const k = (key: string) =>
-    `emails.${accepted ? "resultAccepted" : "resultRejected"}.${key}`;
+  const k = (key: string) => `emails.${template}.${key}`;
 
   await sendEmail({
     to: { email: reg.email, name: `${reg.first_name} ${reg.last_name}` },
@@ -67,20 +75,27 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
         [t(k("race")), event.name],
         [t(k("time")), formatFinishTime(result.finish_seconds)],
       ],
-      note:
-        !accepted && result.review_note
+      note: disqualified
+        ? result.disqualification_reason
+          ? { label: t(k("note")), body: result.disqualification_reason }
+          : undefined
+        : !accepted && result.review_note
           ? { label: t(k("note")), body: result.review_note }
           : undefined,
       outro: [t(k("next"))],
       cta: {
         label: t(k("cta")),
         url: `${origin}${localizePath(
-          accepted ? `/runners/${result.runner_id}` : `/events/${event.slug}`,
+          accepted || disqualified
+            ? `/runners/${result.runner_id}`
+            : `/events/${event.slug}`,
           locale,
         )}`,
       },
       footer: t(k("footer"), { event: event.name }),
     }),
-    tags: [accepted ? "result-accepted" : "result-rejected"],
+    tags: [
+      accepted ? "result-accepted" : disqualified ? "result-disqualified" : "result-rejected",
+    ],
   });
 }

@@ -12,12 +12,12 @@ import {
 } from "./evidence";
 
 /**
- * Sending and reviewing finish evidence.
+ * Sending and reviewing finish evidence, and disqualifying a result.
  *
  * Errors come back as keys under `raceResult.errors` (the runner's side) and
  * `resultReview.errors` (the organizer's). Who may do what is decided by
- * `submit_race_result()` and `review_race_result()`; the checks here are for
- * the message.
+ * `submit_race_result()`, `review_race_result()`, `disqualify_race_result()`
+ * and `reinstate_race_result()`; the checks here are for the message.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -29,6 +29,7 @@ const SUBMIT_ERRORS = new Set([
   "raceNotStarted",
   "notRegistered",
   "resultAlreadyAccepted",
+  "resultDisqualified",
 ]);
 
 export type SubmitResult =
@@ -43,6 +44,7 @@ export type SubmitResult =
         | "raceNotStarted"
         | "notRegistered"
         | "resultAlreadyAccepted"
+        | "resultDisqualified"
         | "submitFailed";
     };
 
@@ -148,6 +150,85 @@ export async function reviewRaceResultAction(
   }
 
   await scheduleResultReviewedEmail(data);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export type DisqualifyResult =
+  | { ok: true }
+  /** A key under `resultFinishers.errors`. */
+  | {
+      ok: false;
+      error: "notAllowed" | "alreadyChanged" | "reasonRequired" | "disqualifyFailed";
+    };
+
+/**
+ * Take back an accepted result: it and the event's medal leave the runner's
+ * profile, and they cannot send new evidence. `reason` is shown to them and
+ * emailed. The evidence stays, as the record.
+ */
+export async function disqualifyRaceResultAction(
+  resultId: string,
+  reason: string,
+): Promise<DisqualifyResult> {
+  if (typeof resultId !== "string" || !UUID.test(resultId)) {
+    return { ok: false, error: "disqualifyFailed" };
+  }
+  const trimmed =
+    typeof reason === "string" ? reason.trim().slice(0, REVIEW_NOTE_MAX) : "";
+  if (!trimmed) return { ok: false, error: "reasonRequired" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("disqualify_race_result", {
+    p_result_id: resultId,
+    p_reason: trimmed,
+  });
+
+  if (error || !data) {
+    const key = error?.code === RAISED ? error.message : "";
+    if (key === "notAllowed") return { ok: false, error: "notAllowed" };
+    if (key === "reasonRequired") return { ok: false, error: "reasonRequired" };
+    // Disqualified a moment ago, from another tab or by an admin.
+    if (key === "resultMissing") return { ok: false, error: "alreadyChanged" };
+    console.error(`Disqualifying result ${resultId} failed:`, error?.message);
+    return { ok: false, error: "disqualifyFailed" };
+  }
+
+  await scheduleResultReviewedEmail(data);
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export type ReinstateResult =
+  | { ok: true }
+  /** A key under `resultFinishers.errors`. */
+  | { ok: false; error: "notAllowed" | "alreadyChanged" | "reinstateFailed" };
+
+/**
+ * Undo a disqualification, for an appeal or a mistake: the result is
+ * accepted again, medal and all. Platform admins only. The runner is not
+ * emailed; the result is simply back on their profile.
+ */
+export async function reinstateRaceResultAction(
+  resultId: string,
+): Promise<ReinstateResult> {
+  if (typeof resultId !== "string" || !UUID.test(resultId)) {
+    return { ok: false, error: "reinstateFailed" };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reinstate_race_result", {
+    p_result_id: resultId,
+  });
+
+  if (error || !data) {
+    const key = error?.code === RAISED ? error.message : "";
+    if (key === "notAllowed") return { ok: false, error: "notAllowed" };
+    if (key === "resultMissing") return { ok: false, error: "alreadyChanged" };
+    console.error(`Reinstating result ${resultId} failed:`, error?.message);
+    return { ok: false, error: "reinstateFailed" };
+  }
+
   revalidatePath("/", "layout");
   return { ok: true };
 }

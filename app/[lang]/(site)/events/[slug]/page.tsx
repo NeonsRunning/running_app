@@ -8,6 +8,7 @@ import { EventDetailTabs } from "@/components/events/event-detail-tabs";
 import { EventPayments } from "@/components/organizer/event-payments";
 import { CancelledRegistrations } from "@/components/organizer/cancelled-registrations";
 import { EventRegistrations } from "@/components/organizer/event-registrations";
+import { EventFinishers } from "@/components/organizer/event-finishers";
 import { EventResults } from "@/components/organizer/event-results";
 import { ResultSubmission } from "@/components/results/result-submission";
 import { SaveButton } from "@/components/events/saved-events";
@@ -18,7 +19,11 @@ import { daysUntil } from "@/lib/data";
 import { getCancelledRegistrations, getEventRegistrations } from "@/lib/events/organizer";
 import { findEvent, getOwnRegistration } from "@/lib/events/queries";
 import { puertoRicoToday } from "@/lib/results/evidence";
-import { getOwnResult, listEventResultSubmissions } from "@/lib/results/queries";
+import {
+  getOwnResult,
+  listEventFinishers,
+  listEventResultSubmissions,
+} from "@/lib/results/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 import {
@@ -62,16 +67,23 @@ export default async function EventDetailPage(
   // everyone else the query.
   // Completed registrations ride along on the same check.
   const user = await getUser();
-  const canManage =
-    Boolean(user) && (user?.id === organizer.id || (await isPlatformAdmin()));
-  const [pendingPayments, registrations, pendingResults, cancelled] = canManage
-    ? await Promise.all([
-        listEventAthMovilSubmissions(event.id),
-        getEventRegistrations(event.id, event.date),
-        listEventResultSubmissions(event.id),
-        getCancelledRegistrations(event.id),
-      ])
-    : [null, null, null, null];
+  const isAdmin = Boolean(user) && (await isPlatformAdmin());
+  const canManage = Boolean(user) && (user?.id === organizer.id || isAdmin);
+  const [pendingPayments, registrations, pendingResults, cancelled, finishers] =
+    canManage
+      ? await Promise.all([
+          listEventAthMovilSubmissions(event.id),
+          getEventRegistrations(event.id, event.date, {
+          mailsMedals: Boolean(event.mailsMedals),
+          acceptsResults: Boolean(event.acceptsResults),
+          firstDay: event.date || null,
+          lastDay: (event.endDate ?? event.date) || null,
+        }),
+          listEventResultSubmissions(event.id),
+          getCancelledRegistrations(event.id),
+          listEventFinishers(event.id),
+        ])
+      : [null, null, null, null, null];
   // Shown while the event takes results, and after it stops for as long as
   // anything is left to review.
   const showResults =
@@ -215,6 +227,15 @@ export default async function EventDetailPage(
       {showResults ? (
         <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
           <EventResults initial={pendingResults} />
+        </div>
+      ) : null}
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Reviewed results, to disqualify — organizer and admins only      */}
+      {/* ---------------------------------------------------------------- */}
+      {finishers && (showResults || finishers.length > 0) ? (
+        <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
+          <EventFinishers initial={finishers} isAdmin={isAdmin} />
         </div>
       ) : null}
 

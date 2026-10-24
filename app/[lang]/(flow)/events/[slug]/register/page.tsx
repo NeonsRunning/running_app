@@ -15,6 +15,7 @@ import { localizePath } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { formatMailingAddress } from "@/lib/profile/address";
 import { getProfileDetails } from "@/lib/profile/queries";
+import { getOwnFinish } from "@/lib/results/queries";
 
 // No `generateStaticParams`: events published from /publish are read with the
 // visitor's session client, which a statically generated route cannot use.
@@ -59,10 +60,11 @@ export default async function RegisterPage(
   // Back from a payment that redirected, or one the payment step never heard
   // back about: confirm it first, so the page opens on the bib.
   await reconcilePendingPayment(user.id, event.id);
-  const [details, existing, athMovil] = await Promise.all([
+  const [details, existing, athMovil, finishSeconds] = await Promise.all([
     getProfileDetails(user.id),
     getOwnRegistration(user.id, event.id),
     getAthMovilStatus(user.id, event.id),
+    getOwnFinish(user.id, event.id),
   ]);
 
   // Open with what the runner already told us; they can change any of it.
@@ -90,6 +92,7 @@ export default async function RegisterPage(
           : ""
       }
       existing={existing}
+      finishSeconds={existing ? finishSeconds : null}
       athMovil={athMovil}
     />
   );

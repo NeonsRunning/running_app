@@ -28,7 +28,8 @@ import { createClient } from "@/lib/supabase/client";
  * the screenshot is converted to WebP and uploaded from the browser into the
  * runner's folder of the private `race-evidence` bucket, and only its path
  * goes to the server action. Then the card follows the review: waiting,
- * accepted, or sent back with the organizer's note and the form again.
+ * accepted, or sent back with the organizer's note and the form again. A
+ * disqualified result shows the reason, and no form.
  */
 export function ResultSubmission({
   eventId,
@@ -73,6 +74,21 @@ export function ResultSubmission({
         <Button href={SELF_PROFILE_PATH} variant="outline" size="sm" className="mt-4">
           {t("raceResult.viewProfile")}
         </Button>
+      </Shell>
+    );
+  }
+
+  if (own?.status === "disqualified") {
+    return (
+      <Shell>
+        <div className="mt-3 border-2 border-danger/60 bg-danger/8 p-4">
+          <Badge tone="danger">{t("raceResult.disqualified")}</Badge>
+          <p className="mt-3 text-[14px] text-fg-muted">
+            {own.disqualificationReason
+              ? t("raceResult.disqualifiedNote", { reason: own.disqualificationReason })
+              : t("raceResult.disqualifiedBody")}
+          </p>
+        </div>
       </Shell>
     );
   }

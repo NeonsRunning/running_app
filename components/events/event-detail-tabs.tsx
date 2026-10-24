@@ -440,6 +440,9 @@ function FinisherMedal({ event }: { event: RunningEvent }) {
           {event.medalImage
             ? t("events.tabs.medalCaption")
             : t("events.tabs.medalPending")}
+          {event.mailsMedals ? (
+            <span className="mt-3 block text-fg">{t("events.tabs.medalMailed")}</span>
+          ) : null}
         </figcaption>
       </figure>
     </section>

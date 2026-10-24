@@ -180,6 +180,7 @@ export function PublishWizard({
   const [acceptsDonations, setAcceptsDonations] = useState(initial.acceptsDonations);
   const [offersMail, setOffersMail] = useState(initial.offersMail);
   const [acceptsResults, setAcceptsResults] = useState(initial.acceptsResults);
+  const [mailsMedals, setMailsMedals] = useState(initial.mailsMedals);
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -1407,6 +1408,19 @@ export function PublishWizard({
                 onChange={setAcceptsResults}
                 title={t("publish.results.title")}
                 detail={t("publish.results.detail")}
+              />
+            </div>
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="mails_medals"
+                checked={mailsMedals}
+                onChange={setMailsMedals}
+                title={t("publish.medalMail.title")}
+                detail={t(
+                  acceptsResults
+                    ? "publish.medalMail.detailResults"
+                    : "publish.medalMail.detail",
+                )}
               />
             </div>
           </div>
