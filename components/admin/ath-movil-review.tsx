@@ -29,6 +29,13 @@ export function AthMovilReview({
   });
   const { toast } = useToast();
   const [rows, setRows] = useState(initial);
+  // New submissions, and ones an organizer put back to pending, arrive with
+  // the revalidated list; take it as it comes rather than keeping the first.
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setRows(initial);
+  }
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmingReject, setConfirmingReject] = useState<string | null>(null);
 

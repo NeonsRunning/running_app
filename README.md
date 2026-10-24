@@ -268,6 +268,31 @@ Or paste `supabase/migrations/20260824120000_profiles.sql` into the SQL editor
 in the dashboard. It is idempotent in the part that matters: accounts that
 existed before it ran are backfilled at the end.
 
+### Changing a SQL function
+
+Migrations are append-only, so a function changed several times lives in full
+in every migration that changed it, and only the last one counts. To change
+one, copy **its latest definition** into a new migration and edit that:
+copying an older one silently drops whatever was added since.
+
+```bash
+npm run db:functions               # every function and the migration that defines it now
+npm run db:functions save_event    # just one
+```
+
+Prices are worked out twice, in `register_for_event()` (what is charged) and
+`lib/events/pricing.ts` (what the form shows). `supabase/tests/database/pricing.test.sql`
+and `lib/events/pricing.test.ts` price the same sign-up; change the fee or the
+tax rate in both places, or one of them fails.
+
+### Testing it
+
+`npm run test:db` runs the pgTAP tests in `supabase/tests` against a local
+database (`supabase start`, which needs Docker); CI runs them on every pull
+request, after applying every migration to a fresh database. They insert
+test users and events inside a transaction they roll back — run them only
+against a throwaway database, never a real project's SQL editor.
+
 ## ATH Móvil payments
 
 Next to Stripe, runners can pay with ATH Móvil. There is no API behind it: the

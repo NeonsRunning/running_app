@@ -10,10 +10,11 @@ import { useT } from "@/components/i18n/provider";
  */
 export default function GlobalError({
   error,
-  reset,
+  retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  /** Re-fetches and re-renders the page: what fixes a failed server render. */
+  retry: () => void;
 }) {
   const t = useT();
 
@@ -41,7 +42,7 @@ export default function GlobalError({
         </p>
       ) : null}
       <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-        <Button size="lg" onClick={reset}>
+        <Button size="lg" onClick={retry}>
           {t("error.tryAgain")}
         </Button>
         <Button href="/" variant="outline" size="lg">

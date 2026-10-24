@@ -64,10 +64,17 @@ export function ProfilePhoto({
       if (error) return fail("uploadFailed");
 
       setPhase("saving");
-      const result = await setAvatarAction(path);
+      // Thrown when the request never got an answer: the profile may or may
+      // not point at the file, so leave it rather than risk deleting a photo
+      // that was saved.
+      const result = await setAvatarAction(path).catch(
+        (): { error: string; unanswered: true } => ({ error: "saveFailed", unanswered: true }),
+      );
       if (result.error) {
-        // Nothing points at it now.
-        void supabase.storage.from(AVATAR_BUCKET).remove([path]);
+        // Refused by the server: nothing points at it now.
+        if (!("unanswered" in result)) {
+          void supabase.storage.from(AVATAR_BUCKET).remove([path]);
+        }
         return fail(result.error);
       }
       toast({ title: t("runner.photo.saved") });
@@ -85,6 +92,9 @@ export function ProfilePhoto({
       const result = await setAvatarAction(null);
       if (result.error) return fail(result.error);
       toast({ title: t("runner.photo.removed") });
+    } catch {
+      // No answer from the server: say so rather than fail silently.
+      fail("saveFailed");
     } finally {
       setPhase(null);
     }
