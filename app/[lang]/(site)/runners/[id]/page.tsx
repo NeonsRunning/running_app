@@ -13,6 +13,7 @@ import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
 import { cn } from "@/lib/cn";
 import { daysUntil } from "@/lib/data";
+import { puertoRicoDate } from "@/lib/dates";
 import {
   getRegisteredEventIds,
   getSavedSlugs,
@@ -441,7 +442,7 @@ export default async function RunnerProfilePage(
                         {fmt.mediumDate(r.eventDate)} ·{" "}
                         {distanceLabel(t, r.distance)} ·{" "}
                         {t("runner.submittedOn", {
-                          date: fmt.mediumDate(r.submittedAt.slice(0, 10)),
+                          date: fmt.mediumDate(puertoRicoDate(r.submittedAt)),
                         })}
                       </p>
                       {r.status === "rejected" ? (

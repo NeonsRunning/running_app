@@ -35,11 +35,21 @@ import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
 type Registration = Tables<"registrations">;
 
 export type SettleResult =
-  | { ok: true; registration: Registration }
+  | {
+      ok: true;
+      registration: Registration;
+      /** This payment duplicated the one that confirmed it, and its refund failed. */
+      refundFailed?: boolean;
+    }
   | {
       ok: false;
       /** A key under `register.errors`. */
-      error: "paymentRefunded" | "soldOut" | "registrationFailed";
+      error:
+        | "paymentRefunded"
+        | "soldOut"
+        | "registrationFailed"
+        /** This payment's registration was cancelled since it confirmed it. */
+        | "registrationCancelled";
     };
 
 /**
@@ -57,8 +67,15 @@ const REFUNDABLE = new Set<string>([
  * Refund in full and tell the runner. The page and the webhook can both get
  * here for one payment: the idempotency key makes the second call a replay of
  * the first, and only the call that created the refund sends the email.
+ *
+ * Resolves false when the money is still with us. The caller must not report
+ * the payment as settled then: the webhook answers with an error so Stripe
+ * delivers it again, and the retry refunds.
  */
-async function refund(intent: Stripe.PaymentIntent, reason: RefundReason) {
+async function refund(
+  intent: Stripe.PaymentIntent,
+  reason: RefundReason,
+): Promise<boolean> {
   try {
     const created = await getStripe().refunds.create(
       { payment_intent: intent.id },
@@ -69,9 +86,17 @@ async function refund(intent: Stripe.PaymentIntent, reason: RefundReason) {
         name.toLowerCase() === "idempotent-replayed" && value === "true",
     );
     if (!replayed) await schedulePaymentRefundedEmail(intent, reason);
+    return true;
   } catch (err) {
-    // Most likely already refunded. Anything else needs a person to look.
-    console.error(`Refund of ${intent.id} failed:`, err);
+    // Refunded already — by an earlier call whose idempotency key has since
+    // expired, or by hand in the dashboard. The runner has their money.
+    if ((err as { code?: string }).code === "charge_already_refunded") return true;
+    console.error(
+      `REFUND FAILED: ${intent.id} (${intent.amount_received} cents, ` +
+        `registration ${intent.metadata?.registration_id}, ${reason}) is still charged:`,
+      err,
+    );
+    return false;
   }
 }
 
@@ -94,7 +119,11 @@ export async function settlePayment(
   if (error || !data) {
     const key = error?.code === "P0001" ? error.message : "";
     if (REFUNDABLE.has(key)) {
-      await refund(intent, key as RefundReason);
+      // Not refunded yet: say so, rather than promise money back that is
+      // still with us. The webhook retries on this error.
+      if (!(await refund(intent, key as RefundReason))) {
+        return { ok: false, error: "registrationFailed" };
+      }
       return { ok: false, error: key === "soldOut" ? "soldOut" : "paymentRefunded" };
     }
     // A database hiccup: leave the payment alone so a retry can confirm it.
@@ -102,11 +131,87 @@ export async function settlePayment(
     return { ok: false, error: "registrationFailed" };
   }
 
-  // Confirmed earlier by a different payment: this one is a duplicate.
-  if (data.payment_intent_id !== intent.id) await refund(intent, "duplicate");
-  else await scheduleRegistrationEmail(data);
+  // The organizer or an admin took the runner off the race after this payment
+  // confirmed it: a late or replayed report of that same payment. Nothing to
+  // do — whether it is refunded is a person's call, made in Stripe.
+  if (data.status === "cancelled" && data.payment_intent_id === intent.id) {
+    return { ok: false, error: "registrationCancelled" };
+  }
 
+  // Confirmed earlier by a different payment: this one is a duplicate. The
+  // sign-up itself is fine, so the runner still sees it; only the webhook
+  // needs to hear that the refund has to be tried again.
+  if (data.payment_intent_id !== intent.id) {
+    const refunded = await refund(intent, "duplicate");
+    return { ok: true, registration: data, refundFailed: !refunded };
+  }
+
+  await scheduleRegistrationEmail(data);
   return { ok: true, registration: data };
+}
+
+/** A PaymentIntent reference as Stripe embeds it: an id, the object, or nothing. */
+function intentId(ref: string | Stripe.PaymentIntent | null): string | null {
+  return typeof ref === "string" ? ref : (ref?.id ?? null);
+}
+
+/**
+ * Record a refund made on a registration's payment — from the Stripe
+ * dashboard, usually, after a runner was taken off a race. `amount_refunded`
+ * on the charge is the running total, so the update only ever raises the
+ * stored one: a delivery that arrives late cannot lower it. Payments that
+ * belong to no registration (the duplicates and late payments refunded in
+ * `settlePayment`) match nothing and are left alone.
+ *
+ * Resolves false on a database failure, so the webhook asks Stripe to retry.
+ */
+export async function recordRefund(charge: Stripe.Charge): Promise<boolean> {
+  const paymentIntent = intentId(charge.payment_intent);
+  if (!paymentIntent || charge.amount_refunded <= 0) return true;
+
+  const { error } = await createAdminClient()
+    .from("registrations")
+    .update({
+      amount_refunded: charge.amount_refunded / 100,
+      refunded_at: new Date().toISOString(),
+    })
+    .eq("payment_intent_id", paymentIntent)
+    .lte("amount_refunded", charge.amount_refunded / 100);
+  if (error) {
+    console.error(`Recording the refund on ${paymentIntent} failed:`, error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Record a dispute (chargeback) on a registration's payment, and its status
+ * as Stripe moves it along. Logged loudly as well: a dispute has a response
+ * deadline, and someone has to answer it in the Stripe dashboard.
+ *
+ * Resolves false on a database failure, so the webhook asks Stripe to retry.
+ */
+export async function recordDispute(dispute: Stripe.Dispute): Promise<boolean> {
+  const paymentIntent = intentId(dispute.payment_intent);
+  if (!paymentIntent) return true;
+
+  console.error(
+    `PAYMENT DISPUTED: ${paymentIntent} (${dispute.amount} cents) is ${dispute.status}; ` +
+      "answer it in the Stripe dashboard.",
+  );
+
+  const { error } = await createAdminClient()
+    .from("registrations")
+    .update({
+      disputed_at: new Date(dispute.created * 1000).toISOString(),
+      dispute_status: dispute.status,
+    })
+    .eq("payment_intent_id", paymentIntent);
+  if (error) {
+    console.error(`Recording the dispute on ${paymentIntent} failed:`, error.message);
+    return false;
+  }
+  return true;
 }
 
 /**

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   ATH_MOVIL_PATH,
@@ -9,7 +10,7 @@ import {
   MAX_LABEL_LENGTH,
   toAthMovilAccount,
 } from "./config";
-import type { AthMovilAccountRow } from "./queries";
+import { getOwnerHandles, type AthMovilAccountRow } from "./queries";
 
 /**
  * Listing ATH Móvil Business accounts: what organizers pick from in the
@@ -29,6 +30,12 @@ export type AccountInput = {
   path: string;
   /** Object path in the bucket; null for no QR code. */
   qrPath: string | null;
+  /**
+   * Handle of the organizer who holds the business app, with or without the
+   * "@"; empty for none. They may approve payments into it for their own
+   * events; with no owner, only platform admins review.
+   */
+  ownerHandle: string;
 };
 
 export type AccountResult =
@@ -36,7 +43,7 @@ export type AccountResult =
   | {
       ok: false;
       /** Field name to a key under `adminAccounts.errors`. */
-      fieldErrors?: Partial<Record<"label" | "path", string>>;
+      fieldErrors?: Partial<Record<"label" | "path" | "owner", string>>;
       error?: "notAdmin" | "saveFailed";
     };
 
@@ -45,16 +52,46 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const QR_PATH = /^[0-9a-f-]{36}\.(png|jpg|webp)$/;
 const UNIQUE_VIOLATION = "23505";
 
-const COLUMNS = "id, label, path, qr_path, active";
+const COLUMNS = "id, label, path, qr_path, active, owner_id";
 
-function toRow(r: {
+async function toRow(r: {
   id: string;
   label: string;
   path: string;
   qr_path: string | null;
   active: boolean;
-}): AthMovilAccountRow {
-  return { ...toAthMovilAccount(r), qrPath: r.qr_path, active: r.active };
+  owner_id: string | null;
+}): Promise<AthMovilAccountRow> {
+  const handles = await getOwnerHandles([r.owner_id]);
+  return {
+    ...toAthMovilAccount(r),
+    qrPath: r.qr_path,
+    active: r.active,
+    ownerHandle: r.owner_id ? (handles.get(r.owner_id) ?? null) : null,
+  };
+}
+
+/**
+ * The owner a typed handle names: an organizer's account id, null for none,
+ * or the field error to show. Read with the service role — the profile may
+ * be private — so call it only once the caller is known to be an admin.
+ */
+async function resolveOwner(
+  typed: string,
+): Promise<{ ownerId: string | null } | { error: "ownerNotFound" | "ownerNotOrganizer" }> {
+  const handle = typed.trim().replace(/^@/, "").toLowerCase();
+  if (!handle) return { ownerId: null };
+
+  const { data } = await createAdminClient()
+    .from("profiles")
+    .select("id, account_type")
+    .eq("handle", handle)
+    .maybeSingle();
+  if (!data) return { error: "ownerNotFound" };
+  // Only an event's organizer ever approves, so an owner who isn't one
+  // could approve nothing: almost certainly the wrong handle.
+  if (data.account_type !== "organizer") return { error: "ownerNotOrganizer" };
+  return { ownerId: data.id };
 }
 
 /** Add an account, or change one's label, path or QR code. */
@@ -81,6 +118,11 @@ export async function saveAthMovilAccountAction(
 
   if (!(await isPlatformAdmin())) return { ok: false, error: "notAdmin" };
 
+  const owner = await resolveOwner(
+    typeof input.ownerHandle === "string" ? input.ownerHandle : "",
+  );
+  if ("error" in owner) return { ok: false, fieldErrors: { owner: owner.error } };
+
   const supabase = await createClient();
   let previousQr: string | null = null;
   if (id) {
@@ -93,7 +135,7 @@ export async function saveAthMovilAccountAction(
     previousQr = data.qr_path;
   }
 
-  const values = { label, path, qr_path: qrPath };
+  const values = { label, path, qr_path: qrPath, owner_id: owner.ownerId };
   const { data, error } = id
     ? await supabase
         .from("ath_movil_accounts")
@@ -123,7 +165,7 @@ export async function saveAthMovilAccountAction(
 
   // Payment steps and the wizard read the account.
   revalidatePath("/", "layout");
-  return { ok: true, account: toRow(data) };
+  return { ok: true, account: await toRow(data) };
 }
 
 /**
@@ -153,5 +195,5 @@ export async function setAthMovilAccountActiveAction(
   }
 
   revalidatePath("/", "layout");
-  return { ok: true, account: toRow(data) };
+  return { ok: true, account: await toRow(data) };
 }

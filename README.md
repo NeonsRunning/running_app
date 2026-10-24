@@ -355,17 +355,35 @@ lib/email/*.ts          one module per email: who, what, when
 - **In the reader's language.** Each email reads `profile_private.locale` for
   its recipient. Copy lives under `emails.*` in the dictionaries.
 
-### Race reminders
+### Scheduled jobs
 
-`GET /api/cron/race-reminders` emails every confirmed runner of a race that
-starts tomorrow (Puerto Rico time). Set `CRON_SECRET` and call it once a day
-with `Authorization: Bearer $CRON_SECRET` — for example at 14:00 UTC
-(10:00 on the island). On Vercel, a `vercel.json` cron entry sends that header
-by itself:
+Two routes need calling on a schedule, each with
+`Authorization: Bearer $CRON_SECRET` (set `CRON_SECRET`; without it both
+refuse every call):
+
+- `GET /api/cron/race-reminders` — **hourly.** Emails every confirmed runner
+  of a race that starts tomorrow (Puerto Rico time), except those who switched
+  reminders off. A run sends what it has time for; later runs that day pick up
+  the rest and retry failures, and nobody is reminded twice.
+- `GET /api/cron/email-outbox` — **every 10 minutes.** Notices that go to a
+  whole race (date or place changed, cancelled, reinstated) are written to
+  `email_outbox` and sent from there; this finishes what the original request
+  did not and retries failures, up to 8 tries. Rows that gave up keep their
+  `last_error`: `select * from email_outbox where sent_at is null and attempts >= 8`.
+
+On Vercel, a `vercel.json` cron entry sends the header by itself:
 
 ```json
-{ "crons": [{ "path": "/api/cron/race-reminders", "schedule": "0 14 * * *" }] }
+{
+  "crons": [
+    { "path": "/api/cron/race-reminders", "schedule": "5 * * * *" },
+    { "path": "/api/cron/email-outbox", "schedule": "*/10 * * * *" }
+  ]
+}
 ```
+
+The database schedules its own clean-ups with `pg_cron`: abandoned checkouts
+hourly, sent outbox rows after 30 days.
 
 ## Accessibility
 

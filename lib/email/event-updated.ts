@@ -7,7 +7,8 @@ import { getTranslator } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import type { Tables } from "@/lib/supabase/database.types";
-import { hasBrevoEnv, sendEmail, sendEmails, type Email } from "./brevo";
+import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
+import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners, getRecipient } from "./recipient";
 import { siteOrigin } from "./registration-confirmed";
@@ -180,7 +181,8 @@ function whereLine(e: Event, t: Translate): string {
 }
 
 async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: string) {
-  const runners = await getConfirmedRunners(saved.id);
+  // "Event updates" in settings; a runner can switch these off.
+  const runners = await getConfirmedRunners(saved.id, { only: "updates" });
   const emails: Email[] = [];
 
   for (const { locale, ...runner } of runners) {
@@ -218,8 +220,6 @@ async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: str
     });
   }
 
-  const failed = await sendEmails(emails);
-  if (failed) {
-    console.error(`${failed} of ${emails.length} event change emails for ${saved.id} failed.`);
-  }
+  // Through the outbox: retried until every runner has it.
+  await queueEmails(emails);
 }

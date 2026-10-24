@@ -7,6 +7,7 @@ import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { ConfirmDialog, Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
+import { puertoRicoDate } from "@/lib/dates";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
 import type { EventRegistrationRow } from "@/lib/events/organizer";
 import {
@@ -341,12 +342,12 @@ export function EventRegistrations({
       r.shirtSize ?? "",
       method(r),
       r.amount.toFixed(2),
-      r.paidAt.slice(0, 10),
+      puertoRicoDate(r.paidAt),
       r.email,
       r.phone,
       r.club ?? "",
       r.mailingAddress ?? "",
-      r.shippedAt?.slice(0, 10) ?? "",
+      r.shippedAt ? puertoRicoDate(r.shippedAt) : "",
       r.shippingTracking ?? "",
     ]);
     const csv = [header, ...body]

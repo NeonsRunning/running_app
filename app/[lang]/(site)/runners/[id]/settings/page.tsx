@@ -4,7 +4,12 @@ import { Link } from "@/components/i18n/link";
 import { SettingsPanel } from "@/components/settings/settings-panel";
 import { requireUser } from "@/lib/auth/session";
 import { SELF_ID, SELF_PROFILE_PATH } from "@/lib/auth/routes";
-import { getProfile, getProfileDetails } from "@/lib/profile/queries";
+import { getUpcomingRegistrations } from "@/lib/events/queries";
+import {
+  getDeletionRequestedAt,
+  getProfile,
+  getProfileDetails,
+} from "@/lib/profile/queries";
 import { getT } from "@/lib/i18n/server";
 
 /**
@@ -29,9 +34,11 @@ export default async function RunnerSettingsPage(
 
   const t = await getT();
   const user = await requireUser(`${SELF_PROFILE_PATH}/settings`);
-  const [profile, details] = await Promise.all([
+  const [profile, details, deletionRequestedAt, upcoming] = await Promise.all([
     getProfile(user.id),
     getProfileDetails(user.id),
+    getDeletionRequestedAt(user.id),
+    getUpcomingRegistrations(user.id),
   ]);
 
   return (
@@ -45,7 +52,11 @@ export default async function RunnerSettingsPage(
       <h1 className="mt-4 font-display text-4xl leading-[0.9] font-black tracking-[-0.04em] uppercase sm:text-5xl">
         {t("settings.title")}
       </h1>
-      <SettingsPanel profile={profile} details={details} />
+      <SettingsPanel
+        profile={profile}
+        details={details}
+        deletion={{ requestedAt: deletionRequestedAt, upcoming: upcoming.length }}
+      />
     </div>
   );
 }

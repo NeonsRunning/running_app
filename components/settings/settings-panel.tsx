@@ -13,8 +13,12 @@ import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field"
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/layout/session";
-import { useT } from "@/components/i18n/provider";
+import { useLocaleTag, useT } from "@/components/i18n/provider";
 import {
+  cancelAccountDeletionAction,
+  exportMyDataAction,
+  requestAccountDeletionAction,
+  setEmailPreferenceAction,
   setProfileVisibilityAction,
   updateMailingAddressAction,
   updateProfileAction,
@@ -33,20 +37,12 @@ import {
 import { cn } from "@/lib/cn";
 
 /**
- * Labels are dictionary keys, resolved at render against the active locale.
- *
- * Local state only: notification preferences have no table yet, so these
- * toggles reset on reload. The profile form and the visibility switch below
- * are the two controls on this screen that write.
+ * The emails a runner can switch off, each a column on `profile_private`
+ * (labels are keys under `settings.prefs`). Everything about money or a held
+ * spot always goes, so it has no switch.
  */
-const NOTIFICATION_PREFS = [
-  { id: "reminders", on: true },
-  { id: "results", on: true },
-  { id: "updates", on: true },
-  { id: "openings", on: true },
-  { id: "community", on: false },
-  { id: "marketing", on: false },
-];
+const EMAIL_PREFS = ["reminders", "results", "updates"] as const;
+type EmailPref = (typeof EMAIL_PREFS)[number];
 
 /** One role on the account-type card: what it is, whether it is on, where it leads. */
 function RoleRow({
@@ -97,17 +93,19 @@ function Section({
 export function SettingsPanel({
   profile,
   details,
+  deletion,
 }: {
   profile: Profile | null;
   details: ProfileDetails | null;
+  deletion: {
+    /** When the runner asked for their account to be deleted; null if not. */
+    requestedAt: string | null;
+    /** Their sign-ups for races still to come, for the warning. */
+    upcoming: number;
+  };
 }) {
   const session = useSession();
-  const { toast } = useToast();
   const t = useT();
-  const [prefs, setPrefs] = useState(
-    Object.fromEntries(NOTIFICATION_PREFS.map((p) => [p.id, p.on])),
-  );
-  const [confirmDelete, setConfirmDelete] = useState(false);
 
   return (
     <div className="max-w-4xl">
@@ -138,45 +136,12 @@ export function SettingsPanel({
         description={t("settings.notificationsDescription")}
       >
         <ul className="border-t-2 border-line">
-          {NOTIFICATION_PREFS.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center justify-between gap-6 border-b-2 border-line py-4"
-            >
-              <div>
-                <p className="text-[15px] font-bold">
-                  {t(`settings.prefs.${p.id}`)}
-                </p>
-                <p className="mt-1 text-[13px] text-fg-dim">
-                  {t(`settings.prefs.${p.id}Detail`)}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={prefs[p.id]}
-                aria-label={t(`settings.prefs.${p.id}`)}
-                onClick={() =>
-                  setPrefs((v) => ({ ...v, [p.id]: !v[p.id] }))
-                }
-                className={cn(
-                  "relative h-8 w-14 shrink-0 border-2 transition-colors",
-                  prefs[p.id]
-                    ? "border-neon-lime bg-neon-lime/20"
-                    : "border-line-strong",
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  className={cn(
-                    "absolute top-0.5 h-6 w-6 transition-[left]",
-                    prefs[p.id]
-                      ? "left-[1.65rem] bg-neon-lime"
-                      : "left-0.5 bg-line-bright",
-                  )}
-                />
-              </button>
-            </li>
+          {EMAIL_PREFS.map((pref) => (
+            <EmailPrefSwitch
+              key={pref}
+              pref={pref}
+              initial={details?.emailPrefs[pref] ?? true}
+            />
           ))}
         </ul>
       </Section>
@@ -234,64 +199,219 @@ export function SettingsPanel({
       </Section>
 
       <Section title={t("settings.privacy")}>
-        <div className="flex flex-col gap-5">
-          <PublicProfileToggle isPublic={profile?.isPublic ?? true} />
-          {/* Not persisted yet — the directory listings it describes are
-              still fixture data. */}
-          <Checkbox
-            defaultChecked
-            label={
-              <>
-                <span className="font-bold">
-                  {t("settings.showInLists")}
-                </span>
-                <span className="mt-1 block text-[13px] text-fg-dim">
-                  {t("settings.showInListsDetail")}
-                </span>
-              </>
-            }
-          />
-        </div>
-        <Button
-          variant="outline"
-          size="md"
-          className="mt-6"
-          onClick={() =>
-            toast({
-              title: t("settings.exportTitle"),
-              body: t("settings.exportBody"),
-            })
-          }
-        >
-          {t("settings.exportData")}
-        </Button>
+        <PublicProfileToggle isPublic={profile?.isPublic ?? true} />
+        <ExportData />
       </Section>
 
       <Section
         title={t("settings.dangerZone")}
         description={t("settings.dangerDescription")}
       >
-        <Button variant="danger" size="lg" onClick={() => setConfirmDelete(true)}>
-          {t("settings.deleteAccount")}
-        </Button>
+        <DeleteAccount
+          requestedAt={deletion.requestedAt}
+          upcoming={deletion.upcoming}
+          email={session.email}
+        />
       </Section>
+    </div>
+  );
+}
+
+/**
+ * One optional email, switched on or off. Written on change and rolled back
+ * if the write fails, like the profile visibility switch.
+ */
+function EmailPrefSwitch({ pref, initial }: { pref: EmailPref; initial: boolean }) {
+  const t = useT();
+  const { toast } = useToast();
+  const [on, setOn] = useState(initial);
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <li className="flex items-center justify-between gap-6 border-b-2 border-line py-4">
+      <div>
+        <p className="text-[15px] font-bold">{t(`settings.prefs.${pref}`)}</p>
+        <p className="mt-1 text-[13px] text-fg-dim">
+          {t(`settings.prefs.${pref}Detail`)}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={t(`settings.prefs.${pref}`)}
+        aria-busy={pending}
+        onClick={() => {
+          const next = !on;
+          setOn(next);
+          startTransition(async () => {
+            const result = await setEmailPreferenceAction(pref, next);
+            if (!result.error) return;
+            setOn(!next);
+            toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
+          });
+        }}
+        className={cn(
+          "relative h-8 w-14 shrink-0 border-2 transition-colors",
+          on ? "border-neon-lime bg-neon-lime/20" : "border-line-strong",
+        )}
+      >
+        <span
+          aria-hidden="true"
+          className={cn(
+            "absolute top-0.5 h-6 w-6 transition-[left]",
+            on ? "left-[1.65rem] bg-neon-lime" : "left-0.5 bg-line-bright",
+          )}
+        />
+      </button>
+    </li>
+  );
+}
+
+/**
+ * Download everything the platform holds about the runner as a JSON file.
+ * The server assembles it from the runner's own session; the browser saves it.
+ */
+function ExportData() {
+  const t = useT();
+  const { toast } = useToast();
+  const [pending, startTransition] = useTransition();
+
+  return (
+    <div className="mt-6">
+      <Button
+        variant="outline"
+        size="md"
+        disabled={pending}
+        aria-busy={pending}
+        onClick={() =>
+          startTransition(async () => {
+            const result = await exportMyDataAction();
+            if (!result.ok) {
+              toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
+              return;
+            }
+            const url = URL.createObjectURL(
+              new Blob([result.json], { type: "application/json" }),
+            );
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = result.filename;
+            link.click();
+            URL.revokeObjectURL(url);
+          })
+        }
+      >
+        {pending ? t("settings.exporting") : t("settings.exportData")}
+      </Button>
+      <p className="mt-2 max-w-2xl text-[13px] text-fg-dim">
+        {t("settings.exportDetail")}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Asking for the account to be deleted. The team carries it out by hand —
+ * paid registrations are payment records to keep or refund first — so this
+ * files the request and, once filed, says so instead of offering it again.
+ */
+function DeleteAccount({
+  requestedAt: initialRequestedAt,
+  upcoming,
+  email,
+}: {
+  requestedAt: string | null;
+  upcoming: number;
+  email: string;
+}) {
+  const t = useT();
+  const localeTag = useLocaleTag();
+  const { toast } = useToast();
+  const [confirming, setConfirming] = useState(false);
+  const [requestedAt, setRequestedAt] = useState(initialRequestedAt);
+  const [pending, startTransition] = useTransition();
+
+  if (requestedAt) {
+    const date = new Intl.DateTimeFormat(localeTag, {
+      dateStyle: "long",
+      // Every date the app shows is the island's.
+      timeZone: "America/Puerto_Rico",
+    }).format(new Date(requestedAt));
+    return (
+      <div className="max-w-2xl">
+        <p
+          role="status"
+          className="border-2 border-danger bg-danger/8 px-4 py-3 text-[14px] font-semibold"
+        >
+          {t("settings.deletionRequested", { date, email })}
+        </p>
+        <Button
+          variant="outline"
+          size="md"
+          className="mt-4"
+          disabled={pending}
+          aria-busy={pending}
+          onClick={() =>
+            startTransition(async () => {
+              const result = await cancelAccountDeletionAction();
+              if (!result.ok) {
+                toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
+                return;
+              }
+              setRequestedAt(null);
+              toast({ title: t("settings.deletionCancelledTitle") });
+            })
+          }
+        >
+          {pending ? t("common.saving") : t("settings.cancelDeletion")}
+        </Button>
+      </div>
+    );
+  }
+
+  const description =
+    upcoming === 0
+      ? t("settings.deleteDescriptionNone")
+      : upcoming === 1
+        ? t("settings.deleteDescriptionOne")
+        : t("settings.deleteDescriptionMany", { count: upcoming });
+
+  return (
+    <>
+      <Button
+        variant="danger"
+        size="lg"
+        onClick={() => setConfirming(true)}
+        disabled={pending}
+        aria-busy={pending}
+      >
+        {pending ? t("common.saving") : t("settings.deleteAccount")}
+      </Button>
 
       <ConfirmDialog
-        open={confirmDelete}
-        onClose={() => setConfirmDelete(false)}
+        open={confirming}
+        onClose={() => setConfirming(false)}
         onConfirm={() =>
-          toast({
-            title: t("settings.deletionScheduledTitle"),
-            body: t("settings.deletionScheduledBody"),
-            tone: "danger",
+          startTransition(async () => {
+            const result = await requestAccountDeletionAction();
+            if (!result.ok) {
+              toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
+              return;
+            }
+            setRequestedAt(result.requestedAt);
+            toast({
+              title: t("settings.deletionRequestedTitle"),
+              body: t("settings.deletionRequestedBody"),
+            });
           })
         }
         title={t("settings.deleteTitle")}
-        description={t("settings.deleteDescription")}
-        confirmLabel={t("settings.deleteAccount")}
+        description={description}
+        confirmLabel={t("settings.requestDeletion")}
         destructive
       />
-    </div>
+    </>
   );
 }
 

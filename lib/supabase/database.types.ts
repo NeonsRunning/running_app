@@ -82,6 +82,9 @@ export type Database = {
           address_state: string | null;
           address_postal_code: string | null;
           locale: string;
+          email_reminders: boolean;
+          email_results: boolean;
+          email_updates: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -99,6 +102,9 @@ export type Database = {
           address_state?: string | null;
           address_postal_code?: string | null;
           locale?: string;
+          email_reminders?: boolean;
+          email_results?: boolean;
+          email_updates?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -116,6 +122,9 @@ export type Database = {
           address_state?: string | null;
           address_postal_code?: string | null;
           locale?: string;
+          email_reminders?: boolean;
+          email_results?: boolean;
+          email_updates?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -387,11 +396,23 @@ export type Database = {
           payment_rejected_at: string | null;
           /** The ATH Móvil account the runner was told to pay. */
           ath_movil_account_id: string | null;
+          /** Set when the organizer or an admin took the runner off the event. */
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          /** When the current checkout hold began; it lasts at most 2 hours. */
+          hold_started_at: string | null;
+          /** Refunded through Stripe on the confirming payment, in dollars. */
+          amount_refunded: number;
+          refunded_at: string | null;
+          disputed_at: string | null;
+          /** Stripe's dispute status, e.g. "needs_response", "won", "lost". */
+          dispute_status: string | null;
         };
         Insert: never;
         /**
-         * Service role only: the server records the PaymentIntent it opened
-         * and when the confirmation email went out.
+         * Service role only: the server records the PaymentIntent it opened,
+         * when emails went out, and what Stripe reports about refunds and
+         * disputes.
          */
         Update: {
           payment_intent_id?: string | null;
@@ -400,6 +421,10 @@ export type Database = {
           shipped_at?: string | null;
           shipping_email_sent_at?: string | null;
           shipping_tracking?: string | null;
+          amount_refunded?: number;
+          refunded_at?: string | null;
+          disputed_at?: string | null;
+          dispute_status?: string | null;
         };
         Relationships: [
           {
@@ -441,6 +466,8 @@ export type Database = {
           /** Object path in the ath-movil-qr bucket. */
           qr_path: string | null;
           active: boolean;
+          /** Who holds the business app; may approve payments into it. */
+          owner_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -449,6 +476,7 @@ export type Database = {
           path: string;
           qr_path?: string | null;
           active?: boolean;
+          owner_id?: string | null;
           created_at?: string;
         };
         Update: {
@@ -456,8 +484,17 @@ export type Database = {
           path?: string;
           qr_path?: string | null;
           active?: boolean;
+          owner_id?: string | null;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "ath_movil_accounts_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       saved_events: {
         Row: {
@@ -563,10 +600,71 @@ export type Database = {
           },
         ];
       };
+      email_outbox: {
+        Row: {
+          id: string;
+          /** The `Email` handed to Brevo (lib/email/brevo.ts). */
+          payload: Json;
+          tag: string | null;
+          created_at: string;
+          attempts: number;
+          next_attempt_at: string;
+          sent_at: string | null;
+          last_error: string | null;
+        };
+        /** Service role only. */
+        Insert: {
+          id?: string;
+          payload: Json;
+          tag?: string | null;
+          created_at?: string;
+          attempts?: number;
+          next_attempt_at?: string;
+          sent_at?: string | null;
+          last_error?: string | null;
+        };
+        Update: {
+          attempts?: number;
+          next_attempt_at?: string;
+          sent_at?: string | null;
+          last_error?: string | null;
+        };
+        Relationships: [];
+      };
+      account_deletion_requests: {
+        Row: {
+          user_id: string;
+          requested_at: string;
+          /** When the team's email went out; null until then. */
+          team_notified_at: string | null;
+        };
+        Insert: never;
+        /** Service role only: the server records the team's email. */
+        Update: {
+          team_notified_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "account_deletion_requests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: { [_ in never]: never };
     Functions: {
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
+      request_account_deletion: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["Tables"]["account_deletion_requests"]["Row"];
+      };
+      cancel_account_deletion: {
+        Args: Record<PropertyKey, never>;
+        Returns: Database["public"]["Tables"]["account_deletion_requests"]["Row"];
+      };
       platform_stats: {
         Args: Record<PropertyKey, never>;
         Returns: {
@@ -659,6 +757,10 @@ export type Database = {
         Args: { p_registration_id: string };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
+      can_review_ath_movil_payment: {
+        Args: { p_registration_id: string };
+        Returns: boolean;
+      };
       review_ath_movil_payment: {
         Args: { p_registration_id: string; p_approve: boolean };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
@@ -727,7 +829,7 @@ export type Database = {
         | "Ultra";
       event_difficulty: "Easy" | "Moderate" | "Hard";
       event_status: "draft" | "published" | "removed";
-      registration_status: "pending" | "confirmed";
+      registration_status: "pending" | "confirmed" | "cancelled";
       payment_method: "stripe" | "ath_movil";
       result_status: "pending" | "accepted" | "rejected";
       profile_gender: "f" | "m" | "x";

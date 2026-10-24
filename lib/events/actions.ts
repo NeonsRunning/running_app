@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/auth/session";
+import { puertoRicoToday } from "@/lib/dates";
 import { scheduleEventSavedEmails } from "@/lib/email/event-updated";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -349,11 +350,10 @@ export async function saveEventAction(
     fieldErrors.description = "descriptionTooLong";
   if (!isOneOf(EVENT_TYPES, type)) fieldErrors.type = "typeRequired";
 
-  // Compared as ISO strings, which sort as dates. "Today" is UTC's, which is
-  // at most a few hours off the island's — close enough for a lower bound.
+  // Compared as ISO strings, which sort as dates; "today" is the island's.
   // A race that already happened can still be edited, as long as its date is
   // left alone.
-  const today = new Date().toISOString().slice(0, 10);
+  const today = puertoRicoToday();
   if (eventDate && !isDate(eventDate)) fieldErrors.event_date = "dateInvalid";
   else if (eventDate && eventDate < today && eventDate !== existing?.event_date)
     fieldErrors.event_date = "dateInPast";

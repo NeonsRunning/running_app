@@ -1,10 +1,15 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { puertoRicoToday } from "@/lib/dates";
 import { SHIRT_SIZES } from "@/lib/events/vocabulary";
 import { isOwnImagePath } from "@/lib/events/images";
 import { AVATAR_BUCKET } from "./avatars";
 import { ADDRESS_LIMITS, POSTAL_CODE, isStateCode } from "./address";
+import {
+  notifyTeamOfDeletionCancelled,
+  notifyTeamOfDeletionRequest,
+} from "@/lib/email/account-deletion";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -165,7 +170,7 @@ export async function updateRaceDetailsAction(
     birthDate &&
     (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) ||
       birthDate <= "1900-01-01" ||
-      birthDate > new Date().toISOString().slice(0, 10))
+      birthDate > puertoRicoToday())
   )
     fieldErrors.birthDate = "birthDateInvalid";
   if (phone && !PHONE.test(phone)) fieldErrors.phone = "phoneInvalid";
@@ -271,6 +276,212 @@ export async function updateMailingAddressAction(
 
   revalidatePath("/[lang]/runners/[id]/settings", "page");
   return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Account deletion                                                           */
+/* -------------------------------------------------------------------------- */
+
+export type DeletionRequestResult =
+  | { ok: true; requestedAt: string }
+  /** A key under `settings.errors`. */
+  | { ok: false; error: "sessionExpired" | "saveFailed" };
+
+/**
+ * Ask for the account to be deleted. Files the request — or returns the one
+ * already on file — and emails the team, who carry it out by hand: paid
+ * registrations are payment records that have to be kept or refunded first,
+ * so nothing is deleted from here.
+ *
+ * The request stands even if the team's email fails; it is logged and can be
+ * found by its missing `team_notified_at`, and asking again retries it.
+ */
+export async function requestAccountDeletionAction(): Promise<DeletionRequestResult> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: "sessionExpired" };
+
+  const { data, error } = await supabase.rpc("request_account_deletion");
+  if (error || !data) {
+    console.error("Filing a deletion request failed:", error?.message);
+    return { ok: false, error: "saveFailed" };
+  }
+
+  if (!data.team_notified_at) await notifyTeamOfDeletionRequest(userData.user.id);
+
+  revalidatePath("/[lang]/runners/[id]/settings", "page");
+  return { ok: true, requestedAt: data.requested_at };
+}
+
+export type CancelDeletionResult =
+  | { ok: true }
+  /** A key under `settings.errors`. */
+  | { ok: false; error: "sessionExpired" | "saveFailed" };
+
+/**
+ * Withdraw the deletion request. If the team had already been emailed about
+ * it, they are emailed again so nobody carries it out. Withdrawing one that
+ * is no longer on file — another tab, or the team just closed it — counts as
+ * done: either way there is nothing pending.
+ */
+export async function cancelAccountDeletionAction(): Promise<CancelDeletionResult> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { ok: false, error: "sessionExpired" };
+
+  const { data, error } = await supabase.rpc("cancel_account_deletion");
+  if (error && !(error.code === "P0001" && error.message === "notRequested")) {
+    console.error("Withdrawing a deletion request failed:", error.message);
+    return { ok: false, error: "saveFailed" };
+  }
+
+  if (data?.team_notified_at) {
+    await notifyTeamOfDeletionCancelled(userData.user.id, data.requested_at);
+  }
+
+  revalidatePath("/[lang]/runners/[id]/settings", "page");
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Email preferences                                                          */
+/* -------------------------------------------------------------------------- */
+
+const PREFERENCE_COLUMNS = {
+  reminders: (on: boolean) => ({ email_reminders: on }),
+  results: (on: boolean) => ({ email_results: on }),
+  updates: (on: boolean) => ({ email_updates: on }),
+} as const;
+
+/**
+ * Switch one optional email on or off. Written on change, like the profile
+ * visibility switch. Only the three emails in `PREFERENCE_COLUMNS` can be
+ * switched off; anything about money or a held spot always goes.
+ */
+export async function setEmailPreferenceAction(
+  preference: string,
+  on: boolean,
+): Promise<ProfileState> {
+  if (!(preference in PREFERENCE_COLUMNS) || typeof on !== "boolean") {
+    return { error: "saveFailed" };
+  }
+  const values = PREFERENCE_COLUMNS[preference as keyof typeof PREFERENCE_COLUMNS](on);
+
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user) return { error: "sessionExpired" };
+
+  const { data, error } = await supabase
+    .from("profile_private")
+    .update(values)
+    .eq("id", userData.user.id)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { error: "saveFailed" };
+
+  return { ok: true };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Data export                                                                */
+/* -------------------------------------------------------------------------- */
+
+export type DataExportResult =
+  | { ok: true; filename: string; json: string }
+  /** A key under `settings.errors`. */
+  | { ok: false; error: "sessionExpired" | "saveFailed" };
+
+/**
+ * Everything the platform holds about the caller, as one JSON document the
+ * browser saves. Read with the caller's own session, so row-level security
+ * decides what is theirs; every query also filters on their id, since an
+ * organizer's session can read other runners' registrations for their
+ * events, and those are not this runner's data.
+ *
+ * Who reviewed a payment or a result is left out: that is another person's
+ * account id, not the runner's information.
+ */
+export async function exportMyDataAction(): Promise<DataExportResult> {
+  const supabase = await createClient();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData.user;
+  if (!user) return { ok: false, error: "sessionExpired" };
+
+  const [profile, details, registrations, results, saved, events, deletion] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("handle, full_name, account_type, bio, city, club, is_public, avatar_path, created_at, updated_at")
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("profile_private")
+        .select(
+          "birth_date, gender, shirt_size, phone, emergency_contact_name, emergency_contact_phone, address_line1, address_line2, address_city, address_state, address_postal_code, locale, email_reminders, email_results, email_updates, created_at, updated_at",
+        )
+        .eq("id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("registrations")
+        .select(
+          "id, created_at, status, bib, first_name, last_name, email, phone, birth_date, gender, emergency_contact_name, emergency_contact_phone, club, shirt_size, wants_photos, donation, ships_by_mail, mailing_address, service_fee, sales_tax, amount, payment_method, payment_reference, payment_submitted_at, payment_reviewed_at, payment_rejected_at, paid_at, shipped_at, shipping_tracking, event:events!registrations_event_id_fkey (name, slug, event_date), category:event_categories!registrations_category_id_fkey (distance)",
+        )
+        .eq("runner_id", user.id)
+        .order("created_at"),
+      supabase
+        .from("race_results")
+        .select(
+          "id, status, finish_seconds, review_note, submitted_at, reviewed_at, event:events!race_results_event_id_fkey (name, slug)",
+        )
+        .eq("runner_id", user.id)
+        .order("submitted_at"),
+      supabase
+        .from("saved_events")
+        .select("event_slug, created_at")
+        .eq("runner_id", user.id)
+        .order("created_at"),
+      supabase
+        .from("events")
+        .select("id, slug, name, status, event_date, created_at, published_at")
+        .eq("organizer_id", user.id)
+        .order("created_at"),
+      supabase
+        .from("account_deletion_requests")
+        .select("requested_at")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+
+  const failed = [profile, details, registrations, results, saved, events, deletion].find(
+    (r) => r.error,
+  );
+  if (failed) {
+    console.error("Exporting account data failed:", failed.error?.message);
+    return { ok: false, error: "saveFailed" };
+  }
+
+  const document = {
+    exportedAt: new Date().toISOString(),
+    account: {
+      id: user.id,
+      email: user.email ?? null,
+      createdAt: user.created_at,
+      lastSignInAt: user.last_sign_in_at ?? null,
+    },
+    profile: profile.data,
+    privateDetails: details.data,
+    registrations: registrations.data ?? [],
+    raceResults: results.data ?? [],
+    savedEvents: saved.data ?? [],
+    eventsOrganized: events.data ?? [],
+    deletionRequest: deletion.data,
+  };
+
+  return {
+    ok: true,
+    filename: `neons-running-data-${puertoRicoToday()}.json`,
+    json: JSON.stringify(document, null, 2),
+  };
 }
 
 /* -------------------------------------------------------------------------- */

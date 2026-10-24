@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
-import { getLocaleOf } from "./recipient";
+import { getEmailSettingOf } from "./recipient";
 import { siteOrigin } from "./registration-confirmed";
 
 /**
@@ -35,16 +35,20 @@ export async function scheduleResultReviewedEmail(result: Result): Promise<void>
 
 async function sendResultReviewedEmail(result: Result, origin: string) {
   const admin = createAdminClient();
-  const [{ data: event }, { data: reg }, locale] = await Promise.all([
+  const [{ data: event }, { data: reg }, settings] = await Promise.all([
     admin.from("events").select("name, slug").eq("id", result.event_id).single(),
     admin
       .from("registrations")
       .select("email, first_name, last_name")
       .eq("id", result.registration_id)
       .single(),
-    getLocaleOf(result.runner_id),
+    getEmailSettingOf(result.runner_id),
   ]);
   if (!event || !reg) throw new Error("Event or registration not found.");
+  // "Results posted" in settings; the runner can switch it off. The result
+  // itself shows on their race page either way.
+  if (!settings.results) return;
+  const { locale } = settings;
 
   const accepted = result.status === "accepted";
   const t = await getTranslator(locale);

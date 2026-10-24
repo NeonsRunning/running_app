@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { paymentCode, toAthMovilAccount } from "@/lib/ath-movil/config";
+import { addDays, puertoRicoToday } from "@/lib/dates";
 import { eventImageUrl } from "@/lib/events/images";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
@@ -75,8 +76,9 @@ export function clock(time: string): string {
   return `${hour % 12 || 12}:${m} ${hour >= 12 ? "PM" : "AM"}`;
 }
 
+/** Today on the island, where every race is dated; see `lib/dates.ts`. */
 export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return puertoRicoToday();
 }
 
 function registrationStatus(
@@ -529,11 +531,7 @@ export async function searchEvents(
 
   const today = todayIso();
   let until: string | undefined;
-  if (search.withinDays !== undefined) {
-    const d = new Date(`${today}T00:00:00Z`);
-    d.setUTCDate(d.getUTCDate() + search.withinDays);
-    until = d.toISOString().slice(0, 10);
-  }
+  if (search.withinDays !== undefined) until = addDays(today, search.withinDays);
   const some = <T>(list: T[]) => (list.length ? list : undefined);
 
   const supabase = await createClient();

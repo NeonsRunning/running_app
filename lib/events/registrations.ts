@@ -125,6 +125,7 @@ const KNOWN_ERRORS = new Set([
   "donationInvalid",
   "mailingAddressInvalid",
   "paymentUnderReview",
+  "holdLimitReached",
 ]);
 
 const GENDER: Record<string, "f" | "m" | "x"> = {
@@ -274,6 +275,8 @@ export async function startRegistrationPaymentAction(
         .select("status, payment_intent_id")
         .eq("runner_id", userData.user.id)
         .eq("event_id", category.event_id)
+        // A cancelled sign-up stays as a record beside the live one.
+        .neq("status", "cancelled")
         .maybeSingle()
     : { data: null };
 
@@ -479,6 +482,7 @@ export async function submitAthMovilPaymentAction(
       "alreadyRegistered",
       "paymentUnderReview",
       "soldOut",
+      "referenceUsed",
     ]);
     return { ok: false, error: known.has(key) ? key : "registrationFailed" };
   }

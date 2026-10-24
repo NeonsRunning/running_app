@@ -419,7 +419,10 @@
       "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again.",
       "paymentUnderReview": "Your ATH Móvil payment for this race is being verified. We’ll email you as soon as it’s confirmed.",
       "referenceInvalid": "Enter the reference number from your ATH Móvil receipt (up to 40 characters).",
-      "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it."
+      "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it.",
+      "holdLimitReached": "Your spot was held for 2 hours without a payment, so it was released. You can try again in 15 minutes.",
+      "referenceUsed": "That reference number was already used for another registration. Check the receipt in your ATH Móvil app and enter the reference for this payment.",
+      "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -769,6 +772,29 @@
       "language": "Page language",
       "message": "Message",
       "footer": "Sent from the contact form on NEONS RUNNING."
+    },
+    "accountDeletion": {
+      "subject": "Account deletion request: {name}",
+      "heading": "A runner asked to delete their account",
+      "intro": "Reply to this email to write to the runner directly.",
+      "name": "Name",
+      "email": "Sign-in email",
+      "handle": "Handle",
+      "userId": "User ID",
+      "requestedAt": "Requested",
+      "upcoming": "Paid sign-ups for upcoming races",
+      "paid": "Paid sign-ups in all",
+      "underReview": "ATH Móvil payments under review",
+      "events": "Events organized",
+      "noteLabel": "Before deleting",
+      "note": "Refund or settle upcoming sign-ups and payments under review first. Don’t delete the auth user while the account has paid sign-ups or events: that cascades away the payment records. Clear the profile’s personal details instead, and email the runner once it’s done.",
+      "footer": "Sent when a runner asks to delete their account on NEONS RUNNING."
+    },
+    "accountDeletionCancelled": {
+      "subject": "Deletion request withdrawn: {name}",
+      "heading": "A runner withdrew their deletion request",
+      "intro": "Don’t delete this account. The runner withdrew the request from their settings.",
+      "footer": "Sent when a runner withdraws an account deletion request on NEONS RUNNING."
     },
     "kitShipped": {
       "subject": "Your race kit for {event} is on its way",
@@ -1320,17 +1346,11 @@
     "notificationsDescription": "Race-critical alerts always arrive by email. Everything else is up to you.",
     "prefs": {
       "reminders": "Race reminders",
-      "remindersDetail": "Three days before each start line.",
+      "remindersDetail": "The day before each race you entered: your bib, start time and place.",
       "results": "Results posted",
-      "resultsDetail": "The moment your official time is live.",
+      "resultsDetail": "When an organizer accepts or sends back a finish time you submitted.",
       "updates": "Event updates",
-      "updatesDetail": "Course, time or venue changes.",
-      "openings": "Registration opening",
-      "openingsDetail": "For races you have saved.",
-      "community": "Community activity",
-      "communityDetail": "New followers and club posts.",
-      "marketing": "Occasional product news",
-      "marketingDetail": "At most once a month."
+      "updatesDetail": "When a race you entered changes its date, start time or place."
     },
     "accountType": "Account type",
     "accountTypeDescription": "Organizer tools are switched on by the NEONS RUNNING team. You never need a second account, and your results stay exactly as they are.",
@@ -1348,18 +1368,22 @@
     "privacy": "Privacy",
     "publicProfile": "Public profile",
     "publicProfileDetail": "Other runners can find your profile and see your race history. Official results stay public either way — they are a published record.",
-    "showInLists": "Show me in participant lists",
-    "showInListsDetail": "Your name appears in the “runners going” list on events you have entered.",
     "exportData": "Export my data",
-    "exportTitle": "Export started",
-    "exportBody": "We will email you a download link within a few minutes.",
+    "exportDetail": "Downloads a file with your profile, private details, registrations and payments, results and saved races.",
+    "exporting": "Preparing…",
     "dangerZone": "Danger zone",
-    "dangerDescription": "Deleting your account removes your profile and upcoming registrations. Published results are anonymised rather than erased.",
+    "dangerDescription": "Ask us to delete your account. Our team reviews each request and deletes your profile and personal details, keeping only the payment records we are required to keep.",
     "deleteAccount": "Delete account",
     "deleteTitle": "Delete your account?",
-    "deleteDescription": "You have 1 upcoming registration. Deleting does not refund it — cancel the entry first if you want your money back.",
-    "deletionScheduledTitle": "Deletion scheduled",
-    "deletionScheduledBody": "Your account closes in 14 days. Log in before then to cancel.",
+    "deleteDescriptionNone": "We’ll send your request to our team, who will delete your account and email you when it’s done.",
+    "deleteDescriptionOne": "You have 1 upcoming registration. Deleting your account does not refund it — contact us about a refund first if you want your money back. We’ll send your request to our team, who will email you when it’s done.",
+    "deleteDescriptionMany": "You have {count} upcoming registrations. Deleting your account does not refund them — contact us about refunds first if you want your money back. We’ll send your request to our team, who will email you when it’s done.",
+    "requestDeletion": "Request deletion",
+    "deletionRequestedTitle": "Request received",
+    "deletionRequestedBody": "Our team will delete your account and email you when it’s done.",
+    "deletionRequested": "You asked us to delete your account on {date}. Our team is working on it and will write to {email} when it’s done.",
+    "cancelDeletion": "Withdraw request",
+    "deletionCancelledTitle": "Request withdrawn. Your account stays as it is.",
     "requestOrganizer": "Request organizer access"
   },
   "participants": {
@@ -1759,6 +1783,7 @@
     },
     "confirm": "Confirm",
     "reject": "Reject",
+    "adminReviews": "An admin will confirm this one",
     "rejectConfirm": "Release this runner’s spot?",
     "rejectYes": "Reject Payment",
     "cancel": "Cancel",
@@ -1953,6 +1978,10 @@
     "labelPlaceholder": "e.g. NEONS RUNNING…",
     "path": "Business path",
     "pathHint": "As runners search for it in ATH Móvil: letters, numbers, dots, hyphens and underscores.",
+    "owner": "Owner",
+    "ownerHint": "The organizer who holds this business app, by handle. They can approve payments into it for their own events; leave it empty to have platform admins review every payment.",
+    "ownerIs": "Payments approved by @{handle}",
+    "ownerNone": "Payments approved by platform admins",
     "qrChoose": "Upload QR Code",
     "qrReplace": "Replace QR Code",
     "qrRemove": "Remove",
@@ -1977,7 +2006,9 @@
       "qrTooLarge": "That image is too large — pick one under 2 MB.",
       "qrUploadFailed": "Couldn’t upload the QR code — try again in a moment.",
       "notAdmin": "Only platform admins can change ATH Móvil accounts.",
-      "saveFailed": "Something went wrong — try again in a moment."
+      "saveFailed": "Something went wrong — try again in a moment.",
+      "ownerNotFound": "No account has that handle.",
+      "ownerNotOrganizer": "That account isn’t an organizer, so it couldn’t approve payments."
     }
   },
   "adminEvents": {
