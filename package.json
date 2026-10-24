@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:i18n": "node scripts/check-dictionaries.mjs",
+    "test": "vitest run",
+    "test:db": "supabase test db",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked > lib/supabase/database.types.ts"
   },
@@ -32,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   }
 }
