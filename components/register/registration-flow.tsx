@@ -606,7 +606,7 @@ export function RegistrationFlow({
                     <>
                       {t("register.step1.waiverPre")}{" "}
                       <Link
-                        href="/legal/terms"
+                        href="/legal/waiver"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-neon-lime underline underline-offset-2"
