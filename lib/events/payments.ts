@@ -35,7 +35,12 @@ import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
 type Registration = Tables<"registrations">;
 
 export type SettleResult =
-  | { ok: true; registration: Registration }
+  | {
+      ok: true;
+      registration: Registration;
+      /** This payment duplicated the one that confirmed it, and its refund failed. */
+      refundFailed?: boolean;
+    }
   | {
       ok: false;
       /** A key under `register.errors`. */
@@ -57,8 +62,15 @@ const REFUNDABLE = new Set<string>([
  * Refund in full and tell the runner. The page and the webhook can both get
  * here for one payment: the idempotency key makes the second call a replay of
  * the first, and only the call that created the refund sends the email.
+ *
+ * Resolves false when the money is still with us. The caller must not report
+ * the payment as settled then: the webhook answers with an error so Stripe
+ * delivers it again, and the retry refunds.
  */
-async function refund(intent: Stripe.PaymentIntent, reason: RefundReason) {
+async function refund(
+  intent: Stripe.PaymentIntent,
+  reason: RefundReason,
+): Promise<boolean> {
   try {
     const created = await getStripe().refunds.create(
       { payment_intent: intent.id },
@@ -69,9 +81,17 @@ async function refund(intent: Stripe.PaymentIntent, reason: RefundReason) {
         name.toLowerCase() === "idempotent-replayed" && value === "true",
     );
     if (!replayed) await schedulePaymentRefundedEmail(intent, reason);
+    return true;
   } catch (err) {
-    // Most likely already refunded. Anything else needs a person to look.
-    console.error(`Refund of ${intent.id} failed:`, err);
+    // Refunded already — by an earlier call whose idempotency key has since
+    // expired, or by hand in the dashboard. The runner has their money.
+    if ((err as { code?: string }).code === "charge_already_refunded") return true;
+    console.error(
+      `REFUND FAILED: ${intent.id} (${intent.amount_received} cents, ` +
+        `registration ${intent.metadata?.registration_id}, ${reason}) is still charged:`,
+      err,
+    );
+    return false;
   }
 }
 
@@ -94,7 +114,11 @@ export async function settlePayment(
   if (error || !data) {
     const key = error?.code === "P0001" ? error.message : "";
     if (REFUNDABLE.has(key)) {
-      await refund(intent, key as RefundReason);
+      // Not refunded yet: say so, rather than promise money back that is
+      // still with us. The webhook retries on this error.
+      if (!(await refund(intent, key as RefundReason))) {
+        return { ok: false, error: "registrationFailed" };
+      }
       return { ok: false, error: key === "soldOut" ? "soldOut" : "paymentRefunded" };
     }
     // A database hiccup: leave the payment alone so a retry can confirm it.
@@ -102,10 +126,15 @@ export async function settlePayment(
     return { ok: false, error: "registrationFailed" };
   }
 
-  // Confirmed earlier by a different payment: this one is a duplicate.
-  if (data.payment_intent_id !== intent.id) await refund(intent, "duplicate");
-  else await scheduleRegistrationEmail(data);
+  // Confirmed earlier by a different payment: this one is a duplicate. The
+  // sign-up itself is fine, so the runner still sees it; only the webhook
+  // needs to hear that the refund has to be tried again.
+  if (data.payment_intent_id !== intent.id) {
+    const refunded = await refund(intent, "duplicate");
+    return { ok: true, registration: data, refundFailed: !refunded };
+  }
 
+  await scheduleRegistrationEmail(data);
   return { ok: true, registration: data };
 }
 

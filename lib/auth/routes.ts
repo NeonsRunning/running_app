@@ -51,9 +51,27 @@ export function isGuestOnlyPath(path: string): boolean {
  * plain app path — a protocol-relative `//evil.com`, an absolute URL — is
  * dropped, so the parameter cannot be used to bounce a runner off-site after
  * login.
+ *
+ * Browsers read `/\evil.com` as `//evil.com` and strip tabs and newlines
+ * before parsing, so a prefix check alone is not enough: backslashes and
+ * control characters are refused outright, and the value is resolved the way
+ * a browser would to confirm it stays on our origin.
  */
 export function safeNextPath(value: string | null | undefined): string | null {
   if (!value) return null;
   if (!value.startsWith("/") || value.startsWith("//")) return null;
-  return value;
+  if (/[\\\u0000-\u001f\u007f]/.test(value)) return null;
+
+  const base = "http://app.invalid";
+  let url: URL;
+  try {
+    url = new URL(value, base);
+  } catch {
+    return null;
+  }
+  if (url.origin !== base) return null;
+  // Dot segments collapse during parsing: "/.//evil.com" comes out as
+  // "//evil.com", which would leave the site when redirected to.
+  if (url.pathname.startsWith("//")) return null;
+  return `${url.pathname}${url.search}${url.hash}`;
 }

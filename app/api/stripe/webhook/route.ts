@@ -36,10 +36,14 @@ export async function POST(request: Request) {
     if (!intent.metadata?.registration_id) return Response.json({ received: true });
 
     const settled = await settlePayment(intent);
-    // A database failure: answer with an error so Stripe retries later.
-    // Everything else is settled, refunded or not, and must not be retried.
+    // A database failure, or a refund Stripe did not take: answer with an
+    // error so Stripe delivers the event again. Everything else is settled
+    // and must not be retried.
     if (!settled.ok && settled.error === "registrationFailed") {
-      return new Response("Could not confirm the registration.", { status: 500 });
+      return new Response("Could not settle the payment.", { status: 500 });
+    }
+    if (settled.ok && settled.refundFailed) {
+      return new Response("Could not refund the duplicate payment.", { status: 500 });
     }
     revalidatePath("/", "layout");
   }
