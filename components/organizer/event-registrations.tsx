@@ -2,9 +2,9 @@
 
 import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/field";
+import { Field, Input } from "@/components/ui/field";
 import { Pagination, SectionHeading } from "@/components/ui/misc";
-import { ConfirmDialog } from "@/components/ui/modal";
+import { ConfirmDialog, Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
@@ -13,6 +13,8 @@ import {
   removeRegistrationAction,
   returnRegistrationToPendingAction,
 } from "@/lib/events/remove-registration";
+import { markKitShippedAction } from "@/lib/events/ship-kit";
+import { MAX_TRACKING_LENGTH } from "@/lib/events/vocabulary";
 
 /** One list drives the table header and the CSV export, so they cannot drift. */
 const COLUMN_KEYS = [
@@ -35,6 +37,8 @@ const PAGE_SIZE = 10;
  * payment confirmed above joins the list on the revalidation that follows.
  * Removing a runner — or putting an ATH Móvil sign-up back to pending — asks
  * first, then drops the row at once rather than waiting for that revalidation.
+ * A mailed kit is marked shipped the same way, which emails the runner; its
+ * tracking number can be changed afterwards without emailing again.
  */
 export function EventRegistrations({
   rows: initial,
@@ -62,6 +66,12 @@ export function EventRegistrations({
   const [confirming, setConfirming] = useState<EventRegistrationRow | null>(null);
   const [reverting, setReverting] = useState<EventRegistrationRow | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [shipping, setShipping] = useState<EventRegistrationRow | null>(null);
+  const [tracking, setTracking] = useState("");
+  // Shipped here, ahead of the revalidation that brings it back from the server.
+  const [shipped, setShipped] = useState<
+    ReadonlyMap<string, { shippedAt: string; tracking: string | null }>
+  >(new Map());
   const tableRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -72,11 +82,18 @@ export function EventRegistrations({
   if (initial !== prevInitial) {
     setPrevInitial(initial);
     setRemoved(new Set());
+    setShipped(new Map());
   }
 
   const rows = useMemo(
-    () => initial.filter((r) => !removed.has(r.id)),
-    [initial, removed],
+    () =>
+      initial
+        .filter((r) => !removed.has(r.id))
+        .map((r) => {
+          const s = shipped.get(r.id);
+          return s ? { ...r, shippedAt: s.shippedAt, shippingTracking: s.tracking } : r;
+        }),
+    [initial, removed, shipped],
   );
 
   const shown = useMemo(() => {
@@ -161,7 +178,102 @@ export function EventRegistrations({
     );
   }
 
+  function openShipping(row: EventRegistrationRow) {
+    setTracking(row.shippingTracking ?? "");
+    setShipping(row);
+  }
+
+  async function ship(row: EventRegistrationRow) {
+    setBusy(row.id);
+    const result = await markKitShippedAction(row.id, tracking).catch(
+      () => ({ ok: false, error: "shipFailed" }) as const,
+    );
+    setBusy(null);
+
+    if (result.ok) {
+      setShipped((m) =>
+        new Map(m).set(row.id, { shippedAt: result.shippedAt, tracking: result.tracking }),
+      );
+      setShipping(null);
+    }
+    // Marking it again only changes the tracking number.
+    const again = Boolean(row.shippedAt);
+    toast(
+      result.ok
+        ? {
+            title: t(
+              again
+                ? "eventRegistrations.trackingSavedTitle"
+                : "eventRegistrations.shippedTitle",
+            ),
+            body: t(
+              again
+                ? "eventRegistrations.trackingSavedBody"
+                : "eventRegistrations.shippedBody",
+              { name: row.runnerName },
+            ),
+          }
+        : {
+            title: t("eventRegistrations.shipErrors.title"),
+            body: t(`eventRegistrations.shipErrors.${result.error}`),
+            tone: "danger",
+          },
+    );
+  }
+
+  /** Mailed kits only: whether it has shipped, and the button to say so. */
+  function shippingControl(row: EventRegistrationRow) {
+    if (!row.mailingAddress) return null;
+    return (
+      <div className="flex flex-col gap-1.5 md:items-end">
+        {row.shippedAt ? (
+          <p className="font-mono text-[11px] tracking-[0.08em] text-neon-lime uppercase md:text-right">
+            {t("eventRegistrations.shippedOn", {
+              date: paidOn.format(new Date(row.shippedAt)),
+            })}
+            {row.shippingTracking ? (
+              <span className="block break-all text-fg-dim normal-case">
+                {t("eventRegistrations.trackingValue", {
+                  tracking: row.shippingTracking,
+                })}
+              </span>
+            ) : null}
+          </p>
+        ) : null}
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={busy !== null}
+          aria-label={t(
+            row.shippedAt
+              ? "eventRegistrations.editTrackingAria"
+              : "eventRegistrations.markShippedAria",
+            { name: row.runnerName },
+          )}
+          onClick={() => openShipping(row)}
+        >
+          {t(
+            row.shippedAt
+              ? row.shippingTracking
+                ? "eventRegistrations.editTracking"
+                : "eventRegistrations.addTracking"
+              : "eventRegistrations.markShipped",
+          )}
+        </Button>
+      </div>
+    );
+  }
+
   function actions(row: EventRegistrationRow) {
+    return (
+      <div className="flex flex-col gap-2 md:items-end">
+        {shippingControl(row)}
+        {registrationActions(row)}
+      </div>
+    );
+  }
+
+  function registrationActions(row: EventRegistrationRow) {
     // An accepted finish lives on this sign-up; the server refuses both anyway.
     if (row.hasAcceptedResult) {
       return (
@@ -217,6 +329,8 @@ export function EventRegistrations({
       t("eventRegistrations.columns.phone"),
       t("eventRegistrations.columns.club"),
       t("eventRegistrations.columns.mailTo"),
+      t("eventRegistrations.columns.shipped"),
+      t("eventRegistrations.columns.tracking"),
     ];
     const body = shown.map((r) => [
       r.bib ?? "",
@@ -232,6 +346,8 @@ export function EventRegistrations({
       r.phone,
       r.club ?? "",
       r.mailingAddress ?? "",
+      r.shippedAt?.slice(0, 10) ?? "",
+      r.shippingTracking ?? "",
     ]);
     const csv = [header, ...body]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -447,6 +563,76 @@ export function EventRegistrations({
         })}
         confirmLabel={t("eventRegistrations.markPending")}
       />
+
+      <Modal
+        open={shipping !== null}
+        onClose={() => setShipping(null)}
+        title={t(
+          shipping?.shippedAt
+            ? "eventRegistrations.trackingTitle"
+            : "eventRegistrations.shipTitle",
+          { name: shipping?.runnerName ?? "" },
+        )}
+        description={t(
+          shipping?.shippedAt
+            ? "eventRegistrations.trackingDescription"
+            : "eventRegistrations.shipDescription",
+          { name: shipping?.runnerName ?? "" },
+        )}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShipping(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              form="ship-kit"
+              disabled={busy !== null}
+              aria-busy={busy !== null}
+            >
+              {busy !== null
+                ? t("common.saving")
+                : t(
+                    shipping?.shippedAt
+                      ? "eventRegistrations.saveTracking"
+                      : "eventRegistrations.markShipped",
+                  )}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="ship-kit"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (shipping) void ship(shipping);
+          }}
+        >
+          {shipping?.mailingAddress ? (
+            <p className="mb-4 text-[13px] whitespace-pre-line text-fg-dim">
+              {t("eventRegistrations.mailTo", { address: shipping.mailingAddress })}
+            </p>
+          ) : null}
+          <Field
+            label={t("eventRegistrations.trackingLabel")}
+            hint={t("eventRegistrations.trackingHint")}
+            optional
+          >
+            {(p) => (
+              <Input
+                {...p}
+                name="tracking"
+                autoComplete="off"
+                spellCheck={false}
+                maxLength={MAX_TRACKING_LENGTH}
+                value={tracking}
+                onChange={(e) => setTracking(e.target.value)}
+                placeholder="9400 1000 0000 0000 0000 00…"
+              />
+            )}
+          </Field>
+        </form>
+      </Modal>
     </section>
   );
 }

@@ -318,25 +318,54 @@ under review is refunded automatically.
 
 ## Email
 
-A paid registration sends the runner a confirmation — bib, race, distance,
-date, start time, location, extras and total — through Brevo's transactional
-API. Set `BREVO_API_KEY` and `BREVO_SENDER_EMAIL` (a sender verified in Brevo)
-to turn it on; without them nothing is sent and sign-ups work as before.
+Transactional email goes through Brevo's API. Set `BREVO_API_KEY` and
+`BREVO_SENDER_EMAIL` (a sender verified in Brevo) to turn it on; without them
+nothing is sent and everything else works as before.
+
+| Email | Sent to | When |
+| --- | --- | --- |
+| `registration-confirmed` | Runner | A payment confirms their sign-up (card, or an approved ATH Móvil payment) |
+| `ath-movil-rejected` | Runner | Their ATH Móvil payment is rejected |
+| `payment-refunded` | Runner | A card payment is refunded because it could not become a registration |
+| `registration-changed` | Runner | Their sign-up is removed, or an ATH Móvil confirmation is undone |
+| `result-reviewed` | Runner | Their finish time is accepted or sent back |
+| `race-reminder` | Runner | The day before the race (see below) |
+| `kit-shipped` | Runner | The organizer marks their mailed kit shipped (tracking number optional) |
+| `review-requested` | Organizer | A runner sends an ATH Móvil payment or a finish time to review |
+| `event-removed` | Organizer | An admin removes their event, with the reason |
+| `event-cancelled` | Runners | An admin removes a race not yet run |
+| `event-restored` | Organizer, runners | An admin restores it (runners only if still to come) |
+| `event-updated` | Organizer, runners | An admin edits their event; a race-day date, time or place changes |
+| `contact-message` | Team inbox | The contact form is sent (`CONTACT_EMAIL`, else the Brevo sender; Reply-To is the visitor) |
 
 ```
-lib/email/brevo.ts                   the API call
-lib/email/registration-confirmed.ts  claiming, content, sending
+lib/email/brevo.ts      the API call, one email or many
+lib/email/layout.ts     the shared HTML and plain-text frame
+lib/email/recipient.ts  addresses and languages, read with the service role
+lib/email/*.ts          one module per email: who, what, when
 ```
 
-- **Sent once.** The payment step, the register page and the Stripe webhook can
-  all confirm the same payment. Whichever sets
-  `registrations.confirmation_email_sent_at` first sends; a failed send clears
-  it so a later confirmation retries.
-- **Never in the way.** It goes out with `after()`, once the response is sent,
-  and a Brevo failure is logged rather than failing the sign-up.
-- **In the runner's language.** The flow saves the locale the runner signed up
-  in to `profile_private.locale`, and the email reads it from there. Copy
-  lives under `emails.registrationConfirmed` in the dictionaries.
+- **Never in the way.** Emails go out with `after()`, once the response is
+  sent, and a Brevo failure is logged rather than failing the action.
+- **Sent once.** The confirmation, the reminder and the kit-shipped email
+  claim their registration first (`confirmation_email_sent_at`,
+  `reminder_email_sent_at`, `shipping_email_sent_at`); a failed
+  send clears the claim so a later attempt retries. A refund emails only when
+  Stripe actually created it, not on an idempotent replay.
+- **In the reader's language.** Each email reads `profile_private.locale` for
+  its recipient. Copy lives under `emails.*` in the dictionaries.
+
+### Race reminders
+
+`GET /api/cron/race-reminders` emails every confirmed runner of a race that
+starts tomorrow (Puerto Rico time). Set `CRON_SECRET` and call it once a day
+with `Authorization: Bearer $CRON_SECRET` — for example at 14:00 UTC
+(10:00 on the island). On Vercel, a `vercel.json` cron entry sends that header
+by itself:
+
+```json
+{ "crons": [{ "path": "/api/cron/race-reminders", "schedule": "0 14 * * *" }] }
+```
 
 ## Accessibility
 

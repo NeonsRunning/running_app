@@ -52,6 +52,7 @@ const DYNAMIC_PREFIXES = [
   "eventPayments.errors.",
   "eventRegistrations.errors.",
   "eventRegistrations.pendingErrors.",
+  "eventRegistrations.shipErrors.",
   "footer.",
   "account.",
   "tabs.",
@@ -66,6 +67,8 @@ const DYNAMIC_PREFIXES = [
   "raceResult.phase.",
   "raceResult.errors.",
   "resultReview.errors.",
+  // Keys the contact action returns: `contactForm.errors.${result.error}`.
+  "contactForm.errors.",
 ];
 
 function flatten(node, prefix = "", out = new Set()) {

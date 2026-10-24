@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type Stripe from "stripe";
 import { MAX_REFERENCE_LENGTH, paymentCode } from "@/lib/ath-movil/config";
+import { scheduleReviewRequestedEmail } from "@/lib/email/review-requested";
 import { getStripe, hasStripeEnv, toCents } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isLocale } from "@/lib/i18n/config";
@@ -491,6 +492,7 @@ export async function submitAthMovilPaymentAction(
         .maybeSingle()
     : { data: null };
 
+  await scheduleReviewRequestedEmail(submitted.id, { kind: "payment" });
   revalidatePath("/", "layout");
   return {
     ok: true,

@@ -374,6 +374,10 @@ export type Database = {
           paid_at: string | null;
           confirmation_email_sent_at: string | null;
           payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          reminder_email_sent_at: string | null;
+          shipped_at: string | null;
+          shipping_email_sent_at: string | null;
+          shipping_tracking: string | null;
           /** The reference number on the runner's ATH Móvil receipt. */
           payment_reference: string | null;
           /** Set while an ATH Móvil payment waits for an admin's review. */
@@ -392,6 +396,10 @@ export type Database = {
         Update: {
           payment_intent_id?: string | null;
           confirmation_email_sent_at?: string | null;
+          reminder_email_sent_at?: string | null;
+          shipped_at?: string | null;
+          shipping_email_sent_at?: string | null;
+          shipping_tracking?: string | null;
         };
         Relationships: [
           {
@@ -638,6 +646,10 @@ export type Database = {
       delete_event: {
         Args: { p_event_id: string };
         Returns: Database["public"]["Tables"]["events"]["Row"];
+      };
+      mark_kit_shipped: {
+        Args: { p_registration_id: string; p_tracking?: string | null };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
       remove_registration: {
         Args: { p_registration_id: string };
