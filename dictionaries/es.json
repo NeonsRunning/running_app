@@ -94,6 +94,7 @@
     "policies": {
       "title": "Políticas",
       "terms": "Términos y condiciones",
+      "waiver": "Descargo de responsabilidad",
       "refunds": "Política de reembolsos",
       "cancellation": "Cancelación de eventos",
       "privacy": "Política de privacidad"
@@ -494,7 +495,7 @@
       "completeShort": "Completar",
       "continue": "Continuar",
       "back": "Atrás",
-      "refundPre": "Las cancelaciones se reembolsan por completo hasta 14 días antes de la carrera. Consulta la",
+      "refundPre": "Por lo general, las inscripciones no son reembolsables una vez confirmado el pago. Consulta la",
       "refundLink": "política de reembolsos",
       "raceDay": "Día de la carrera"
     },
@@ -954,11 +955,11 @@
           },
           {
             "q": "¿Puedo pedir un reembolso?",
-            "a": "Las cancelaciones con más de 14 días de antelación se reembolsan por completo, de forma automática. Dentro de los 14 días queda a discreción del organizador — la política de reembolsos de cada evento indica cuál aplica."
+            "a": "Como norma general, las inscripciones no son reembolsables una vez pagadas — incluso si decides no participar, te inscribes por error o cambias de opinión. Si NEONS RUNNING cancela un evento sin ofrecer una alternativa razonable, un artículo llega dañado o se te cobró dos veces, escribe a neonsmultiservicesllc@gmail.com con tu número de confirmación. La política de reembolsos tiene todos los detalles."
           },
           {
             "q": "¿Qué pasa si se cancela una carrera?",
-            "a": "Si el organizador cancela, se reembolsa cada inscripción por completo, incluido el cargo por servicio, y te avisamos por correo y en la app. Consulta la política de cancelación para los aplazamientos por clima."
+            "a": "NEONS RUNNING avisa a cada corredor inscrito por sus canales oficiales, junto con las alternativas disponibles — normalmente una nueva fecha. Si el evento se cancela definitivamente sin una alternativa razonable, el reembolso que corresponda se hace mediante tu método de pago original. La política de cancelación tiene todos los detalles."
           }
         ]
       },

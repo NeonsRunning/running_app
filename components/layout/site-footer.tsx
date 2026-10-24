@@ -17,6 +17,7 @@ const COLUMNS = [
     title: "footer.policies.title",
     links: [
       { href: "/legal/terms", key: "footer.policies.terms" },
+      { href: "/legal/waiver", key: "footer.policies.waiver" },
       { href: "/legal/refunds", key: "footer.policies.refunds" },
       { href: "/legal/cancellation", key: "footer.policies.cancellation" },
       { href: "/legal/privacy", key: "footer.policies.privacy" },

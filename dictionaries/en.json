@@ -94,6 +94,7 @@
     "policies": {
       "title": "Policies",
       "terms": "Terms & Conditions",
+      "waiver": "Race Waiver",
       "refunds": "Refund Policy",
       "cancellation": "Event Cancellation",
       "privacy": "Privacy Policy"
@@ -494,7 +495,7 @@
       "completeShort": "Complete",
       "continue": "Continue",
       "back": "Back",
-      "refundPre": "Cancellations are refunded in full up to 14 days before race day. See the",
+      "refundPre": "Registrations are generally non-refundable once payment is confirmed. See the",
       "refundLink": "refund policy",
       "raceDay": "Race day"
     },
@@ -954,11 +955,11 @@
           },
           {
             "q": "Can I get a refund?",
-            "a": "Cancellations more than 14 days before race day are refunded in full, automatically. Inside 14 days it is at the organizer's discretion — the refund policy on each event page states which applies."
+            "a": "As a general rule, registrations are not refundable once paid — including if you decide not to take part, register by mistake or change your mind. If NEONS RUNNING cancels an event without a reasonable alternative, an item arrives damaged, or you were charged twice, email neonsmultiservicesllc@gmail.com with your confirmation number. The refund policy has the full details."
           },
           {
             "q": "What happens if a race is cancelled?",
-            "a": "If an organizer cancels, every entry is refunded in full including the service fee, and you are notified by email and in the app. See the cancellation policy for weather postponements."
+            "a": "NEONS RUNNING notifies every registered runner through its official channels, along with the available alternatives — usually a new date. If the event is cancelled for good without a reasonable alternative, any refund that applies goes back to your original payment method. The cancellation policy has the full details."
           }
         ]
       },
