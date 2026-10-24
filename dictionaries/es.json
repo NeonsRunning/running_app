@@ -419,7 +419,10 @@
       "paymentRefunded": "No pudimos asociar tu pago a tu inscripción, así que te lo devolvimos completo. Vuelve a empezar, por favor.",
       "paymentUnderReview": "Estamos verificando tu pago por ATH Móvil para esta carrera. Te enviaremos un email en cuanto se confirme.",
       "referenceInvalid": "Escribe el número de referencia de tu recibo de ATH Móvil (hasta 40 caracteres).",
-      "mailingAddressInvalid": "Escribe la dirección a la que enviamos tu medalla (hasta 300 caracteres). Regresa al paso de extras y revísala."
+      "mailingAddressInvalid": "Escribe la dirección a la que enviamos tu medalla (hasta 300 caracteres). Regresa al paso de extras y revísala.",
+      "holdLimitReached": "Tu espacio estuvo reservado 2 horas sin pago, así que se liberó. Puedes intentarlo otra vez en 15 minutos.",
+      "referenceUsed": "Ese número de referencia ya se usó en otra inscripción. Revisa el recibo en tu app de ATH Móvil y escribe la referencia de este pago.",
+      "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
     "confirmToastBody": "Dorsal n.º 1048 confirmado para {event}.",
@@ -1780,6 +1783,7 @@
     },
     "confirm": "Confirmar",
     "reject": "Rechazar",
+    "adminReviews": "Un administrador confirmará este pago",
     "rejectConfirm": "¿Liberar el cupo de este corredor?",
     "rejectYes": "Rechazar Pago",
     "cancel": "Cancelar",
@@ -1974,6 +1978,10 @@
     "labelPlaceholder": "p. ej. NEONS RUNNING…",
     "path": "Path del negocio",
     "pathHint": "Tal como los corredores lo buscan en ATH Móvil: letras, números, puntos, guiones y guiones bajos.",
+    "owner": "Dueño",
+    "ownerHint": "El organizador que tiene esta app de negocio, por su usuario. Puede aprobar los pagos que entren en ella para sus propios eventos; déjalo vacío para que los administradores revisen todos los pagos.",
+    "ownerIs": "Pagos aprobados por @{handle}",
+    "ownerNone": "Pagos aprobados por los administradores",
     "qrChoose": "Subir código QR",
     "qrReplace": "Reemplazar código QR",
     "qrRemove": "Quitar",
@@ -1998,7 +2006,9 @@
       "qrTooLarge": "Esa imagen es demasiado grande: elige una de menos de 2 MB.",
       "qrUploadFailed": "No se pudo subir el código QR. Inténtalo de nuevo en un momento.",
       "notAdmin": "Solo los administradores de la plataforma pueden cambiar las cuentas de ATH Móvil.",
-      "saveFailed": "Algo salió mal. Inténtalo de nuevo en un momento."
+      "saveFailed": "Algo salió mal. Inténtalo de nuevo en un momento.",
+      "ownerNotFound": "Ninguna cuenta tiene ese usuario.",
+      "ownerNotOrganizer": "Esa cuenta no es de organizador, así que no podría aprobar pagos."
     }
   },
   "adminEvents": {

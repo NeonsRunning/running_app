@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { useFormat, useT } from "@/components/i18n/provider";
 import { ImageConversionError, toWebp } from "@/lib/events/convert-image";
 import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
+import { puertoRicoDate } from "@/lib/dates";
 import {
   EVIDENCE_BUCKET,
   EVIDENCE_MAX_BYTES,
@@ -153,7 +154,7 @@ export function ResultSubmission({
         </div>
         <p className="mt-3 text-[14px] text-fg-dim">
           {t("raceResult.pendingBody", {
-            date: fmt.mediumDate(own.submittedAt.slice(0, 10)),
+            date: fmt.mediumDate(puertoRicoDate(own.submittedAt)),
           })}
         </p>
       </div>

@@ -44,7 +44,12 @@ export type SettleResult =
   | {
       ok: false;
       /** A key under `register.errors`. */
-      error: "paymentRefunded" | "soldOut" | "registrationFailed";
+      error:
+        | "paymentRefunded"
+        | "soldOut"
+        | "registrationFailed"
+        /** This payment's registration was cancelled since it confirmed it. */
+        | "registrationCancelled";
     };
 
 /**
@@ -126,6 +131,13 @@ export async function settlePayment(
     return { ok: false, error: "registrationFailed" };
   }
 
+  // The organizer or an admin took the runner off the race after this payment
+  // confirmed it: a late or replayed report of that same payment. Nothing to
+  // do — whether it is refunded is a person's call, made in Stripe.
+  if (data.status === "cancelled" && data.payment_intent_id === intent.id) {
+    return { ok: false, error: "registrationCancelled" };
+  }
+
   // Confirmed earlier by a different payment: this one is a duplicate. The
   // sign-up itself is fine, so the runner still sees it; only the webhook
   // needs to hear that the refund has to be tried again.
@@ -136,6 +148,70 @@ export async function settlePayment(
 
   await scheduleRegistrationEmail(data);
   return { ok: true, registration: data };
+}
+
+/** A PaymentIntent reference as Stripe embeds it: an id, the object, or nothing. */
+function intentId(ref: string | Stripe.PaymentIntent | null): string | null {
+  return typeof ref === "string" ? ref : (ref?.id ?? null);
+}
+
+/**
+ * Record a refund made on a registration's payment — from the Stripe
+ * dashboard, usually, after a runner was taken off a race. `amount_refunded`
+ * on the charge is the running total, so the update only ever raises the
+ * stored one: a delivery that arrives late cannot lower it. Payments that
+ * belong to no registration (the duplicates and late payments refunded in
+ * `settlePayment`) match nothing and are left alone.
+ *
+ * Resolves false on a database failure, so the webhook asks Stripe to retry.
+ */
+export async function recordRefund(charge: Stripe.Charge): Promise<boolean> {
+  const paymentIntent = intentId(charge.payment_intent);
+  if (!paymentIntent || charge.amount_refunded <= 0) return true;
+
+  const { error } = await createAdminClient()
+    .from("registrations")
+    .update({
+      amount_refunded: charge.amount_refunded / 100,
+      refunded_at: new Date().toISOString(),
+    })
+    .eq("payment_intent_id", paymentIntent)
+    .lte("amount_refunded", charge.amount_refunded / 100);
+  if (error) {
+    console.error(`Recording the refund on ${paymentIntent} failed:`, error.message);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Record a dispute (chargeback) on a registration's payment, and its status
+ * as Stripe moves it along. Logged loudly as well: a dispute has a response
+ * deadline, and someone has to answer it in the Stripe dashboard.
+ *
+ * Resolves false on a database failure, so the webhook asks Stripe to retry.
+ */
+export async function recordDispute(dispute: Stripe.Dispute): Promise<boolean> {
+  const paymentIntent = intentId(dispute.payment_intent);
+  if (!paymentIntent) return true;
+
+  console.error(
+    `PAYMENT DISPUTED: ${paymentIntent} (${dispute.amount} cents) is ${dispute.status}; ` +
+      "answer it in the Stripe dashboard.",
+  );
+
+  const { error } = await createAdminClient()
+    .from("registrations")
+    .update({
+      disputed_at: new Date(dispute.created * 1000).toISOString(),
+      dispute_status: dispute.status,
+    })
+    .eq("payment_intent_id", paymentIntent);
+  if (error) {
+    console.error(`Recording the dispute on ${paymentIntent} failed:`, error.message);
+    return false;
+  }
+  return true;
 }
 
 /**

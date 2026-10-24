@@ -111,6 +111,15 @@ export function EventPayments({
   }
 
   function actions(row: EventPaymentRow) {
+    // The money went into an ATH Móvil account the organizer does not hold:
+    // a platform admin, who can see it, reviews it.
+    if (!row.canReview) {
+      return (
+        <span className="text-[13px] text-fg-muted">
+          {t("eventPayments.adminReviews")}
+        </span>
+      );
+    }
     if (confirmingReject === row.id) {
       return (
         <div className="flex flex-wrap items-center gap-2">

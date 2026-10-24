@@ -64,8 +64,4 @@ export function formatPace(seconds: number, km: number): string {
  * Today on the island, ISO. Results open on the race's first day there,
  * which is what `submit_race_result()` checks too.
  */
-export function puertoRicoToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Puerto_Rico" }).format(
-    new Date(),
-  );
-}
+export { puertoRicoToday } from "@/lib/dates";

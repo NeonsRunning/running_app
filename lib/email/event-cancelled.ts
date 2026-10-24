@@ -5,7 +5,8 @@ import { formatLongDate, formatMoney } from "@/lib/i18n/format";
 import { getTranslator } from "@/lib/i18n/server";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import type { Tables } from "@/lib/supabase/database.types";
-import { hasBrevoEnv, sendEmails, type Email } from "./brevo";
+import { hasBrevoEnv, type Email } from "./brevo";
+import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners } from "./recipient";
 import { siteOrigin } from "./registration-confirmed";
@@ -71,8 +72,6 @@ async function sendEventCancelledEmails(event: Event, origin: string) {
     });
   }
 
-  const failed = await sendEmails(emails);
-  if (failed) {
-    console.error(`${failed} of ${emails.length} cancellation emails for ${event.id} failed.`);
-  }
+  // Through the outbox: retried until every runner has it.
+  await queueEmails(emails);
 }

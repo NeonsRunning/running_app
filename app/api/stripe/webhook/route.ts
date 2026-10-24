@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import type Stripe from "stripe";
-import { settlePayment } from "@/lib/events/payments";
+import { recordDispute, recordRefund, settlePayment } from "@/lib/events/payments";
 import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
 
 /**
@@ -9,9 +9,11 @@ import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
  *
  * Point a webhook endpoint in the Stripe dashboard (or `stripe listen
  * --forward-to localhost:3000/api/stripe/webhook` locally) at this route for
- * `payment_intent.succeeded`, and set STRIPE_WEBHOOK_SECRET to its signing
- * secret. The signature check is the only thing standing between this route
- * and anyone on the internet, so nothing is processed without it.
+ * `payment_intent.succeeded`, `charge.refunded`, `charge.dispute.created`,
+ * `charge.dispute.updated` and `charge.dispute.closed`, and set
+ * STRIPE_WEBHOOK_SECRET to its signing secret. The signature check is the
+ * only thing standing between this route and anyone on the internet, so
+ * nothing is processed without it.
  */
 export async function POST(request: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -46,6 +48,24 @@ export async function POST(request: Request) {
       return new Response("Could not refund the duplicate payment.", { status: 500 });
     }
     revalidatePath("/", "layout");
+  }
+
+  // Refunds and chargebacks made in the Stripe dashboard, recorded on the
+  // registration they belong to. A database failure asks for a retry.
+  if (event.type === "charge.refunded") {
+    if (!(await recordRefund(event.data.object))) {
+      return new Response("Could not record the refund.", { status: 500 });
+    }
+  }
+
+  if (
+    event.type === "charge.dispute.created" ||
+    event.type === "charge.dispute.updated" ||
+    event.type === "charge.dispute.closed"
+  ) {
+    if (!(await recordDispute(event.data.object))) {
+      return new Response("Could not record the dispute.", { status: 500 });
+    }
   }
 
   return Response.json({ received: true });

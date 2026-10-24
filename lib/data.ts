@@ -5,6 +5,7 @@ import type {
 } from "./types";
 import type { Locale } from "./i18n/config";
 import { SELF_PROFILE_PATH } from "./auth/routes";
+import { daysBetween, puertoRicoToday } from "./dates";
 import {
   ACHIEVEMENT_EARNED_ON_ES,
   ACHIEVEMENT_ES,
@@ -266,10 +267,10 @@ export function getCommunityFeed(locale: Locale) {
 }
 
 /**
- * Whole days from now to the event. Server-rendered only, so the clock is
- * read once per request and there is no client render to disagree with.
+ * Whole days from today on the island to the event: 0 on race day, 1 the day
+ * before. Server-rendered only, so the clock is read once per request and
+ * there is no client render to disagree with.
  */
 export function daysUntil(isoDate: string, from: Date = new Date()): number {
-  const target = new Date(`${isoDate}T00:00:00`);
-  return Math.max(0, Math.ceil((target.getTime() - from.getTime()) / 86_400_000));
+  return Math.max(0, daysBetween(puertoRicoToday(from), isoDate));
 }

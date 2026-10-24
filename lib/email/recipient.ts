@@ -1,6 +1,7 @@
 import "server-only";
 import { DEFAULT_LOCALE, isLocale, type Locale } from "@/lib/i18n/config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { chunk, selectAll } from "@/lib/supabase/paginate";
 
 /**
  * Who an account-holder is, for writing to them: their sign-in address, the
@@ -63,11 +64,18 @@ export async function getEmailSettingsOf(
 ): Promise<Map<string, EmailSettings>> {
   const settings = new Map<string, EmailSettings>();
   if (!userIds.length) return settings;
-  const { data } = await createAdminClient()
-    .from("profile_private")
-    .select("id, locale, email_reminders, email_results, email_updates")
-    .in("id", [...new Set(userIds)]);
-  for (const row of data ?? []) {
+  const admin = createAdminClient();
+  // A few hundred ids per request: a whole race's runners in one `.in()`
+  // would overflow the URL.
+  const pages = await Promise.all(
+    chunk([...new Set(userIds)]).map((ids) =>
+      admin
+        .from("profile_private")
+        .select("id, locale, email_reminders, email_results, email_updates")
+        .in("id", ids),
+    ),
+  );
+  for (const row of pages.flatMap((p) => p.data ?? [])) {
     settings.set(row.id, {
       locale: isLocale(row.locale) ? row.locale : DEFAULT_LOCALE,
       reminders: row.email_reminders,
@@ -100,13 +108,19 @@ export async function getConfirmedRunners(
   eventId: string,
   { only }: { only?: EmailPreference } = {},
 ): Promise<ConfirmedRunner[]> {
-  const { data, error } = await createAdminClient()
-    .from("registrations")
-    .select("runner_id, email, first_name, last_name, amount")
-    .eq("event_id", eventId)
-    .eq("status", "confirmed");
+  const admin = createAdminClient();
+  // Every page: a cancellation must reach all of a big race, not its first 1,000.
+  const { data, error } = await selectAll((from, to) =>
+    admin
+      .from("registrations")
+      .select("id, runner_id, email, first_name, last_name, amount")
+      .eq("event_id", eventId)
+      .eq("status", "confirmed")
+      .order("id")
+      .range(from, to),
+  );
   if (error) throw new Error(error.message);
-  if (!data?.length) return [];
+  if (!data.length) return [];
 
   const settings = await getEmailSettingsOf(data.map((r) => r.runner_id));
   return data

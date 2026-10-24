@@ -21,7 +21,7 @@ export default async function AdminAthMovilAccountsPage() {
 
   const [t, accounts] = await Promise.all([
     getT(),
-    listAthMovilAccounts({ includeRetired: true }),
+    listAthMovilAccounts({ includeRetired: true, withOwners: true }),
   ]);
 
   return (

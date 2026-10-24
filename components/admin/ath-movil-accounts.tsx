@@ -130,6 +130,11 @@ export function AthMovilAccounts({
                     {t("adminAccounts.noQr")}
                   </p>
                 )}
+                <p className="mt-1 text-[13px] text-fg-dim">
+                  {account.ownerHandle
+                    ? t("adminAccounts.ownerIs", { handle: account.ownerHandle })
+                    : t("adminAccounts.ownerNone")}
+                </p>
               </div>
               <div className="flex flex-wrap gap-3">
                 <Button
@@ -230,6 +235,7 @@ function AccountForm({
   const [fieldErrors, setFieldErrors] = useState<{
     label?: string;
     path?: string;
+    owner?: string;
   }>({});
   const [error, setError] = useState<string>();
 
@@ -270,6 +276,7 @@ function AccountForm({
       label: String(data.get("label") ?? ""),
       path: String(data.get("path") ?? ""),
       qrPath,
+      ownerHandle: String(data.get("owner") ?? ""),
     }).catch((): AccountResult => ({ ok: false, error: "saveFailed" }));
     setSaving(false);
 
@@ -330,6 +337,26 @@ function AccountForm({
               autoCapitalize="none"
               spellCheck={false}
               placeholder="/NeonsRunning"
+            />
+          )}
+        </Field>
+        <Field
+          label={t("adminAccounts.owner")}
+          hint={t("adminAccounts.ownerHint")}
+          error={err(fieldErrors.owner)}
+          className="sm:col-span-2"
+          optional
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="owner"
+              translate="no"
+              defaultValue={account?.ownerHandle ? `@${account.ownerHandle}` : ""}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              placeholder="@club-corredores"
             />
           )}
         </Field>

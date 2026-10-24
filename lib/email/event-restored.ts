@@ -5,7 +5,8 @@ import { formatLongDate } from "@/lib/i18n/format";
 import { getTranslator } from "@/lib/i18n/server";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import type { Tables } from "@/lib/supabase/database.types";
-import { hasBrevoEnv, sendEmail, sendEmails, type Email } from "./brevo";
+import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
+import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners, getRecipient } from "./recipient";
 import { siteOrigin } from "./registration-confirmed";
@@ -89,8 +90,6 @@ async function sendRunnerEmails(event: Event, origin: string, eventPath: string)
     });
   }
 
-  const failed = await sendEmails(emails);
-  if (failed) {
-    console.error(`${failed} of ${emails.length} reinstated emails for ${event.id} failed.`);
-  }
+  // Through the outbox: retried until every runner has it.
+  await queueEmails(emails);
 }

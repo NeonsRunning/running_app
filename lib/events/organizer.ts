@@ -3,6 +3,8 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "./form";
+import { addDays } from "@/lib/dates";
+import { selectAll } from "@/lib/supabase/paginate";
 import { todayIso } from "./queries";
 import { EVENTS_PAGE_SIZE } from "./search";
 import type { Country } from "./vocabulary";
@@ -126,7 +128,7 @@ function dashboardStatus(
   if (event.status === "removed") return "Removed";
   if (event.last_day && event.last_day < today) return "Finished";
   // Closing: registration ends within a week, or the field is nearly full.
-  const weekAhead = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
+  const weekAhead = addDays(today, 7);
   if (
     (event.registration_closes && event.registration_closes <= weekAhead) ||
     (capacity > 0 && registered / capacity >= 0.9)
@@ -175,12 +177,16 @@ export async function getOrganizerEvents(
 
   const regs = new Map<string, { registered: number; revenue: number }>();
   if (events.length) {
-    const { data: rows } = await supabase
-      .from("registrations")
-      .select("event_id, amount, service_fee, sales_tax")
-      .in("event_id", events.map((e) => e.id))
-      .eq("status", "confirmed");
-    for (const r of rows ?? []) {
+    const { data: rows } = await selectAll((from, to) =>
+      supabase
+        .from("registrations")
+        .select("id, event_id, amount, service_fee, sales_tax")
+        .in("event_id", events.map((e) => e.id))
+        .eq("status", "confirmed")
+        .order("id")
+        .range(from, to),
+    );
+    for (const r of rows) {
       const sum = regs.get(r.event_id) ?? { registered: 0, revenue: 0 };
       sum.registered += 1;
       sum.revenue += net(r);
@@ -228,13 +234,21 @@ export async function getOrganizerDashboard(
 
   let registrations: RegistrationRow[] = [];
   if (events.length) {
-    const { data } = await supabase
-      .from("registrations")
-      .select("event_id, category_id, amount, service_fee, sales_tax, created_at, gender, birth_date")
-      .in("event_id", events.map((e) => e.id))
-      // Sign-ups still at the payment step are neither runners nor revenue.
-      .eq("status", "confirmed");
-    registrations = data ?? [];
+    // Every page of them, and joined on the organizer rather than listing
+    // event ids: an organizer with hundreds of events would overflow the URL.
+    const { data } = await selectAll((from, to) =>
+      supabase
+        .from("registrations")
+        .select(
+          "id, event_id, category_id, amount, service_fee, sales_tax, created_at, gender, birth_date, event:events!inner(organizer_id)",
+        )
+        .eq("event.organizer_id", organizerId)
+        // Sign-ups still at the payment step are neither runners nor revenue.
+        .eq("status", "confirmed")
+        .order("id")
+        .range(from, to),
+    );
+    registrations = data;
   }
 
   const today = todayIso();
@@ -349,11 +363,15 @@ export async function getEventForm(
   if (!data || data.status === "removed") return null;
   const event = data as EventRow & { status: "draft" | "published" };
 
-  const { data: regs } = await supabase
-    .from("registrations")
-    .select("category_id")
-    .eq("event_id", event.id)
-    .eq("status", "confirmed");
+  const { data: regs } = await selectAll((from, to) =>
+    supabase
+      .from("registrations")
+      .select("id, category_id")
+      .eq("event_id", event.id)
+      .eq("status", "confirmed")
+      .order("id")
+      .range(from, to),
+  );
   const registered = new Map<string, number>();
   for (const r of regs ?? []) {
     registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
@@ -468,16 +486,20 @@ export async function getEventRegistrations(
   if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("registrations")
-    .select(
-      "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
-    )
-    .eq("event_id", eventId)
-    .eq("status", "confirmed")
-    .order("bib", { ascending: true, nullsFirst: false })
-    .order("created_at");
-  if (error || !data) return [];
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .from("registrations")
+      .select(
+        "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
+      )
+      .eq("event_id", eventId)
+      .eq("status", "confirmed")
+      .order("bib", { ascending: true, nullsFirst: false })
+      .order("created_at")
+      .order("id")
+      .range(from, to),
+  );
+  if (error) return [];
 
   const raceDay = eventDate ?? todayIso();
   return data.map((r) => ({

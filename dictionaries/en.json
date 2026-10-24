@@ -419,7 +419,10 @@
       "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again.",
       "paymentUnderReview": "Your ATH Móvil payment for this race is being verified. We’ll email you as soon as it’s confirmed.",
       "referenceInvalid": "Enter the reference number from your ATH Móvil receipt (up to 40 characters).",
-      "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it."
+      "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it.",
+      "holdLimitReached": "Your spot was held for 2 hours without a payment, so it was released. You can try again in 15 minutes.",
+      "referenceUsed": "That reference number was already used for another registration. Check the receipt in your ATH Móvil app and enter the reference for this payment.",
+      "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -1780,6 +1783,7 @@
     },
     "confirm": "Confirm",
     "reject": "Reject",
+    "adminReviews": "An admin will confirm this one",
     "rejectConfirm": "Release this runner’s spot?",
     "rejectYes": "Reject Payment",
     "cancel": "Cancel",
@@ -1974,6 +1978,10 @@
     "labelPlaceholder": "e.g. NEONS RUNNING…",
     "path": "Business path",
     "pathHint": "As runners search for it in ATH Móvil: letters, numbers, dots, hyphens and underscores.",
+    "owner": "Owner",
+    "ownerHint": "The organizer who holds this business app, by handle. They can approve payments into it for their own events; leave it empty to have platform admins review every payment.",
+    "ownerIs": "Payments approved by @{handle}",
+    "ownerNone": "Payments approved by platform admins",
     "qrChoose": "Upload QR Code",
     "qrReplace": "Replace QR Code",
     "qrRemove": "Remove",
@@ -1998,7 +2006,9 @@
       "qrTooLarge": "That image is too large — pick one under 2 MB.",
       "qrUploadFailed": "Couldn’t upload the QR code — try again in a moment.",
       "notAdmin": "Only platform admins can change ATH Móvil accounts.",
-      "saveFailed": "Something went wrong — try again in a moment."
+      "saveFailed": "Something went wrong — try again in a moment.",
+      "ownerNotFound": "No account has that handle.",
+      "ownerNotOrganizer": "That account isn’t an organizer, so it couldn’t approve payments."
     }
   },
   "adminEvents": {

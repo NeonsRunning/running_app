@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { puertoRicoToday } from "@/lib/dates";
 import { SHIRT_SIZES } from "@/lib/events/vocabulary";
 import { isOwnImagePath } from "@/lib/events/images";
 import { AVATAR_BUCKET } from "./avatars";
@@ -169,7 +170,7 @@ export async function updateRaceDetailsAction(
     birthDate &&
     (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate) ||
       birthDate <= "1900-01-01" ||
-      birthDate > new Date().toISOString().slice(0, 10))
+      birthDate > puertoRicoToday())
   )
     fieldErrors.birthDate = "birthDateInvalid";
   if (phone && !PHONE.test(phone)) fieldErrors.phone = "phoneInvalid";
@@ -478,7 +479,7 @@ export async function exportMyDataAction(): Promise<DataExportResult> {
 
   return {
     ok: true,
-    filename: `neons-running-data-${new Date().toISOString().slice(0, 10)}.json`,
+    filename: `neons-running-data-${puertoRicoToday()}.json`,
     json: JSON.stringify(document, null, 2),
   };
 }
