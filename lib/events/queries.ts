@@ -446,7 +446,8 @@ export async function getRegisteredEventIds(
 /**
  * A runner's current sign-ups on published races whose last day has not
  * passed yet, soonest first. A race drops off the list the day after it ends
- * — the runner has either run it or missed it by then.
+ * — the runner has either run it or missed it by then. One with an accepted
+ * result drops off as soon as the organizer accepts it.
  *
  * Paid sign-ups come with their bib. Unpaid ones come flagged `pending` while
  * their spot is still held: a card payment in progress, or an ATH Móvil
@@ -463,19 +464,31 @@ export async function getUpcomingRegistrations(
   if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("registrations")
-    .select(
-      "bib, status, category:event_categories!inner(distance), event:events!inner(slug, event_date, last_day, status)",
-    )
-    .eq("runner_id", runnerId)
-    .or(`status.eq.confirmed,hold_expires_at.gt.${new Date().toISOString()}`)
-    .eq("event.status", "published")
-    .gte("event.last_day", todayIso());
+  const [{ data, error }, { data: finished }] = await Promise.all([
+    supabase
+      .from("registrations")
+      .select(
+        "id, bib, status, category:event_categories!inner(distance), event:events!inner(slug, event_date, last_day, status)",
+      )
+      .eq("runner_id", runnerId)
+      .or(`status.eq.confirmed,hold_expires_at.gt.${new Date().toISOString()}`)
+      .eq("event.status", "published")
+      .gte("event.last_day", todayIso()),
+    supabase
+      .from("race_results")
+      .select("registration_id")
+      .eq("runner_id", runnerId)
+      .eq("status", "accepted"),
+  ]);
 
   if (error || !data) return [];
 
+  // A result the organizer accepted means the race is already run, even if
+  // its last day has not passed yet.
+  const run = new Set((finished ?? []).map((r) => r.registration_id));
+
   return data
+    .filter((r) => !run.has(r.id))
     .sort((a, b) =>
       (a.event.event_date ?? "").localeCompare(b.event.event_date ?? ""),
     )
