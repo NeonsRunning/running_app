@@ -1,11 +1,13 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { Link } from "@/components/i18n/link";
 import { useLocale, useT } from "@/components/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
 import {
+  confirmEmailLinkAction,
   requestPasswordResetAction,
   resendVerificationAction,
   signInAction,
@@ -249,8 +251,12 @@ export function ForgotPasswordForm() {
 /**
  * The new password, set from inside the session the recovery link opened.
  * Reaching this form without that session is what `sessionExpired` reports.
+ *
+ * Signed in any other way, the runner is asked for the current password as
+ * well (`requireCurrent`); the action checks the session for itself either
+ * way, so leaving the field out of a hand-made post gets nowhere.
  */
-export function ResetPasswordForm() {
+export function ResetPasswordForm({ requireCurrent }: { requireCurrent: boolean }) {
   const t = useT();
   const [state, action, pending] = useActionState(
     updatePasswordAction,
@@ -262,6 +268,24 @@ export function ResetPasswordForm() {
     <form action={action} className="flex flex-col gap-5" noValidate>
       <LocaleField />
       <AuthAlert error={state?.error} />
+
+      {requireCurrent ? (
+        <Field
+          label={t("auth.reset.currentPassword")}
+          error={fieldError("current")}
+          hint={t("auth.reset.currentHint")}
+        >
+          {(p) => (
+            <Input
+              {...p}
+              name="current"
+              type="password"
+              autoComplete="current-password"
+              placeholder="••••••••"
+            />
+          )}
+        </Field>
+      ) : null}
 
       <Field
         label={t("auth.reset.newPassword")}
@@ -303,6 +327,64 @@ export function ResetPasswordForm() {
       >
         {pending ? t("auth.reset.saving") : t("auth.reset.submit")}
       </Button>
+    </form>
+  );
+}
+
+function ConfirmLinkSubmit({ label }: { label: string }) {
+  const t = useT();
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" block size="xl" disabled={pending} aria-busy={pending}>
+      {pending ? t("auth.confirmLink.working") : label}
+    </Button>
+  );
+}
+
+/**
+ * The Continue button an emailed `token_hash` link waits behind. Spending the
+ * link signs this browser in to the account it was sent to, so it takes a
+ * press — and names whoever is signed in now, who would be swapped out. See
+ * `app/[lang]/auth/confirm` for the attack this stands in the way of.
+ */
+export function ConfirmLinkForm({
+  tokenHash,
+  type,
+  next,
+  signedInAs,
+}: {
+  tokenHash: string;
+  type: string;
+  next?: string;
+  /** The address of the account signed in right now, if any. */
+  signedInAs?: string;
+}) {
+  const t = useT();
+
+  return (
+    <form action={confirmEmailLinkAction} className="flex flex-col gap-5">
+      <LocaleField />
+      <input type="hidden" name="token_hash" value={tokenHash} />
+      <input type="hidden" name="type" value={type} />
+      {next ? <input type="hidden" name="next" value={next} /> : null}
+
+      {signedInAs ? (
+        <p className="border-2 border-neon-yellow bg-neon-yellow/8 px-4 py-3 text-[13px] leading-relaxed font-semibold wrap-break-words text-fg">
+          {t("auth.confirmLink.signedInAs", { email: signedInAs })}
+        </p>
+      ) : null}
+
+      <p className="text-[13px] leading-relaxed text-fg-dim">
+        {t("auth.confirmLink.warning")}
+      </p>
+
+      <ConfirmLinkSubmit
+        label={t(
+          type === "recovery"
+            ? "auth.confirmLink.submitRecovery"
+            : "auth.confirmLink.submit",
+        )}
+      />
     </form>
   );
 }

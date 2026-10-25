@@ -4,6 +4,9 @@
  * the proxy strips the prefix before asking.
  */
 
+import type { EmailOtpType } from "@supabase/supabase-js";
+import { localizePath, type Locale } from "@/lib/i18n/config";
+
 /**
  * The `[id]` segment that means "whoever is signed in".
  *
@@ -34,6 +37,49 @@ const PROTECTED = [
  * ever reached *with* a session.
  */
 const GUEST_ONLY = ["/login", "/signup", "/forgot-password"] as const;
+
+/**
+ * How long after following a recovery link the session may set a new password
+ * without the old one. The link itself is good for 30 minutes; this leaves
+ * time to pick a password once it has been opened.
+ */
+export const RECOVERY_WINDOW_SECONDS = 60 * 60;
+
+/**
+ * Whether a session was opened by a password-recovery link within the window,
+ * read from the access token's `amr` claim: Supabase records "recovery" there
+ * for a session that `/auth/confirm` opened from a reset email, by either
+ * link shape. Any other session — a password sign-in, Google, a confirmation
+ * link — has to give the current password before changing it, so a borrowed
+ * laptop or a stolen session cookie is not enough to lock the runner out.
+ *
+ * The plain-string `amr` form (a custom access-token hook can produce it)
+ * carries no timestamp, so there a recovery entry counts as recent.
+ */
+export function isRecentRecovery(
+  amr: readonly (string | { method: string; timestamp: number })[] | undefined,
+  nowSeconds: number,
+): boolean {
+  return (amr ?? []).some((entry) =>
+    typeof entry === "string"
+      ? entry === "recovery"
+      : entry.method === "recovery" &&
+        nowSeconds - entry.timestamp <= RECOVERY_WINDOW_SECONDS,
+  );
+}
+
+/**
+ * Where a `token_hash` email link waits for the runner to press "Continue"
+ * before it is spent. See `app/[lang]/auth/confirm`.
+ */
+export const CONFIRM_LINK_PATH = "/confirm-link";
+
+/** The email link types the app sends: address confirmation and recovery. */
+const EMAIL_LINK_TYPES = new Set<EmailOtpType>(["signup", "email", "email_change", "recovery"]);
+
+export function isEmailLinkType(value: string | null | undefined): value is EmailOtpType {
+  return typeof value === "string" && EMAIL_LINK_TYPES.has(value as EmailOtpType);
+}
 
 /** The query parameter carrying where the visitor was headed before the gate. */
 export const NEXT_PARAM = "next";
@@ -87,4 +133,23 @@ export function safeNextPath(value: string | null | undefined): string | null {
   // "//evil.com", which would leave the site when redirected to.
   if (url.pathname.startsWith("//")) return null;
   return `${url.pathname}${url.search}${url.hash}`;
+}
+
+/**
+ * The absolute URL to redirect to for a locale-free app path — a constant,
+ * or what `safeNextPath` returned — on `origin`.
+ *
+ * The path may carry a query string and a fragment (`/events?distance=5K`),
+ * so it is parsed into its parts rather than assigned to `pathname`, which
+ * would percent-encode the `?` into the path and land on a 404. It is parsed
+ * against a placeholder base and only its parts are copied, so even a path
+ * that slipped past `safeNextPath` cannot change the origin.
+ */
+export function appUrl(origin: string, path: string, locale: Locale): URL {
+  const parsed = new URL(path, "http://app.invalid");
+  const url = new URL(origin);
+  url.pathname = localizePath(parsed.pathname, locale);
+  url.search = parsed.search;
+  url.hash = parsed.hash;
+  return url;
 }

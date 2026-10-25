@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { loginPath, safeNextPath } from "./routes";
+import {
+  RECOVERY_WINDOW_SECONDS,
+  appUrl,
+  isRecentRecovery,
+  loginPath,
+  safeNextPath,
+} from "./routes";
 
 describe("loginPath", () => {
   it("carries the page the visitor was on", () => {
@@ -14,6 +20,50 @@ describe("loginPath", () => {
       expect(loginPath(next)).toBe("/login");
     },
   );
+});
+
+describe("appUrl", () => {
+  const origin = "https://neons.example";
+
+  it("keeps a query string and fragment out of the pathname", () => {
+    const url = appUrl(origin, "/events?distance=5K&page=2#list", "es");
+    expect(url.href).toBe("https://neons.example/events?distance=5K&page=2#list");
+    expect(url.pathname).toBe("/events");
+  });
+
+  it("prefixes the path, not the query, for a non-default locale", () => {
+    expect(appUrl(origin, "/login?error=oauth", "en").href).toBe(
+      "https://neons.example/en/login?error=oauth",
+    );
+    expect(appUrl(origin, "/", "en").href).toBe("https://neons.example/en");
+  });
+
+  it("stays on the origin it was given", () => {
+    for (const path of ["//evil.com/x", "https://evil.com/x", "/\\evil.com"]) {
+      expect(appUrl(origin, path, "es").origin).toBe(origin);
+    }
+  });
+});
+
+describe("isRecentRecovery", () => {
+  const now = 1_800_000_000;
+
+  it("accepts a session a recovery link opened within the window", () => {
+    expect(isRecentRecovery([{ method: "recovery", timestamp: now - 60 }], now)).toBe(true);
+    expect(isRecentRecovery(["recovery"], now)).toBe(true);
+  });
+
+  it("refuses an old recovery session", () => {
+    const stale = now - RECOVERY_WINDOW_SECONDS - 1;
+    expect(isRecentRecovery([{ method: "recovery", timestamp: stale }], now)).toBe(false);
+  });
+
+  it("refuses every other way of signing in", () => {
+    expect(isRecentRecovery(undefined, now)).toBe(false);
+    expect(isRecentRecovery([], now)).toBe(false);
+    expect(isRecentRecovery([{ method: "password", timestamp: now }], now)).toBe(false);
+    expect(isRecentRecovery([{ method: "oauth", timestamp: now }, "otp"], now)).toBe(false);
+  });
 });
 
 describe("safeNextPath", () => {

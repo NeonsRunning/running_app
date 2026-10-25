@@ -10,6 +10,7 @@ import { applySession, refreshSession } from "@/lib/supabase/proxy";
 import {
   NEXT_PARAM,
   SELF_PROFILE_PATH,
+  appUrl,
   isGuestOnlyPath,
   isProtectedPath,
   safeNextPath,
@@ -33,15 +34,15 @@ import {
  * refresh runs before the locale rules choose a response, and its cookies are
  * written onto whichever response wins.
  *
- * NOTE ON THE FILE NAME: Next 16 documents `middleware` as deprecated in
- * favour of a `proxy.ts` file exporting `proxy`. That convention does not
- * work in the pinned 16.3.2 Turbopack build — a root `proxy.ts` compiles but
- * is never registered (`middleware-manifest.json` comes back with an empty
- * `sortedMiddleware`), so every unprefixed path 404s. Verified by building
- * both spellings; only this one registers. Rename to `proxy.ts` (and rename
- * the export to `proxy`) once a Next release wires that convention up.
+ * NOTE ON THE FILE NAME: this was `middleware.ts` while the pinned 16.3.2
+ * Turbopack build never registered a root `proxy.ts`. On 16.4.3 it does —
+ * verified with `next build` + `next start`: the build lists "Proxy
+ * (Middleware)", `/events` renders and `/es/events` redirects — so it follows
+ * the Next 16 convention now (`proxy.ts`, exporting `proxy`; Node runtime,
+ * which it already needed for the Supabase client). If unprefixed paths ever
+ * start to 404 after an upgrade, check that it is still registered.
  */
-export default async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const first = pathname.split("/")[1] ?? "";
 
@@ -73,9 +74,7 @@ export default async function middleware(request: NextRequest) {
   // honour it rather than dropping them on their profile.
   if (isGuestOnlyPath(path) && session.user) {
     const wanted = safeNextPath(request.nextUrl.searchParams.get(NEXT_PARAM));
-    const url = request.nextUrl.clone();
-    url.pathname = localizePath(wanted ?? SELF_PROFILE_PATH, locale);
-    url.search = "";
+    const url = appUrl(request.nextUrl.origin, wanted ?? SELF_PROFILE_PATH, locale);
     return applySession(NextResponse.redirect(url), session);
   }
 

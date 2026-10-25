@@ -1113,7 +1113,11 @@
       "passwordShort": "Use at least 8 characters.",
       "passwordMismatch": "The two passwords do not match.",
       "saving": "Saving…",
-      "submit": "Save password"
+      "submit": "Save password",
+      "currentPassword": "Current password",
+      "currentHint": "You opened this page without a reset link, so confirm your current password first. Don’t know it? Log out and use “Forgot password?”.",
+      "currentRequired": "Enter your current password.",
+      "currentWrong": "That is not your current password."
     },
     "verify": {
       "metaTitle": "Check your email",
@@ -1147,6 +1151,19 @@
       "missingEmail": "We do not know which address to verify. Start from sign-up.",
       "oauth": "Google sign-in did not complete. Try again or use your email.",
       "link": "That link has expired or was already used. Request a new one."
+    },
+    "confirmLink": {
+      "metaTitle": "Confirm sign-in",
+      "title": "Confirm it’s you",
+      "intro": "This link from your email signs this browser in to the account it was sent to.",
+      "introRecovery": "This link from your email signs this browser in to the account it was sent to, so you can set a new password.",
+      "signedInAs": "You’re signed in as {email} right now. Continuing signs you in to the account this link belongs to instead.",
+      "warning": "Only continue if you asked for this email yourself. If someone else sent you this link, close this page.",
+      "submit": "Continue",
+      "submitRecovery": "Continue to New Password",
+      "working": "Confirming…",
+      "footerPre": "Not expecting this?",
+      "footerLink": "Back to log in"
     }
   },
   "error": {
@@ -2186,8 +2203,13 @@
       "notAdmin": "Only platform admins can change ATH Móvil accounts.",
       "saveFailed": "Something went wrong — try again in a moment.",
       "ownerNotFound": "No account has that handle.",
-      "ownerNotOrganizer": "That account isn’t an organizer, so it couldn’t approve payments."
-    }
+      "ownerNotOrganizer": "That account isn’t an organizer, so it couldn’t approve payments.",
+      "ownerUnconfirmed": "Look up the handle and check the name before saving."
+    },
+    "ownerLookup": "Look Up",
+    "ownerLooking": "Looking up…",
+    "ownerFound": "Will be assigned to {name} (@{handle}).",
+    "ownerCurrent": "Assigned to {name} (@{handle})."
   },
   "adminEvents": {
     "metaTitle": "Events",
