@@ -275,6 +275,11 @@ export function RegistrationFlow({
 
   const category =
     event.categories.find((c) => c.id === categoryId) ?? event.categories[0];
+  // At the event's cap every category is out of reach, whatever room each
+  // has of its own.
+  const soldOut = event.registrationStatus === "full";
+  const categoryFull = (c: (typeof event.categories)[number]) =>
+    soldOut || c.registered >= c.capacity;
 
   const { tax, total } = useMemo(
     () =>
@@ -345,6 +350,15 @@ export function RegistrationFlow({
 
   function goNext() {
     if (step === 1) {
+      // The pre-selected distance may be one with no spots left.
+      if (categoryFull(category)) {
+        toast({
+          title: t("register.errors.saveTitle"),
+          body: t(soldOut ? "register.step1.soldOut" : "register.errors.soldOut"),
+          tone: "danger",
+        });
+        return;
+      }
       if (!waiver) {
         setWaiverError(true);
         return;
@@ -584,6 +598,14 @@ export function RegistrationFlow({
               <p className="mt-3 text-[15px] text-fg-dim">
                 {t("register.step1.body")}
               </p>
+              {soldOut ? (
+                <p
+                  role="status"
+                  className="mt-5 border-2 border-line px-4 py-3 text-[14px] font-semibold text-fg-muted"
+                >
+                  {t("register.step1.soldOut")}
+                </p>
+              ) : null}
 
               <div
                 role="radiogroup"
@@ -592,7 +614,7 @@ export function RegistrationFlow({
               >
                 {event.categories.map((c) => {
                   const on = c.id === categoryId;
-                  const full = c.registered >= c.capacity;
+                  const full = categoryFull(c);
                   return (
                     <button
                       key={c.id}

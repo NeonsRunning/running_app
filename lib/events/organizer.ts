@@ -3,7 +3,7 @@ import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "./form";
-import { addDays } from "@/lib/dates";
+import { addDays, puertoRicoMidnight } from "@/lib/dates";
 import { selectAll } from "@/lib/supabase/paginate";
 import { todayIso } from "./queries";
 import { EVENTS_PAGE_SIZE } from "./search";
@@ -33,7 +33,7 @@ type SummaryRow = Pick<
  */
 type OrganizerSummary = {
   per_event: { event_id: string; registered: number; revenue: number }[];
-  /** Paid sign-ups and revenue per UTC day, from the oldest chart bucket on. */
+  /** Paid sign-ups and revenue per island day of payment, from the oldest chart bucket on. */
   daily: { day: string; registrations: number; revenue: number }[];
   /** Runners per age group (labels as in `AGE_GROUPS`) and gender. */
   demographics: { age_group: string; gender: "f" | "m" | "x"; count: number }[];
@@ -43,6 +43,7 @@ const EMPTY_SUMMARY: OrganizerSummary = { per_event: [], daily: [], demographics
 
 /**
  * Lifecycle shown on a dashboard card; keys under `labels.eventStatus`.
+ * "Closed": registration is over, race day still to come.
  * "Removed": taken down by a platform admin, no longer the organizer's to
  * edit or delete.
  */
@@ -50,6 +51,7 @@ export type DashboardStatus =
   | "Draft"
   | "Live"
   | "Closing"
+  | "Closed"
   | "Finished"
   | "Removed";
 
@@ -65,6 +67,11 @@ export type DashboardEvent = {
   registered: number;
   capacity: number;
   revenue: number;
+  /**
+   * Whether `delete_event()` would take it: no paid runner, no cancelled
+   * sign-up kept as a payment's record, no ATH Móvil payment under review.
+   */
+  deletable: boolean;
 };
 
 export type Dashboard = {
@@ -128,6 +135,8 @@ function dashboardStatus(
   if (event.status === "draft") return "Draft";
   if (event.status === "removed") return "Removed";
   if (event.last_day && event.last_day < today) return "Finished";
+  // Sign-ups are over and the race is still to come: neither live nor closing.
+  if (event.registration_closes && event.registration_closes < today) return "Closed";
   // Closing: registration ends within a week, or the field is nearly full.
   const weekAhead = addDays(today, 7);
   if (
@@ -178,13 +187,28 @@ export async function getOrganizerEvents(
 
   // Added up in the database: one row per event, not one per runner.
   const regs = new Map<string, { registered: number; revenue: number }>();
+  // What else keeps an event from `delete_event()` besides a paid runner,
+  // whom the totals count: a cancelled sign-up, or an ATH Móvil payment
+  // waiting for review. Few rows, unlike the paid ones.
+  const kept = new Set<string>();
   if (events.length) {
-    const { data: rows } = await supabase.rpc("event_signup_totals", {
-      p_event_ids: events.map((e) => e.id),
-    });
+    const ids = events.map((e) => e.id);
+    const [{ data: rows }, { data: held }] = await Promise.all([
+      supabase.rpc("event_signup_totals", { p_event_ids: ids }),
+      selectAll((from, to) =>
+        supabase
+          .from("registrations")
+          .select("id, event_id")
+          .in("event_id", ids)
+          .or("status.eq.cancelled,payment_submitted_at.not.is.null")
+          .order("id")
+          .range(from, to),
+      ),
+    ]);
     for (const r of rows ?? []) {
       regs.set(r.event_id, { registered: Number(r.registered), revenue: Number(r.revenue) });
     }
+    for (const r of held) kept.add(r.event_id);
   }
 
   const today = todayIso();
@@ -203,6 +227,7 @@ export async function getOrganizerEvents(
         registered,
         capacity,
         revenue,
+        deletable: registered === 0 && !kept.has(e.id),
       };
     }),
     total: count ?? events.length,
@@ -217,30 +242,37 @@ export async function getOrganizerDashboard(
   const supabase = await createClient();
   // Every event, but only the columns the totals read: the cards themselves
   // load a page at a time through `getOrganizerEvents()`.
-  const { data: eventData } = await supabase
-    .from("events")
-    .select(
-      "id, status, last_day, registration_closes, capacity, event_date, event_categories (capacity)",
-    )
-    .eq("organizer_id", organizerId);
-  const events = (eventData ?? []) as SummaryRow[];
+  // Paged: past the API's 1000-row cap the rest would be left out of every
+  // total.
+  const { data: eventData } = await selectAll((from, to) =>
+    supabase
+      .from("events")
+      .select(
+        "id, status, last_day, registration_closes, capacity, event_date, event_categories (capacity)",
+      )
+      .eq("organizer_id", organizerId)
+      .order("id")
+      .range(from, to),
+  );
+  const events = eventData as SummaryRow[];
 
   const today = todayIso();
-  const now = new Date();
 
-  // The oldest chart bucket: the Monday 11 weeks before this week's, or the
-  // first of the month 5 months back, whichever is earlier (UTC, as before).
-  const weekStarts = Array.from({ length: WEEKS }, (_, i) => {
-    const d = new Date(now);
-    d.setUTCHours(0, 0, 0, 0);
-    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7) - (WEEKS - 1 - i) * 7);
-    return d;
-  });
-  const monthStarts = Array.from(
-    { length: MONTHS },
-    (_, i) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - (MONTHS - 1 - i), 1)),
+  // Chart buckets are the island's weeks and months, as YYYY-MM-DD, since
+  // the database dates each sign-up by the island day it was paid. The
+  // oldest is the Monday 11 weeks before this week's, or the first of the
+  // month 5 months back, whichever is earlier.
+  const weekday = (new Date(`${today}T12:00:00Z`).getUTCDay() + 6) % 7;
+  const weekStarts = Array.from({ length: WEEKS }, (_, i) =>
+    addDays(today, -weekday - (WEEKS - 1 - i) * 7),
   );
-  const since = new Date(Math.min(weekStarts[0].getTime(), monthStarts[0].getTime()));
+  const [year, month] = today.split("-").map(Number);
+  const monthStarts = Array.from({ length: MONTHS }, (_, i) =>
+    new Date(Date.UTC(year, month - 1 - (MONTHS - 1 - i), 1)).toISOString().slice(0, 10),
+  );
+  const since = puertoRicoMidnight(
+    weekStarts[0] < monthStarts[0] ? weekStarts[0] : monthStarts[0],
+  );
 
   // Added up in the database, which returns a few dozen numbers rather than
   // every paid registration. Row-level security decides what it counts.
@@ -261,22 +293,23 @@ export async function getOrganizerDashboard(
   );
 
   /* Weekly sign-ups, last 12 ISO weeks ending this one -------------------- */
-  const days = summary.daily.map((d) => ({ ...d, at: Date.parse(`${d.day}T00:00:00Z`) }));
+  // ISO dates compare as strings.
+  const days = summary.daily;
   const registrationsSeries = weekStarts.map((start, i) => {
-    const end = weekStarts[i + 1]?.getTime() ?? Infinity;
+    const end = weekStarts[i + 1];
     return {
-      label: `W${isoWeek(start)}`,
+      label: `W${isoWeek(new Date(`${start}T12:00:00Z`))}`,
       value: days
-        .filter((d) => d.at >= start.getTime() && d.at < end)
+        .filter((d) => d.day >= start && (end === undefined || d.day < end))
         .reduce((sum, d) => sum + Number(d.registrations), 0),
     };
   });
 
   /* Monthly revenue, last 6 months ending this one ------------------------ */
-  const revenueSeries = monthStarts.map((d) => {
-    const key = d.toISOString().slice(0, 7);
+  const revenueSeries = monthStarts.map((start) => {
+    const key = start.slice(0, 7);
     return {
-      label: MONTH_LABELS[d.getUTCMonth()],
+      label: MONTH_LABELS[Number(start.slice(5, 7)) - 1],
       value: Math.round(
         days
           .filter((day) => day.day.slice(0, 7) === key)
@@ -303,6 +336,7 @@ export async function getOrganizerDashboard(
     totals: {
       registrations,
       revenue: Math.round(revenue),
+      // Taking sign-ups: a closed or finished race is not active.
       activeEvents: statuses.filter((s) => s === "Live" || s === "Closing").length,
       drafts: statuses.filter((s) => s === "Draft").length,
     },
@@ -352,18 +386,34 @@ export async function getEventForm(
   if (!data || data.status === "removed") return null;
   const event = data as EventRow & { status: "draft" | "published" };
 
+  // Every row, not only the paid ones, so the wizard offers only what
+  // `save_event()` and `delete_event()` will accept:
+  //   * a spot counts against a cap while paid or held — by a live checkout,
+  //     or by an ATH Móvil payment under review, whose hold is 'infinity';
+  //   * any row at all, lapsed or cancelled too, keeps its category from
+  //     being removed (a foreign key) and its distance from changing;
+  //   * a paid, cancelled or under-review row keeps the event from deletion.
   const { data: regs } = await selectAll((from, to) =>
     supabase
       .from("registrations")
-      .select("id, category_id")
+      .select("id, category_id, status, hold_expires_at, payment_submitted_at")
       .eq("event_id", event.id)
-      .eq("status", "confirmed")
       .order("id")
       .range(from, to),
   );
+  const now = Date.now();
   const registered = new Map<string, number>();
-  for (const r of regs ?? []) {
-    registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
+  const locked = new Set<string>();
+  let deletable = true;
+  for (const r of regs) {
+    locked.add(r.category_id);
+    const held =
+      r.hold_expires_at !== null &&
+      (r.hold_expires_at === "infinity" || Date.parse(r.hold_expires_at) > now);
+    if (r.status === "confirmed" || held) {
+      registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
+    }
+    if (r.status !== "pending" || r.payment_submitted_at !== null) deletable = false;
   }
 
   const categories = [...event.event_categories]
@@ -376,12 +426,14 @@ export async function getEventForm(
       capacity: String(c.capacity),
       start: hhmm(c.start_time),
       registered: registered.get(c.id) ?? 0,
+      locked: locked.has(c.id),
     }));
 
   return {
     organizerId: event.organizer_id,
     id: event.id,
     status: event.status,
+    deletable,
     slug: event.slug,
     name: event.name,
     description: event.description,

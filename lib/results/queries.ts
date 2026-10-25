@@ -1,6 +1,7 @@
 import "server-only";
 import { eventImageUrl } from "@/lib/events/images";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { chunk, selectAll } from "@/lib/supabase/paginate";
 import { createClient } from "@/lib/supabase/server";
 import type { Enums } from "@/lib/supabase/database.types";
 import type { Distance } from "@/lib/types";
@@ -19,15 +20,25 @@ export type ResultStatus = Enums<"result_status">;
 /** Signed evidence links last long enough to review a queue. */
 const SIGNED_URL_SECONDS = 60 * 60;
 
-/** Signed URLs by path; a path that fails to sign is simply left out. */
+/**
+ * Signed URLs by path; a path that fails to sign is simply left out. A few
+ * hundred paths per request: a big race's finishers, all in one request
+ * body, would be one the storage API might refuse whole.
+ */
 async function signEvidence(paths: string[]): Promise<Map<string, string>> {
   if (paths.length === 0) return new Map();
   const supabase = await createClient();
-  const { data } = await supabase.storage
-    .from(EVIDENCE_BUCKET)
-    .createSignedUrls(paths, SIGNED_URL_SECONDS);
+  const signed = await Promise.all(
+    chunk(paths).map((run) =>
+      supabase.storage.from(EVIDENCE_BUCKET).createSignedUrls(run, SIGNED_URL_SECONDS),
+    ),
+  );
   return new Map(
-    (data ?? []).flatMap((d) => (d.path && d.signedUrl ? [[d.path, d.signedUrl]] : [])),
+    signed.flatMap(({ data }) =>
+      (data ?? []).flatMap((d) =>
+        d.path && d.signedUrl ? [[d.path, d.signedUrl] as const] : [],
+      ),
+    ),
   );
 }
 
@@ -121,15 +132,19 @@ export async function listEventResultSubmissions(
   if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("race_results")
-    .select(
-      "id, finish_seconds, submitted_at, evidence_path, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
-    )
-    .eq("event_id", eventId)
-    .eq("status", "pending")
-    .order("submitted_at");
-  if (error || !data) return [];
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .from("race_results")
+      .select(
+        "id, finish_seconds, submitted_at, evidence_path, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
+      )
+      .eq("event_id", eventId)
+      .eq("status", "pending")
+      .order("submitted_at")
+      .order("id")
+      .range(from, to),
+  );
+  if (error) return [];
 
   const urls = await signEvidence(data.map((r) => r.evidence_path));
   return data.map((r) => ({
@@ -169,15 +184,19 @@ export async function listEventFinishers(
   if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("race_results")
-    .select(
-      "id, status, finish_seconds, submitted_at, reviewed_at, review_note, evidence_path, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
-    )
-    .eq("event_id", eventId)
-    .in("status", ["accepted", "rejected", "disqualified"])
-    .order("finish_seconds");
-  if (error || !data) return [];
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .from("race_results")
+      .select(
+        "id, status, finish_seconds, submitted_at, reviewed_at, review_note, evidence_path, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
+      )
+      .eq("event_id", eventId)
+      .in("status", ["accepted", "rejected", "disqualified"])
+      .order("finish_seconds")
+      .order("id")
+      .range(from, to),
+  );
+  if (error) return [];
 
   const urls = await signEvidence(data.map((r) => r.evidence_path));
   const rows: EventFinisherRow[] = data.map((r) => ({
@@ -201,6 +220,103 @@ export async function listEventFinishers(
   return rows.sort(
     (a, b) => Number(a.status === "rejected") - Number(b.status === "rejected"),
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/* The public results pages                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type PublicResultRow = {
+  id: string;
+  /** Their place among the listed finishers of the same distance; ties share one. */
+  place: number;
+  bib: number;
+  runnerId: string;
+  runnerName: string;
+  categoryId: string;
+  distance: Distance;
+  distanceKm: number;
+  finishSeconds: number;
+};
+
+/**
+ * One published event's accepted results, by category in the event's order,
+ * then place. Only runners whose profile is public are listed, named as
+ * their profile names them; see `public_event_results()`. Every one links to
+ * that profile.
+ */
+export async function listPublicEventResults(
+  eventId: string,
+): Promise<PublicResultRow[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .rpc("public_event_results", { p_event_id: eventId })
+      .order("category_position")
+      .order("place")
+      .order("id")
+      .range(from, to),
+  );
+  if (error) {
+    console.error(`Results for ${eventId} failed to load:`, error.message);
+    return [];
+  }
+
+  return data.map((r) => ({
+    id: r.id,
+    place: Number(r.place),
+    bib: r.bib,
+    runnerId: r.runner_id,
+    runnerName: r.runner_name,
+    categoryId: r.category_id,
+    distance: r.distance,
+    distanceKm: Number(r.distance_km),
+    finishSeconds: r.finish_seconds,
+  }));
+}
+
+export type ResultEventRow = {
+  id: string;
+  slug: string;
+  name: string;
+  date: string;
+  anywhere: boolean;
+  city: string | null;
+  region: string;
+  /** Listed finishers: those with a public profile. */
+  finishers: number;
+};
+
+/** Published events with results anyone can see, newest race first. */
+export async function listResultEvents(): Promise<ResultEventRow[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .rpc("public_result_events")
+      .order("event_date", { ascending: false })
+      .order("event_id")
+      .range(from, to),
+  );
+  if (error) {
+    console.error("public_result_events() failed:", error.message);
+    return [];
+  }
+
+  return data.map((r) => ({
+    id: r.event_id,
+    slug: r.slug,
+    name: r.name,
+    // Published events always have a date (`events_published_complete`).
+    date: r.event_date ?? "",
+    anywhere: r.anywhere,
+    city: r.city,
+    region: r.region,
+    finishers: Number(r.finishers),
+  }));
 }
 
 /* -------------------------------------------------------------------------- */

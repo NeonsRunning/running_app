@@ -222,7 +222,7 @@ export function EventDetailTabs({
                   </p>
                   <p className="mt-1 font-mono text-[11px] text-fg-dim">
                     {t("events.tabs.spotsLeft", {
-                      count: fmt.number(c.capacity - c.registered),
+                      count: fmt.number(Math.max(0, c.capacity - c.registered)),
                     })}
                   </p>
                 </div>

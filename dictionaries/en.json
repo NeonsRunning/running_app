@@ -122,7 +122,8 @@
       "open": "Registration open",
       "opening-soon": "Opening soon",
       "almost-full": "Almost full",
-      "closed": "Closed"
+      "closed": "Closed",
+      "full": "Sold out"
     },
     "wave": {
       "wave-a": "Wave A",
@@ -157,7 +158,8 @@
       "draft": "Draft",
       "closing": "Closing",
       "finished": "Finished",
-      "removed": "Removed"
+      "removed": "Removed",
+      "closed": "Reg. closed"
     },
     "series": {
       "50": "50+",
@@ -290,7 +292,8 @@
       "raceCategories": "Race categories",
       "countdown": "Countdown",
       "days": "DAYS",
-      "registrationCloses": "Registration closes {date}, 11:59 PM."
+      "registrationCloses": "Registration closes {date}, 11:59 PM.",
+      "soldOut": "Sold out"
     },
     "tabs": {
       "label": "Event information",
@@ -428,7 +431,8 @@
       "waiverPre": "I have read and accept the",
       "waiverLink": "race waiver",
       "waiverPost": "and confirm I am medically fit to participate.",
-      "waiverError": "▲ You must accept the waiver before continuing."
+      "waiverError": "▲ You must accept the waiver before continuing.",
+      "soldOut": "This race is sold out: every spot is taken."
     },
     "step2": {
       "title": "Runner information",
@@ -854,16 +858,25 @@
     "allResults": "All results",
     "index": {
       "metaTitle": "Results",
-      "metaDescription": "Official chip times and leaderboards from every NEONS RUNNING race.",
+      "metaDescription": "Finish times and leaderboards from NEONS RUNNING races.",
       "eyebrow": "Official timing",
       "title": "Race results",
-      "body": "Chip times, splits and age-group placings, posted within two hours of the last finisher. Search any race below.",
+      "body": "Finish times from NEONS RUNNING races, accepted by each race’s organizer. Pick a race to see its results.",
       "emptyTitle": "No results yet",
       "emptyBody": "Official times show up here as races are run and organizers post their results.",
       "emptyAction": "Browse races"
     },
     "emptyTitle": "No results posted yet",
-    "emptyBody": "Chip times and placings appear here once the organizer posts them."
+    "emptyBody": "Finish times appear here as runners send them in and the organizer accepts them.",
+    "finishers": "{count} finishers",
+    "listedNote": "Finish times are sent in by each runner and accepted by the organizer. Only runners with a public profile are listed.",
+    "columns": {
+      "place": "Place",
+      "bib": "Bib",
+      "runner": "Runner",
+      "time": "Time",
+      "pace": "Pace"
+    }
   },
   "organizer": {
     "metaTitle": "Organizer dashboard",
@@ -1728,7 +1741,10 @@
       "imageUnreadable": "Couldn’t read that image. Try another photo, or save it as JPG first.",
       "imageUploadFailed": "Couldn’t upload the image — try again in a moment.",
       "imageInvalid": "That image can’t be used. Upload it again.",
-      "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off."
+      "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off.",
+      "categoryDistanceLocked": "Runners are signed up for a category whose distance you changed. Put its distance back, or add a new category instead.",
+      "eventCapacityBelowRegistered": "The event’s cap can’t go below the runners already registered or holding a spot.",
+      "closesInPast": "Registration would already be closed. Pick a closing date from today on."
     },
     "editEvent": "Edit event",
     "editingAsAdmin": "Editing as admin",
@@ -1764,7 +1780,9 @@
       "title": "Offer finisher medals by mail",
       "detail": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Mailed medals go out once race day is over: you mark each one shipped from the event page and we email the runner. Pickups you mark as runners collect them.",
       "detailResults": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Once you accept a runner’s finish evidence, you mark their medal shipped from the event page and we email them, or mark it picked up when they collect it."
-    }
+    },
+    "categoryLocked": "Has sign-ups",
+    "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is."
   },
   "organizerOnly": {
     "eyebrow": "Organizers only",
