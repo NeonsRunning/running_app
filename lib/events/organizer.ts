@@ -5,6 +5,7 @@ import type { AidStation, ScheduleItem } from "@/lib/types";
 import { EMPTY_EVENT_FORM, type EventFormValues } from "./form";
 import { addDays, puertoRicoMidnight } from "@/lib/dates";
 import { selectAll } from "@/lib/supabase/paginate";
+import { checkInKit, type CheckInKit } from "./check-in-station";
 import { todayIso } from "./queries";
 import { EVENTS_PAGE_SIZE } from "./search";
 import type { Country } from "./vocabulary";
@@ -40,6 +41,8 @@ type OrganizerSummary = {
 };
 
 const EMPTY_SUMMARY: OrganizerSummary = { per_event: [], daily: [], demographics: [] };
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Lifecycle shown on a dashboard card; keys under `labels.eventStatus`.
@@ -631,7 +634,7 @@ export function hasInPersonCheckIn(event: {
   return !event.anywhere && event.type !== "Virtual Race";
 }
 
-/** A confirmed runner as the race-day check-in station shows them. */
+/** A runner as the race-day check-in station shows them. */
 export type CheckInRunner = {
   id: string;
   bib: number | null;
@@ -642,8 +645,12 @@ export type CheckInRunner = {
   /** On race day, or today for an undated event. */
   age: number;
   shirtSize: string | null;
-  /** The kit went by mail, so there is nothing to hand over at the tent. */
-  kitByMail: boolean;
+  kit: CheckInKit;
+  /**
+   * An ATH Móvil payment still waiting on review: listed so the volunteer
+   * finds them, but sent to the desk rather than checked in.
+   */
+  paymentUnderReview: boolean;
   checkedInAt: string | null;
 };
 
@@ -653,15 +660,21 @@ export type CheckInList = {
 };
 
 /**
- * One event's confirmed runners for the check-in station, in bib order.
- * `organizerId` limits it to that organizer's events; null opens anyone's,
- * which only a platform admin's row-level security lets through.
+ * One event's runners for the check-in station, in bib order: the confirmed
+ * ones, and those whose ATH Móvil payment is still under review (no bib yet,
+ * so they come last). `organizerId` limits it to that organizer's events;
+ * null opens anyone's, which only a platform admin's row-level security lets
+ * through.
+ *
+ * Null when the event is not the caller's, or has no check-in; a failed read
+ * throws, so the page shows its error and a retry rather than a 404.
  */
 export async function getCheckInList(
   organizerId: string | null,
   eventId: string,
 ): Promise<CheckInList | null> {
-  if (!hasSupabaseEnv()) return null;
+  // A malformed id is a missing event, not a failed read.
+  if (!hasSupabaseEnv() || !UUID.test(eventId)) return null;
 
   const supabase = await createClient();
   let query = supabase
@@ -669,22 +682,24 @@ export async function getCheckInList(
     .select("id, name, slug, status, anywhere, type, event_date, event_categories (id, distance)")
     .eq("id", eventId);
   if (organizerId) query = query.eq("organizer_id", organizerId);
-  const { data: event } = await query.maybeSingle();
+  const { data: event, error: eventError } = await query.maybeSingle();
+  if (eventError) {
+    throw new Error(`Check-in event ${eventId} failed to load: ${eventError.message}`);
+  }
   if (!event || event.status !== "published" || !hasInPersonCheckIn(event)) return null;
 
   const { data, error } = await selectAll((from, to) =>
     supabase
       .from("registrations")
-      .select("id, bib, first_name, last_name, category_id, gender, birth_date, shirt_size, ships_by_mail, checked_in_at")
+      .select("id, status, bib, first_name, last_name, category_id, gender, birth_date, shirt_size, ships_by_mail, shipped_at, checked_in_at")
       .eq("event_id", event.id)
-      .eq("status", "confirmed")
+      .or("status.eq.confirmed,and(status.eq.pending,payment_submitted_at.not.is.null)")
       .order("bib", { ascending: true, nullsFirst: false })
       .order("id")
       .range(from, to),
   );
   if (error) {
-    console.error(`Check-in list for ${eventId} failed to load:`, error.message);
-    return null;
+    throw new Error(`Check-in list for ${eventId} failed to load: ${error.message}`);
   }
 
   const distances = new Map(event.event_categories.map((c) => [c.id, c.distance]));
@@ -699,7 +714,8 @@ export async function getCheckInList(
       gender: r.gender,
       age: ageOn(r.birth_date, raceDay),
       shirtSize: r.shirt_size,
-      kitByMail: r.ships_by_mail,
+      kit: checkInKit(r.ships_by_mail, r.shipped_at),
+      paymentUnderReview: r.status !== "confirmed",
       checkedInAt: r.checked_in_at,
     })),
   };

@@ -8,6 +8,7 @@ import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel } from "@/lib/i18n/labels";
 import { reviewAthMovilPaymentAction } from "@/lib/ath-movil/review";
 import type { EventPaymentRow } from "@/lib/ath-movil/queries";
+import { PAYMENT_REVIEW_ANCHOR } from "@/lib/events/check-in-station";
 
 const COLUMN_KEYS = [
   "eventPayments.columns.runner",
@@ -170,7 +171,12 @@ export function EventPayments({
   }
 
   return (
-    <section aria-label={t("eventPayments.title")}>
+    // The check-in station links here for a runner whose payment is waiting.
+    <section
+      id={PAYMENT_REVIEW_ANCHOR}
+      aria-label={t("eventPayments.title")}
+      className="scroll-mt-24"
+    >
       <SectionHeading
         title={t("eventPayments.title")}
         kicker={t("eventPayments.count", { count: rows.length })}

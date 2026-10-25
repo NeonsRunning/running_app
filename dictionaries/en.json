@@ -1514,9 +1514,11 @@
     "undoCheckin": "Undo check-in",
     "checkIn": "Check in",
     "checkedInTitle": "Checked in",
-    "checkedInBody": "Bib #{bib} is cleared for the start line.",
+    "checkedInBody": "{name} · bib #{bib} is cleared for the start line.",
+    "checkedInBodyNoBib": "{name} is cleared for the start line. No bib on record — send them to the desk for one.",
     "reversedTitle": "Check-in reversed",
-    "reversedBody": "Bib #{bib}",
+    "reversedBody": "{name} · bib #{bib}",
+    "reversedBodyNoBib": "{name} · no bib",
     "title": "Race-day check-in",
     "ofTotal": "of {total}",
     "searchPlaceholder": "Runner name or bib number",
@@ -1525,14 +1527,22 @@
     "listMeta": "{distance} · shirt {shirt}",
     "in": "In",
     "complete": "Complete",
+    "attention": "Needs attention",
     "kitRow": "Race kit",
     "kitMailed": "Mailed — nothing to hand over",
+    "kitNotShipped": "Asked for by mail but never shipped — hand it over here",
+    "paymentUnderReview": "ATH Móvil payment under review",
+    "underReview": "Payment review",
+    "reviewTitle": "Payment under review",
+    "reviewBody": "{name}’s ATH Móvil payment hasn’t been approved yet, so they can’t be checked in. Resolve it at the desk.",
+    "openPaymentReview": "Open payment review",
     "backToEvent": "Back to the event page",
     "noRunners": "No confirmed runners yet. Paid sign-ups appear here with their bib.",
     "errors": {
       "title": "Check-in not saved",
       "notAllowed": "Only the event’s organizer can check runners in.",
       "registrationMissing": "This runner is no longer registered for the race.",
+      "noCheckIn": "This race has no check-in: it isn’t published, or it’s run virtually or anywhere.",
       "checkInFailed": "Something went wrong. Try again."
     }
   },
@@ -1935,6 +1945,7 @@
       "title": "Couldn’t save the review",
       "notAllowed": "Only this event’s organizer can review its results.",
       "alreadyReviewed": "This result was already reviewed, or the runner replaced it.",
+      "registrationMissing": "This runner’s sign-up was removed or is waiting on payment again, so the result can’t be reviewed.",
       "reviewFailed": "Something went wrong — try again in a moment."
     }
   },
@@ -2008,6 +2019,7 @@
       "notAthMovil": "Only ATH Móvil payments can go back to pending — card payments are confirmed by Stripe.",
       "resultAccepted": "This runner’s result was accepted — their sign-up can’t go back to pending.",
       "resultDisqualified": "This runner’s result was disqualified — their sign-up can’t go back to pending.",
+      "alreadyDelivered": "This runner’s kit or medal was already mailed or handed over — their sign-up can’t go back to pending. Remove the runner instead if the payment never arrived.",
       "revertFailed": "Something went wrong — try again in a moment."
     },
     "errors": {

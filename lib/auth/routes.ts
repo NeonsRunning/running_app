@@ -38,6 +38,19 @@ const GUEST_ONLY = ["/login", "/signup", "/forgot-password"] as const;
 /** The query parameter carrying where the visitor was headed before the gate. */
 export const NEXT_PARAM = "next";
 
+/**
+ * The locale-free login path that brings the visitor back to `next`
+ * afterwards. Home and the guest-only screens are left out: home is where a
+ * login with nowhere to go lands anyway, and returning to the login form
+ * itself would loop.
+ */
+export function loginPath(next?: string | null): string {
+  if (!next || next === "/" || isGuestOnlyPath(next.split(/[?#]/)[0])) {
+    return "/login";
+  }
+  return `/login?${NEXT_PARAM}=${encodeURIComponent(next)}`;
+}
+
 export function isProtectedPath(path: string): boolean {
   return PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));
 }

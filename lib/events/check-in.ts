@@ -8,13 +8,13 @@ import { createClient } from "@/lib/supabase/server";
  */
 
 /** A key under `checkin.errors`. */
-type CheckInError = "notAllowed" | "registrationMissing" | "checkInFailed";
+type CheckInError = "notAllowed" | "registrationMissing" | "noCheckIn" | "checkInFailed";
 
 export type CheckInResult =
   | { ok: true; checkedInAt: string | null }
   | { ok: false; error: CheckInError };
 
-const KNOWN = new Set<string>(["notAllowed", "registrationMissing"]);
+const KNOWN = new Set<string>(["notAllowed", "registrationMissing", "noCheckIn"]);
 
 export async function setCheckedInAction(
   registrationId: string,

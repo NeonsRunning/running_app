@@ -2,15 +2,21 @@
 
 import { Link } from "@/components/i18n/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useT } from "@/components/i18n/provider";
+import { cn } from "@/lib/cn";
 import type { Translate } from "@/lib/i18n/translate";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
 import { setCheckedInAction } from "@/lib/events/check-in";
+import {
+  PAYMENT_REVIEW_ANCHOR,
+  reconcileTaps,
+  type CheckInTap,
+} from "@/lib/events/check-in-station";
 import type { CheckInList, CheckInRunner } from "@/lib/events/organizer";
 
 /**
@@ -29,22 +35,29 @@ export function CheckInStation({ list }: { list: CheckInList }) {
   const fmt = useFormat();
   const [query, setQuery] = useState("");
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  // Taps not yet back from the server: registration id → checked-in time.
-  const [pending, setPending] = useState<ReadonlyMap<string, string | null>>(new Map());
+  const [saving, setSaving] = useState(false);
+  // The refresh after a save counts as busy too: a tap while it is on its
+  // way could be overtaken by it.
+  const [refreshing, startRefresh] = useTransition();
+  const busy = saving || refreshing;
+  // Taps the list may not show yet: registration id → the tap.
+  const [pending, setPending] = useState<ReadonlyMap<string, CheckInTap>>(new Map());
 
-  // Refreshed rows already carry what was tapped here.
-  const [prevInitial, setPrevInitial] = useState(initial);
-  if (initial !== prevInitial) {
-    setPrevInitial(initial);
-    setPending(new Map());
+  // A refreshed list drops the taps it has caught up with. One read before
+  // a later tap was saved keeps that tap on screen (see reconcileTaps).
+  const settled = !busy;
+  const [seen, setSeen] = useState({ initial, settled });
+  if (seen.initial !== initial || seen.settled !== settled) {
+    setSeen({ initial, settled });
+    setPending((prev) => reconcileTaps(prev, initial, settled));
   }
 
   const people = useMemo(
     () =>
-      initial.map((p) =>
-        pending.has(p.id) ? { ...p, checkedInAt: pending.get(p.id) ?? null } : p,
-      ),
+      initial.map((p) => {
+        const tap = pending.get(p.id);
+        return tap ? { ...p, checkedInAt: tap.checkedInAt } : p;
+      }),
     [initial, pending],
   );
 
@@ -58,18 +71,24 @@ export function CheckInStation({ list }: { list: CheckInList }) {
       .slice(0, 6);
   }, [people, query]);
 
-  const checkedIn = people.filter((p) => p.checkedInAt).length;
+  // Runners whose payment is still under review are listed, not counted.
+  const confirmed = people.filter((p) => !p.paymentUnderReview);
+  const checkedIn = confirmed.filter((p) => p.checkedInAt).length;
 
   async function save(runner: CheckInRunner, checkIn: boolean) {
-    const bib = runner.bib ?? "—";
-    setBusy(true);
+    setSaving(true);
     setPending((prev) =>
-      new Map(prev).set(runner.id, checkIn ? new Date().toISOString() : null),
+      new Map(prev).set(runner.id, {
+        checkedInAt: checkIn ? new Date().toISOString() : null,
+        saved: false,
+      }),
     );
-    const result = await setCheckedInAction(runner.id, checkIn);
-    setBusy(false);
+    const result = await setCheckedInAction(runner.id, checkIn).catch(
+      () => ({ ok: false, error: "checkInFailed" }) as const,
+    );
 
     if (!result.ok) {
+      setSaving(false);
       setPending((prev) => {
         const next = new Map(prev);
         next.delete(runner.id);
@@ -80,15 +99,38 @@ export function CheckInStation({ list }: { list: CheckInList }) {
         body: t(`checkin.errors.${result.error}`),
         tone: "danger",
       });
+      // Taken off the race meanwhile: the list drops them.
+      if (result.error === "registrationMissing") startRefresh(() => router.refresh());
       return;
     }
 
+    // What the server kept: a second phone's earlier check-in keeps its time.
+    setPending((prev) =>
+      new Map(prev).set(runner.id, { checkedInAt: result.checkedInAt, saved: true }),
+    );
+    setSaving(false);
+    startRefresh(() => router.refresh());
+
+    const name = runner.name;
+    const bib = runner.bib;
     toast(
       checkIn
-        ? { title: t("checkin.checkedInTitle"), body: t("checkin.checkedInBody", { bib }) }
-        : { title: t("checkin.reversedTitle"), body: t("checkin.reversedBody", { bib }), tone: "info" },
+        ? {
+            title: t("checkin.checkedInTitle"),
+            body:
+              bib === null
+                ? t("checkin.checkedInBodyNoBib", { name })
+                : t("checkin.checkedInBody", { name, bib }),
+          }
+        : {
+            title: t("checkin.reversedTitle"),
+            body:
+              bib === null
+                ? t("checkin.reversedBodyNoBib", { name })
+                : t("checkin.reversedBody", { name, bib }),
+            tone: "info",
+          },
     );
-    router.refresh();
   }
 
   /* ---------------- Participant screen ---------------- */
@@ -131,23 +173,61 @@ export function CheckInStation({ list }: { list: CheckInList }) {
 
           <ul className="mt-9 border-t-2 border-line">
             <CheckRow label={t("checkin.registration")} t={t} />
-            <CheckRow label={t("checkin.payment")} t={t} />
-            {active.shirtSize ? (
+            {active.paymentUnderReview ? (
+              <CheckRow
+                label={t("checkin.payment")}
+                detail={t("checkin.paymentUnderReview")}
+                attention
+                t={t}
+              />
+            ) : (
+              <CheckRow label={t("checkin.payment")} t={t} />
+            )}
+            {/* A mailed kit had the shirt in it: nothing to hand over. */}
+            {active.shirtSize && active.kit !== "mailed" ? (
               <CheckRow
                 label={t("checkin.shirtRow", { size: active.shirtSize })}
                 t={t}
               />
             ) : null}
-            {active.kitByMail ? (
+            {active.kit === "mailed" ? (
               <CheckRow
                 label={t("checkin.kitRow")}
                 detail={t("checkin.kitMailed")}
                 t={t}
               />
+            ) : active.kit === "notShipped" ? (
+              <CheckRow
+                label={t("checkin.kitRow")}
+                detail={t("checkin.kitNotShipped")}
+                attention
+                t={t}
+              />
             ) : null}
           </ul>
 
-          {active.checkedInAt ? (
+          {active.paymentUnderReview ? (
+            <div className="mt-9 border-2 border-neon-yellow bg-neon-yellow/10 px-5 py-8 text-center">
+              <p className="font-display text-3xl font-black text-neon-yellow uppercase">
+                {t("checkin.reviewTitle")}
+              </p>
+              <p className="mt-3 text-sm text-fg-muted">
+                {t("checkin.reviewBody", { name: active.name })}
+              </p>
+              <div className="mt-6 flex flex-col gap-3">
+                <Button size="lg" onClick={() => setActiveId(null)}>
+                  {t("checkin.nextRunner")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="md"
+                  href={`/events/${event.slug}#${PAYMENT_REVIEW_ANCHOR}`}
+                >
+                  {t("checkin.openPaymentReview")}
+                </Button>
+              </div>
+            </div>
+          ) : active.checkedInAt ? (
             <div className="animate-pop-in mt-9 border-2 border-neon-lime bg-neon-lime/10 px-5 py-8 text-center">
               <p className="font-display text-5xl font-black text-neon-lime uppercase">
                 {t("checkin.checkedIn")}
@@ -210,7 +290,7 @@ export function CheckInStation({ list }: { list: CheckInList }) {
             {fmt.number(checkedIn)}
           </p>
           <p className="font-mono text-[9px] tracking-[0.14em] text-fg-dim uppercase">
-            {t("checkin.ofTotal", { total: fmt.number(people.length) })}
+            {t("checkin.ofTotal", { total: fmt.number(confirmed.length) })}
           </p>
         </div>
       </header>
@@ -261,7 +341,9 @@ export function CheckInStation({ list }: { list: CheckInList }) {
                           : distanceLabel(t, p.distance)}
                       </span>
                     </span>
-                    {p.checkedInAt ? (
+                    {p.paymentUnderReview ? (
+                      <Badge tone="yellow">{t("checkin.underReview")}</Badge>
+                    ) : p.checkedInAt ? (
                       <Badge tone="green">{t("checkin.in")}</Badge>
                     ) : null}
                   </button>
@@ -275,13 +357,16 @@ export function CheckInStation({ list }: { list: CheckInList }) {
   );
 }
 
+/** One line of the runner's checklist: done, or something for the volunteer to act on. */
 function CheckRow({
   label,
   detail,
+  attention = false,
   t,
 }: {
   label: string;
   detail?: string;
+  attention?: boolean;
   t: Translate;
 }) {
   return (
@@ -289,13 +374,26 @@ function CheckRow({
       <span className="text-lg font-semibold">{label}</span>
       <span className="flex items-center gap-3">
         {detail ? (
-          <span className="text-right text-sm text-fg-dim">{detail}</span>
+          <span
+            className={cn(
+              "text-right text-sm",
+              attention ? "font-bold text-neon-yellow" : "text-fg-dim",
+            )}
+          >
+            {detail}
+          </span>
         ) : null}
         <span
-          className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-neon-lime text-lg font-black text-neon-lime"
-          aria-label={t("checkin.complete")}
+          role="img"
+          className={cn(
+            "flex h-9 w-9 shrink-0 items-center justify-center border-2 text-lg font-black",
+            attention
+              ? "border-neon-yellow text-neon-yellow"
+              : "border-neon-lime text-neon-lime",
+          )}
+          aria-label={t(attention ? "checkin.attention" : "checkin.complete")}
         >
-          ✓
+          {attention ? "!" : "✓"}
         </span>
       </span>
     </li>
