@@ -23,12 +23,29 @@
 -- a cover, a route map and a medal image for every event, so no fixed count
 -- fits.
 --
--- The subqueries run under row-level security, which is what they need: a
--- runner reads their own registrations, published events, and their own
--- avatar folder. The count reads storage.objects again, so its rows are
--- aliased `o`: bare, `name` there would be ambiguous to a reader, if not to
--- Postgres.
+-- The evidence subquery runs under row-level security, which is what it
+-- needs: a runner reads their own registrations and published events. The
+-- avatar count cannot sit in the policy itself: a policy on storage.objects
+-- that reads storage.objects is refused as infinite recursion, for every
+-- upload to every bucket. `avatar_file_count()` counts from behind security
+-- definer, only ever the caller's own folder.
 -- ---------------------------------------------------------------------------
+
+create or replace function public.avatar_file_count()
+returns integer
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select count(*)::int
+  from storage.objects o
+  where o.bucket_id = 'avatars'
+    and (storage.foldername(o.name))[1] = (select auth.uid())::text;
+$$;
+
+revoke execute on function public.avatar_file_count() from public, anon;
+grant execute on function public.avatar_file_count() to authenticated;
 
 drop policy if exists "Runners upload evidence to their own folder" on storage.objects;
 create policy "Runners upload evidence to their own folder"
@@ -54,10 +71,5 @@ create policy "Runners upload avatars to their own folder"
   with check (
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = (select auth.uid())::text
-    and (
-      select count(*)
-      from storage.objects o
-      where o.bucket_id = 'avatars'
-        and (storage.foldername(o.name))[1] = (select auth.uid())::text
-    ) < 5
+    and (select public.avatar_file_count()) < 5
   );

@@ -139,7 +139,7 @@ values
   ('00000000-0000-4000-9000-0000000000e2', '5K', 5, 20, 100, '07:00'),
   ('00000000-0000-4000-9000-0000000000e3', '5K', 5, 20, 100, '07:00');
 
-select plan(50);
+select plan(52);
 
 -- ---------------------------------------------------------------------------
 -- Sign-up
@@ -479,7 +479,12 @@ select is(
   'another runner lists none of it'
 );
 
-delete from storage.objects where bucket_id = 'avatars';
+-- Storage refuses any direct DELETE (storage.protect_delete), so the delete
+-- policies are out of reach from SQL; what is checked is that nothing goes.
+select throws_ok(
+  $$ delete from storage.objects where bucket_id = 'avatars' $$,
+  'a direct delete is refused'
+);
 
 reset role;
 
@@ -530,7 +535,10 @@ reset role;
 select tests.act_as('00000000-0000-4000-8000-000000000002');
 set local role authenticated;
 
-delete from storage.objects where bucket_id = 'event-images';
+select throws_ok(
+  $$ delete from storage.objects where bucket_id = 'event-images' $$,
+  'a direct delete is refused'
+);
 
 reset role;
 
