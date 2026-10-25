@@ -10,7 +10,7 @@ import {
   type AccountType,
   type Profile,
 } from "@/lib/profile/queries";
-import { NEXT_PARAM } from "./routes";
+import { NEXT_PARAM, isRecentRecovery } from "./routes";
 
 export type { AccountType, Profile };
 
@@ -62,6 +62,20 @@ export async function getUser(): Promise<User | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   return error ? null : data.user;
+}
+
+/**
+ * Whether the current session was opened by a password-recovery link within
+ * the last hour — the one session allowed to set a new password without
+ * giving the old one. `getClaims()` verifies the access token before its
+ * `amr` claim is trusted. See `isRecentRecovery`.
+ */
+export async function isRecoverySession(): Promise<boolean> {
+  if (!hasSupabaseEnv()) return false;
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.getClaims();
+  if (error || !data) return false;
+  return isRecentRecovery(data.claims.amr, Math.floor(Date.now() / 1000));
 }
 
 /**

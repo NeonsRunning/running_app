@@ -47,6 +47,8 @@ const DYNAMIC_PREFIXES = [
   "register.steps.",
   "register.errors.",
   "adminPayments.errors.",
+  // ATH Móvil account errors, as keys from the actions and the form.
+  "adminAccounts.errors.",
   // Removal errors arrive from the server as keys; blockers are picked by code.
   "adminEvents.errors.",
   "adminEvents.blocked.",

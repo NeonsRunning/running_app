@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createClient as createBareClient } from "@supabase/supabase-js";
 import { siteOrigin } from "@/lib/site-url";
 import { redirect } from "next/navigation";
 import {
@@ -10,9 +11,12 @@ import {
   type Locale,
 } from "@/lib/i18n/config";
 import { clientIp, LIMITS, withinLimits } from "@/lib/rate-limit";
+import type { Database } from "@/lib/supabase/database.types";
+import { supabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { authErrorKey } from "./errors";
-import { SELF_PROFILE_PATH, safeNextPath } from "./routes";
+import { isRecoverySession } from "./session";
+import { SELF_PROFILE_PATH, isEmailLinkType, safeNextPath } from "./routes";
 
 /**
  * Auth server actions.
@@ -67,6 +71,18 @@ async function authEmailAllowed(action: string, email: string): Promise<boolean>
   ]);
 }
 
+/**
+ * Whether another password may be tried against this address from this
+ * caller. Sign-in and the current-password check before a change share the
+ * counts, so moving between the two forms buys a guesser nothing.
+ */
+async function passwordAttemptAllowed(email: string): Promise<boolean> {
+  return withinLimits([
+    { action: "auth:signin:ip", who: await clientIp(), limit: LIMITS.signInPerIp },
+    { action: "auth:signin:email", who: email, limit: LIMITS.signInPerEmail },
+  ]);
+}
+
 /** Absolute URL for an email link, carrying the page to land on afterwards. */
 async function emailLink(
   route: "/auth/confirm" | "/auth/callback",
@@ -95,6 +111,7 @@ export async function signInAction(
   else if (!EMAIL_RE.test(email)) fieldErrors.email = "emailInvalid";
   if (!password) fieldErrors.password = "passwordRequired";
   if (Object.keys(fieldErrors).length) return { fieldErrors };
+  if (!(await passwordAttemptAllowed(email))) return { error: "rateLimited" };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -124,6 +141,9 @@ export async function signUpAction(
   else if (!EMAIL_RE.test(email)) fieldErrors.email = "emailInvalid";
   if (password.length < MIN_PASSWORD) fieldErrors.password = "passwordShort";
   if (Object.keys(fieldErrors).length) return { fieldErrors };
+  // Every sign-up — a decoy one for a registered address included — has
+  // Supabase send a confirmation email, so it is counted like a resend.
+  if (!(await authEmailAllowed("auth:signup", email))) return { error: "rateLimited" };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -201,6 +221,33 @@ export async function resendVerificationAction(
   return { ok: true, email };
 }
 
+/**
+ * Spend a `token_hash` email link, once the runner has pressed Continue on
+ * the confirm-link screen. `app/[lang]/auth/confirm` explains why a GET of
+ * the link does not do this itself: it would sign whoever opens the link in
+ * to the account it was sent to, which a stranger can choose.
+ *
+ * A server action rather than a POST route because Next checks a server
+ * action's Origin against the host, so another site cannot submit it for the
+ * runner.
+ */
+export async function confirmEmailLinkAction(formData: FormData): Promise<void> {
+  const locale = readLocale(formData);
+  const tokenHash = readText(formData, "token_hash");
+  const type = readText(formData, "type");
+  const failed = `${localizePath("/login", locale)}?error=link`;
+  if (!tokenHash || !isEmailLinkType(type)) redirect(failed);
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+  if (error) redirect(failed);
+
+  revalidatePath("/", "layout");
+  const fallback = type === "recovery" ? "/reset-password" : SELF_PROFILE_PATH;
+  const next = safeNextPath(readText(formData, "next")) ?? fallback;
+  redirect(localizePath(next, locale));
+}
+
 /* -------------------------------------------------------------------------- */
 /* Password recovery                                                          */
 /* -------------------------------------------------------------------------- */
@@ -230,11 +277,27 @@ export async function requestPasswordResetAction(
   return { ok: true, email };
 }
 
+/**
+ * Set a new password.
+ *
+ * A session a recovery link opened within the last hour is authority enough:
+ * the runner proved they hold the inbox. Any other session has to give the
+ * current password too — otherwise anyone at an unlocked laptop, or holding a
+ * stolen session cookie, could change it and lock the runner out.
+ *
+ * The current password is checked by signing in with it on a throwaway
+ * client that keeps nothing in cookies — a wrong guess leaves the runner's
+ * session alone — and on success that fresh session replaces theirs before
+ * the change is made. A fresh session is what Supabase's "secure password
+ * change" setting asks for, and Supabase signs out the account's other
+ * sessions on a password change anyway, the old one among them.
+ */
 export async function updatePasswordAction(
   _prev: AuthState | undefined,
   formData: FormData,
 ): Promise<AuthState> {
   const locale = readLocale(formData);
+  const current = String(formData.get("current") ?? "");
   const password = String(formData.get("password") ?? "");
   const confirm = String(formData.get("confirm") ?? "");
 
@@ -248,7 +311,32 @@ export async function updatePasswordAction(
   // The recovery link signs the runner in before this page renders, so no
   // session means the link expired or was never followed.
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { error: "sessionExpired" };
+  const user = userData.user;
+  if (!user) return { error: "sessionExpired" };
+
+  if (!(await isRecoverySession())) {
+    if (!current) return { fieldErrors: { current: "currentRequired" } };
+    if (!user.email) return { error: "sessionExpired" };
+    if (!(await passwordAttemptAllowed(user.email))) return { error: "rateLimited" };
+
+    const { url, anonKey } = supabaseEnv();
+    const probe = createBareClient<Database>(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    });
+    const { data: proved, error: proveError } = await probe.auth.signInWithPassword({
+      email: user.email,
+      password: current,
+    });
+    if (proveError?.code === "invalid_credentials") {
+      return { fieldErrors: { current: "currentWrong" } };
+    }
+    if (proveError || !proved.session || proved.user?.id !== user.id) {
+      return { error: authErrorKey(proveError) };
+    }
+
+    const { error: adoptError } = await supabase.auth.setSession(proved.session);
+    if (adoptError) return { error: authErrorKey(adoptError) };
+  }
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { error: authErrorKey(error) };

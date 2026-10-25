@@ -1093,7 +1093,11 @@
       "passwordShort": "Usa al menos 8 caracteres.",
       "passwordMismatch": "Las dos contraseñas no coinciden.",
       "saving": "Guardando…",
-      "submit": "Guardar contraseña"
+      "submit": "Guardar contraseña",
+      "currentPassword": "Contraseña actual",
+      "currentHint": "Abriste esta página sin un enlace de recuperación, así que confirma primero tu contraseña actual. ¿No la recuerdas? Cierra sesión y usa “¿Olvidaste la contraseña?”.",
+      "currentRequired": "Escribe tu contraseña actual.",
+      "currentWrong": "Esa no es tu contraseña actual."
     },
     "verify": {
       "metaTitle": "Revisa tu correo",
@@ -1127,6 +1131,19 @@
       "missingEmail": "No sabemos qué dirección verificar. Empieza desde el registro.",
       "oauth": "El acceso con Google no se completó. Intenta otra vez o usa tu correo.",
       "link": "Ese enlace venció o ya se usó. Pide uno nuevo."
+    },
+    "confirmLink": {
+      "metaTitle": "Confirmar acceso",
+      "title": "Confirma que eres tú",
+      "intro": "Este enlace de tu correo abre sesión en este navegador con la cuenta a la que se envió.",
+      "introRecovery": "Este enlace de tu correo abre sesión en este navegador con la cuenta a la que se envió, para que crees una contraseña nueva.",
+      "signedInAs": "Ahora mismo tienes sesión abierta como {email}. Si continúas, entrarás con la cuenta de este enlace en su lugar.",
+      "warning": "Continúa solo si tú pediste este correo. Si otra persona te envió este enlace, cierra esta página.",
+      "submit": "Continuar",
+      "submitRecovery": "Continuar a la contraseña nueva",
+      "working": "Confirmando…",
+      "footerPre": "¿No lo esperabas?",
+      "footerLink": "Volver a iniciar sesión"
     }
   },
   "error": {
@@ -2149,8 +2166,13 @@
       "notAdmin": "Solo los administradores de la plataforma pueden cambiar las cuentas de ATH Móvil.",
       "saveFailed": "Algo salió mal. Inténtalo de nuevo en un momento.",
       "ownerNotFound": "Ninguna cuenta tiene ese usuario.",
-      "ownerNotOrganizer": "Esa cuenta no es de organizador, así que no podría aprobar pagos."
-    }
+      "ownerNotOrganizer": "Esa cuenta no es de organizador, así que no podría aprobar pagos.",
+      "ownerUnconfirmed": "Busca el usuario y verifica el nombre antes de guardar."
+    },
+    "ownerLookup": "Buscar",
+    "ownerLooking": "Buscando…",
+    "ownerFound": "Se asignará a {name} (@{handle}).",
+    "ownerCurrent": "Asignada a {name} (@{handle})."
   },
   "adminEvents": {
     "metaTitle": "Eventos",
