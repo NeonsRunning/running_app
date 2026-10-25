@@ -408,6 +408,8 @@ export type Database = {
           payment_reviewed_at: string | null;
           payment_reviewed_by: string | null;
           payment_rejected_at: string | null;
+          /** ATH Móvil references rejected on this sign-up; it takes none after 3. */
+          payment_rejections: number;
           /** The ATH Móvil account the runner was told to pay. */
           ath_movil_account_id: string | null;
           /** Set when the organizer or an admin took the runner off the event. */
