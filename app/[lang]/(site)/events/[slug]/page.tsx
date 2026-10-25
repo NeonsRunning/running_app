@@ -162,8 +162,6 @@ export default async function EventDetailPage(
 
   return (
     <article className="pb-24 lg:pb-0">
-      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structured)} />
-
       {/* ---------------------------------------------------------------- */}
       {/* Banner                                                           */}
       {/* ---------------------------------------------------------------- */}
@@ -444,6 +442,8 @@ export default async function EventDetailPage(
           </p>
         )}
       </div>
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structured)} />
     </article>
   );
 }
