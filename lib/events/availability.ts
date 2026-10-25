@@ -8,7 +8,7 @@ import type { RegistrationStatus } from "@/lib/types";
  * "full" once they reach the event's cap, or every category's: then
  * `register_for_event()` refuses anyone. It also counts live checkout holds,
  * which only it can see, so a race can still turn a runner away as sold out
- * while this says "almost-full".
+ * while this says "almost-full". `search_events()` mirrors these rules.
  *
  * Plain function, no server imports: tested on its own.
  */

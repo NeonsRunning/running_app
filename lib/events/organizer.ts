@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
@@ -396,8 +397,13 @@ export async function getEventForm(
   //   * any row at all, lapsed or cancelled too, keeps its category from
   //     being removed (a foreign key) and its distance from changing;
   //   * a paid, cancelled or under-review row keeps the event from deletion.
+  // The organizer's own read policy hides open checkouts (they hold runners'
+  // details nobody has paid to share), so these are counted with the admin
+  // client, now that the query above proved the event is the caller's, and
+  // only ever as ids and states.
+  const admin = createAdminClient();
   const { data: regs } = await selectAll((from, to) =>
-    supabase
+    admin
       .from("registrations")
       .select("id, category_id, status, hold_expires_at, payment_submitted_at")
       .eq("event_id", event.id)
