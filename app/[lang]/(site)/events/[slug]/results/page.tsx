@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/ui/misc";
 import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
+import { NOINDEX } from "@/lib/seo";
 
 export async function generateMetadata(
   props: PageProps<"/[lang]/events/[slug]/results">,
@@ -19,6 +20,8 @@ export async function generateMetadata(
     title: found
       ? t("results.metaTitle", { event: found.event.name })
       : t("results.metaTitleFallback"),
+    // An empty state until results have a table behind them.
+    robots: NOINDEX,
   };
 }
 

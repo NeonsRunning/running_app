@@ -3,12 +3,14 @@ import { Link } from "@/components/i18n/link";
 import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getT } from "@/lib/i18n/server";
+import { pageAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("faq.metaTitle"),
     description: t("faq.metaDescription"),
+    alternates: await pageAlternates("/faq"),
   };
 }
 

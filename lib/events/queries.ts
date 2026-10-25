@@ -4,7 +4,7 @@ import { addDays, puertoRicoToday } from "@/lib/dates";
 import { eventImageUrl } from "@/lib/events/images";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
-import { getT, getTranslator } from "@/lib/i18n/server";
+import { getTranslator } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { initialsOf } from "@/lib/profile/queries";
 import { EVENTS_PAGE_SIZE, type EventPage, type EventSearch } from "./search";
@@ -634,7 +634,7 @@ export async function listPublishedEvents(
 ): Promise<RunningEvent[]> {
   const [rows, t] = await Promise.all([
     selectEvents({ from: todayIso() }),
-    getT(),
+    getTranslator(locale),
   ]);
   const counts = await registrationCounts(rows.map((r) => r.id));
   return rows.map((r) => toEvent(r, counts, locale, t));
@@ -696,12 +696,19 @@ export async function searchEvents(
   };
 }
 
-/** One race and the organizer behind it, or null. */
+/**
+ * One race and the organizer behind it, or null. Translates for `locale`
+ * rather than the URL's, so route handlers — which have no root params — can
+ * call it too.
+ */
 export async function findEvent(
   slug: string,
   locale: Locale,
 ): Promise<{ event: RunningEvent; organizer: Organizer } | null> {
-  const [rows, t] = await Promise.all([selectEvents({ slug }), getT()]);
+  const [rows, t] = await Promise.all([
+    selectEvents({ slug }),
+    getTranslator(locale),
+  ]);
   const row = rows[0];
   if (!row) return null;
 
@@ -710,4 +717,12 @@ export async function findEvent(
     event: toEvent(row, counts, locale, t),
     organizer: toOrganizer(row),
   };
+}
+
+/** Every published race, past ones included: their pages stay up. */
+export async function listPublishedSlugs(): Promise<
+  { slug: string; updatedAt: string }[]
+> {
+  const rows = await selectEvents({});
+  return rows.map((r) => ({ slug: r.slug, updatedAt: r.updated_at }));
 }

@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { I18nProvider } from "@/components/i18n/provider";
 import { LOCALES, LOCALE_TAGS } from "@/lib/i18n/config";
 import { getDictionary, getLocale, getT } from "@/lib/i18n/server";
+import { configuredOrigin, openGraphBase } from "@/lib/seo";
 import "../globals.css";
 
 const archivo = Archivo({
@@ -24,26 +25,26 @@ export function generateStaticParams() {
   return LOCALES.map((lang) => ({ lang }));
 }
 
+/**
+ * Defaults for every page. No canonical here: every page beneath would
+ * inherit it and point search engines at the home page. Pages meant to be
+ * found set their own with `pageAlternates`; the rest are noindexed.
+ */
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
+  const origin = configuredOrigin();
 
   return {
+    metadataBase: origin ? new URL(origin) : undefined,
     title: {
       default: t("meta.title"),
       template: t("meta.titleTemplate"),
     },
     description: t("meta.description"),
     applicationName: t("meta.applicationName"),
-    keywords: t.list("meta.keywords"),
-    alternates: {
-      canonical: t.path("/"),
-      // Tell crawlers the two versions are the same page in two languages.
-      languages: {
-        "es-PR": "/",
-        "en-US": "/en",
-        "x-default": "/",
-      },
-    },
+    // Title, description and image are filled in from the page's own.
+    openGraph: await openGraphBase(),
+    twitter: { card: "summary_large_image" },
   };
 }
 

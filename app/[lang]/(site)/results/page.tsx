@@ -2,12 +2,15 @@ import type { Metadata } from "next";
 import { Eyebrow } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/misc";
 import { getT } from "@/lib/i18n/server";
+import { NOINDEX } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("results.index.metaTitle"),
     description: t("results.index.metaDescription"),
+    // An empty state until results have a table behind them.
+    robots: NOINDEX,
   };
 }
 

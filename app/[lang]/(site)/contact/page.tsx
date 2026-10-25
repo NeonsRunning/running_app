@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import { Eyebrow } from "@/components/ui/badge";
 import { ContactForm } from "@/components/contact/contact-form";
 import { getT } from "@/lib/i18n/server";
+import { pageAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("contact.metaTitle"),
     description: t("contact.metaDescription"),
+    alternates: await pageAlternates("/contact"),
   };
 }
 

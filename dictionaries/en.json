@@ -1,19 +1,10 @@
 {
   "meta": {
     "title": "NEONS RUNNING — Find your next finish line",
+    "shareHeadline": "Find your next finish line",
     "titleTemplate": "%s · NEONS RUNNING",
     "applicationName": "NEONS RUNNING",
-    "description": "Discover running events across Puerto Rico and beyond, register in under a minute, chase your personal bests, and run with a community that shows up rain or shine.",
-    "keywords": [
-      "running",
-      "races",
-      "Puerto Rico",
-      "5K",
-      "10K",
-      "half marathon",
-      "marathon",
-      "race registration"
-    ]
+    "description": "Discover running events across Puerto Rico and beyond, register in under a minute, chase your personal bests, and run with a community that shows up rain or shine."
   },
   "common": {
     "skipToContent": "Skip to content",
@@ -280,6 +271,7 @@
     },
     "detail": {
       "notFound": "Race not found",
+      "metaDescription": "{distances} · {date} · {place}. {tagline}",
       "startSuffix": "{time} start",
       "glance": "Race at a glance",
       "specDistance": "Distance",
@@ -912,6 +904,7 @@
   },
   "runner": {
     "notFound": "Runner not found",
+    "metaDescription": "{name}'s profile on NEONS RUNNING: races, results and personal bests.",
     "clubLine": "{city} · Club {club}",
     "followers": "{followers} followers · {following} following",
     "careerStats": "Career statistics",

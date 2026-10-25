@@ -31,6 +31,14 @@ import {
   eventTypeLabel,
   startTimeLabel,
 } from "@/lib/i18n/labels";
+import {
+  eventJsonLd,
+  eventShareImage,
+  jsonLd,
+  openGraphBase,
+  pageAlternates,
+} from "@/lib/seo";
+import { siteOrigin } from "@/lib/site-url";
 
 export async function generateMetadata(
   props: PageProps<"/[lang]/events/[slug]">,
@@ -42,9 +50,28 @@ export async function generateMetadata(
   const found = await findEvent(slug, locale);
   if (!found) return { title: t("events.detail.notFound") };
 
+  const { event } = found;
+  const fmt = createFormatters(locale);
+  const description = t("events.detail.metaDescription", {
+    distances: event.categories.map((c) => distanceLabel(t, c.name)).join(", "),
+    date: fmt.eventDates(event.date, event.endDate),
+    place: event.place,
+    tagline: event.tagline,
+  });
+  // A drawn card, not the cover: covers are WebP, which WhatsApp previews
+  // do not reliably show. Search engines still get the cover via JSON-LD.
+  const image = {
+    url: eventShareImage(event.slug, locale),
+    width: 1200,
+    height: 630,
+    alt: event.name,
+  };
+
   return {
-    title: found.event.name,
-    description: found.event.tagline,
+    title: event.name,
+    description,
+    alternates: await pageAlternates(`/events/${event.slug}`),
+    openGraph: { ...(await openGraphBase()), images: [image] },
   };
 }
 
@@ -125,6 +152,13 @@ export default async function EventDetailPage(
             date: event.registrationOpens,
           })
         : t("events.detail.registrationOpensSoon");
+
+  const origin = await siteOrigin();
+  const structured = eventJsonLd(event, organizer, {
+    page: `${origin}${t.path(`/events/${event.slug}`)}`,
+    register: `${origin}${t.path(`/events/${event.slug}/register`)}`,
+    image: event.image ?? `${origin}${eventShareImage(event.slug, locale)}`,
+  });
 
   return (
     <article className="pb-24 lg:pb-0">
@@ -408,6 +442,8 @@ export default async function EventDetailPage(
           </p>
         )}
       </div>
+
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(structured)} />
     </article>
   );
 }

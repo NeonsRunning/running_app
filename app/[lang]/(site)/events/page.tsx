@@ -4,12 +4,14 @@ import { searchEvents } from "@/lib/events/queries";
 import { EMPTY_SEARCH, type EventSearch } from "@/lib/events/search";
 import { DISTANCES, isOneOf } from "@/lib/events/vocabulary";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { pageAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("events.meta.title"),
     description: t("events.meta.description"),
+    alternates: await pageAlternates("/events"),
   };
 }
 

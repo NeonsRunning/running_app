@@ -11,6 +11,7 @@ import {
   getProfileDetails,
 } from "@/lib/profile/queries";
 import { getT } from "@/lib/i18n/server";
+import { NOINDEX } from "@/lib/seo";
 
 /**
  * The runner's account settings. They used to sit at the foot of the profile,
@@ -23,7 +24,7 @@ import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
-  return { title: t("settings.title") };
+  return { title: t("settings.title"), robots: NOINDEX };
 }
 
 export default async function RunnerSettingsPage(

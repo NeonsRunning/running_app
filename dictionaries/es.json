@@ -1,19 +1,10 @@
 {
   "meta": {
     "title": "NEONS RUNNING — Encuentra tu próxima meta",
+    "shareHeadline": "Encuentra tu próxima meta",
     "titleTemplate": "%s · NEONS RUNNING",
     "applicationName": "NEONS RUNNING",
-    "description": "Descubre carreras en Puerto Rico y más allá, inscríbete en menos de un minuto, persigue tus marcas personales y corre con una comunidad que aparece llueva o truene.",
-    "keywords": [
-      "running",
-      "carreras",
-      "Puerto Rico",
-      "5K",
-      "10K",
-      "media maratón",
-      "maratón",
-      "inscripción de carreras"
-    ]
+    "description": "Descubre carreras en Puerto Rico y más allá, inscríbete en menos de un minuto, persigue tus marcas personales y corre con una comunidad que aparece llueva o truene."
   },
   "common": {
     "skipToContent": "Saltar al contenido",
@@ -280,6 +271,7 @@
     },
     "detail": {
       "notFound": "Carrera no encontrada",
+      "metaDescription": "{distances} · {date} · {place}. {tagline}",
       "startSuffix": "salida a las {time}",
       "glance": "La carrera de un vistazo",
       "specDistance": "Distancia",
@@ -912,6 +904,7 @@
   },
   "runner": {
     "notFound": "Corredor no encontrado",
+    "metaDescription": "Perfil de {name} en NEONS RUNNING: carreras, resultados y marcas personales.",
     "clubLine": "{city} · Club {club}",
     "followers": "{followers} seguidores · {following} siguiendo",
     "careerStats": "Estadísticas de carrera",
