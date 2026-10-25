@@ -406,22 +406,19 @@ refuse every call):
   have sent it, and a runner told twice is worse than a row to check — so it
   is among those rows too, with a `last_error` starting "Unconfirmed".
 
-On Vercel, the `vercel.json` at the root of the repository holds both cron
-entries, and Vercel sends the header by itself:
+The database calls both routes itself, with `pg_cron` and `pg_net`
+(`supabase/migrations/20261125120000_schedule_cron_routes.sql`), since
+Vercel's Hobby plan allows cron jobs at most once a day. It reads where to
+call and the secret from Supabase Vault; set both once per environment, in
+the SQL editor:
 
-```json
-{
-  "crons": [
-    { "path": "/api/cron/race-reminders", "schedule": "5 * * * *" },
-    { "path": "/api/cron/email-outbox", "schedule": "*/10 * * * *" }
-  ]
-}
+```sql
+select vault.create_secret('https://your-site.example', 'cron_site_url');
+select vault.create_secret('<the CRON_SECRET set on Vercel>', 'cron_secret');
 ```
 
-Both schedules run more than once a day, which needs a Vercel Pro (or
-Enterprise) plan: on Hobby, cron jobs may run at most once a day and a
-deployment with these entries is refused. On Hobby, call the routes from
-another scheduler instead, with the same header.
+Until both are set the jobs do nothing. To see how calls went:
+`select * from net._http_response order by created desc limit 20`.
 
 The database schedules its own clean-ups with `pg_cron`: abandoned checkouts
 hourly, sent outbox rows after 30 days, rate-limit counters after 2 days.

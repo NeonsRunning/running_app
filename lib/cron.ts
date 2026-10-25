@@ -3,7 +3,7 @@ import { timingSafeEqual } from "node:crypto";
 
 /**
  * Whether a request to a `/api/cron/*` route carries the shared secret, as
- * `Authorization: Bearer $CRON_SECRET` (Vercel Cron sends it by itself).
+ * `Authorization: Bearer $CRON_SECRET` (the database's pg_cron jobs send it).
  * Without the secret set, every request is refused: these routes are open to
  * the internet. Compared in constant time, so the secret cannot be guessed a
  * character at a time.
