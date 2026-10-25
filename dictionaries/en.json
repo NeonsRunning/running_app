@@ -416,6 +416,8 @@
       "holdLimitReached": "Your spot was held for 2 hours without a payment, so it was released. You can try again in 15 minutes.",
       "referenceUsed": "That reference number was already used for another registration. Check the receipt in your ATH Móvil app and enter the reference for this payment.",
       "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment.",
+      "registrationCancelledRefunded": "This registration was cancelled by the organizer, so this payment has been refunded in full.",
+      "referenceLimitReached": "Several reference numbers for this registration couldn’t be verified, so it can’t take another. Contact us if you sent the payment.",
       "rateLimited": "Too many checkout attempts in the last hour. Wait a little and try again."
     },
     "confirmToastTitle": "You're in!",
@@ -621,6 +623,8 @@
         "registrationMissing": "Your registration was no longer open by the time your payment cleared, so we refunded it in full.",
         "amountMismatch": "Your order changed after this payment started, so we refunded this payment in full. Check your registration before paying again.",
         "paymentUnderReview": "You already sent an ATH Móvil payment for this registration, which is being reviewed, so we refunded the card payment in full.",
+        "registrationClosed": "Registration for this race had closed by the time your payment cleared, so we refunded it in full.",
+        "registrationCancelled": "Your registration had been cancelled by the organizer by the time this payment cleared, so we refunded it in full.",
         "duplicate": "Your registration was already confirmed with an earlier payment, so we refunded this second charge in full. Your spot is unchanged."
       },
       "timing": "Refunds usually take 5 to 10 business days to show on your statement.",

@@ -21,8 +21,9 @@ import { getStripe, hasStripeEnv } from "@/lib/stripe/server";
  * back.
  *
  * A payment that cannot become a registration — the race filled up while the
- * hold had lapsed, the order was repriced in another tab, a second payment for
- * a sign-up that is already confirmed — is refunded in full here. Money never
+ * hold had lapsed, the order was repriced in another tab, registration closed
+ * before it cleared, a second payment for a sign-up that is already confirmed
+ * or since cancelled — is refunded in full here. Money never
  * stays with us without a bib to show for it, and the runner is told why by
  * email.
  *
@@ -48,21 +49,34 @@ export type SettleResult =
       error:
         | "paymentRefunded"
         | "soldOut"
+        | "registrationClosed"
+        | "eventUnavailable"
         | "registrationFailed"
         /** This payment's registration was cancelled since it confirmed it. */
-        | "registrationCancelled";
+        | "registrationCancelled"
+        /** Another payment confirmed it and it was cancelled since; this one was refunded. */
+        | "registrationCancelledRefunded";
     };
 
 /**
- * Errors `confirm_registration_payment()` raises for a payment to refund.
- * `paymentUnderReview`: the runner already sent the money by ATH Móvil.
+ * Errors `confirm_registration_payment()` raises for a payment to refund, and
+ * the reason the runner's email gives. `paymentUnderReview`: the runner
+ * already sent the money by ATH Móvil. `registrationClosed` and
+ * `eventUnavailable`: the race stopped taking sign-ups — its window closed,
+ * or it was unpublished — before the payment cleared.
  */
-const REFUNDABLE = new Set<string>([
-  "registrationMissing",
-  "amountMismatch",
-  "soldOut",
-  "paymentUnderReview",
+const REFUNDABLE = new Map<string, RefundReason>([
+  ["registrationMissing", "registrationMissing"],
+  ["amountMismatch", "amountMismatch"],
+  ["soldOut", "soldOut"],
+  ["paymentUnderReview", "paymentUnderReview"],
+  ["registrationClosed", "registrationClosed"],
+  ["eventUnavailable", "registrationClosed"],
 ]);
+
+/** Refunds the runner is shown by their own key; the rest are `paymentRefunded`. */
+type ShownAsIs = "soldOut" | "registrationClosed" | "eventUnavailable";
+const SHOWN_AS_IS = new Set<string>(["soldOut", "registrationClosed", "eventUnavailable"]);
 
 /**
  * Refund in full and tell the runner. The page and the webhook can both get
@@ -121,13 +135,15 @@ export async function settlePayment(
 
   if (error || !data) {
     const key = error?.code === "P0001" ? error.message : "";
-    if (REFUNDABLE.has(key)) {
+    const reason = REFUNDABLE.get(key);
+    if (reason) {
       // Not refunded yet: say so, rather than promise money back that is
       // still with us. The webhook retries on this error.
-      if (!(await refund(intent, key as RefundReason))) {
+      if (!(await refund(intent, reason))) {
         return { ok: false, error: "registrationFailed" };
       }
-      return { ok: false, error: key === "soldOut" ? "soldOut" : "paymentRefunded" };
+      const shown = SHOWN_AS_IS.has(key) ? (key as ShownAsIs) : "paymentRefunded";
+      return { ok: false, error: shown };
     }
     // A database hiccup: leave the payment alone so a retry can confirm it.
     console.error(`Confirming ${intent.id} failed:`, error?.message);
@@ -139,6 +155,17 @@ export async function settlePayment(
   // do — whether it is refunded is a person's call, made in Stripe.
   if (data.status === "cancelled" && data.payment_intent_id === intent.id) {
     return { ok: false, error: "registrationCancelled" };
+  }
+
+  // Confirmed by a different payment — card or ATH Móvil — and cancelled
+  // since: this one pays for a spot the runner no longer has. Refund it, and
+  // do not show it as a confirmation. A refund that failed is a failure, so
+  // the webhook delivers it again.
+  if (data.status === "cancelled") {
+    if (!(await refund(intent, "registrationCancelled"))) {
+      return { ok: false, error: "registrationFailed" };
+    }
+    return { ok: false, error: "registrationCancelledRefunded" };
   }
 
   // Confirmed earlier by a different payment: this one is a duplicate. The
@@ -166,6 +193,13 @@ function intentId(ref: string | Stripe.PaymentIntent | null): string | null {
  * belong to no registration (the duplicates and late payments refunded in
  * `settlePayment`) match nothing and are left alone.
  *
+ * Only a row this payment actually paid for counts: confirmed (or since
+ * cancelled) by card. A pending row can still carry a PaymentIntent that
+ * `settlePayment` refunded because it could not confirm it — sold out,
+ * repriced, ATH Móvil already sent — and that row may later be confirmed by
+ * ATH Móvil, keeping the stale PaymentIntent. Writing the refund there would
+ * show the organizer the ATH Móvil money as already returned.
+ *
  * Resolves false on a database failure, so the webhook asks Stripe to retry.
  */
 export async function recordRefund(charge: Stripe.Charge): Promise<boolean> {
@@ -179,6 +213,8 @@ export async function recordRefund(charge: Stripe.Charge): Promise<boolean> {
       refunded_at: new Date().toISOString(),
     })
     .eq("payment_intent_id", paymentIntent)
+    .eq("payment_method", "stripe")
+    .in("status", ["confirmed", "cancelled"])
     .lte("amount_refunded", charge.amount_refunded / 100);
   if (error) {
     console.error(`Recording the refund on ${paymentIntent} failed:`, error.message);

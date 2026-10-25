@@ -416,6 +416,8 @@
       "holdLimitReached": "Tu espacio estuvo reservado 2 horas sin pago, así que se liberó. Puedes intentarlo otra vez en 15 minutos.",
       "referenceUsed": "Ese número de referencia ya se usó en otra inscripción. Revisa el recibo en tu app de ATH Móvil y escribe la referencia de este pago.",
       "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago.",
+      "registrationCancelledRefunded": "El organizador canceló esta inscripción, así que te reembolsamos este pago completo.",
+      "referenceLimitReached": "No se pudieron verificar varios números de referencia de esta inscripción, así que no acepta otro. Escríbenos si enviaste el pago.",
       "rateLimited": "Demasiados intentos de pago en la última hora. Espera un poco y vuelve a intentarlo."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
@@ -621,6 +623,8 @@
         "registrationMissing": "Tu inscripción ya no estaba abierta cuando se procesó tu pago, así que lo reembolsamos completo.",
         "amountMismatch": "Tu orden cambió después de iniciar este pago, así que lo reembolsamos completo. Revisa tu inscripción antes de pagar de nuevo.",
         "paymentUnderReview": "Ya enviaste un pago por ATH Móvil para esta inscripción, que está en revisión, así que reembolsamos completo el pago con tarjeta.",
+        "registrationClosed": "La inscripción para esta carrera ya había cerrado cuando se procesó tu pago, así que lo reembolsamos completo.",
+        "registrationCancelled": "El organizador ya había cancelado tu inscripción cuando se procesó este pago, así que lo reembolsamos completo.",
         "duplicate": "Tu inscripción ya estaba confirmada con un pago anterior, así que reembolsamos completo este segundo cargo. Tu espacio no cambia."
       },
       "timing": "Los reembolsos suelen tardar de 5 a 10 días laborables en aparecer en tu estado de cuenta.",
