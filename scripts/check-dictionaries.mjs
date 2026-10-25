@@ -34,7 +34,8 @@ const DYNAMIC_PREFIXES = [
   "settings.prefs.",
   "notifications.kind.",
   "leaderboard.",
-  "participants.columns.",
+  // Check-in errors, as keys from the action.
+  "checkin.errors.",
   "publish.steps.",
   "publish.checklist.",
   "publish.errors.",

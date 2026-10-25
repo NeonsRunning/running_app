@@ -568,6 +568,91 @@ export async function getEventRegistrations(
   }));
 }
 
+/**
+ * Whether runners gather in one place on race day, so there is a tent to
+ * check them in at. A virtual race, or one run anywhere, has none.
+ */
+export function hasInPersonCheckIn(event: {
+  anywhere: boolean;
+  type: string | null;
+}): boolean {
+  return !event.anywhere && event.type !== "Virtual Race";
+}
+
+/** A confirmed runner as the race-day check-in station shows them. */
+export type CheckInRunner = {
+  id: string;
+  bib: number | null;
+  name: string;
+  /** The category's distance, e.g. "10K". */
+  distance: string;
+  gender: Tables<"registrations">["gender"];
+  /** On race day, or today for an undated event. */
+  age: number;
+  shirtSize: string | null;
+  /** The kit went by mail, so there is nothing to hand over at the tent. */
+  kitByMail: boolean;
+  checkedInAt: string | null;
+};
+
+export type CheckInList = {
+  event: { id: string; name: string; slug: string };
+  runners: CheckInRunner[];
+};
+
+/**
+ * One event's confirmed runners for the check-in station, in bib order.
+ * `organizerId` limits it to that organizer's events; null opens anyone's,
+ * which only a platform admin's row-level security lets through.
+ */
+export async function getCheckInList(
+  organizerId: string | null,
+  eventId: string,
+): Promise<CheckInList | null> {
+  if (!hasSupabaseEnv()) return null;
+
+  const supabase = await createClient();
+  let query = supabase
+    .from("events")
+    .select("id, name, slug, status, anywhere, type, event_date, event_categories (id, distance)")
+    .eq("id", eventId);
+  if (organizerId) query = query.eq("organizer_id", organizerId);
+  const { data: event } = await query.maybeSingle();
+  if (!event || event.status !== "published" || !hasInPersonCheckIn(event)) return null;
+
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .from("registrations")
+      .select("id, bib, first_name, last_name, category_id, gender, birth_date, shirt_size, ships_by_mail, checked_in_at")
+      .eq("event_id", event.id)
+      .eq("status", "confirmed")
+      .order("bib", { ascending: true, nullsFirst: false })
+      .order("id")
+      .range(from, to),
+  );
+  if (error) {
+    console.error(`Check-in list for ${eventId} failed to load:`, error.message);
+    return null;
+  }
+
+  const distances = new Map(event.event_categories.map((c) => [c.id, c.distance]));
+  const raceDay = event.event_date ?? todayIso();
+  return {
+    event: { id: event.id, name: event.name, slug: event.slug },
+    runners: data.map((r) => ({
+      id: r.id,
+      bib: r.bib,
+      name: `${r.first_name} ${r.last_name}`,
+      distance: distances.get(r.category_id) ?? "",
+      gender: r.gender,
+      age: ageOn(r.birth_date, raceDay),
+      shirtSize: r.shirt_size,
+      kitByMail: r.ships_by_mail,
+      checkedInAt: r.checked_in_at,
+    })),
+  };
+}
+
 /** A runner the organizer or an admin took off the event: what refunding them needs. */
 export type CancelledRegistrationRow = {
   id: string;

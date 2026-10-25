@@ -29,7 +29,6 @@ const STATUSES: RegistrationStatus[] = [
   "open",
   "opening-soon",
   "almost-full",
-  "waitlist",
   "closed",
 ];
 

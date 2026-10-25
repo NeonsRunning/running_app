@@ -16,7 +16,11 @@ import { ShareRow } from "@/components/events/share-row";
 import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
 import { getUser, isPlatformAdmin } from "@/lib/auth/session";
 import { daysUntil } from "@/lib/data";
-import { getCancelledRegistrations, getEventRegistrations } from "@/lib/events/organizer";
+import {
+  getCancelledRegistrations,
+  getEventRegistrations,
+  hasInPersonCheckIn,
+} from "@/lib/events/organizer";
 import { findEvent, getOwnRegistration } from "@/lib/events/queries";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import {
@@ -74,11 +78,11 @@ export default async function EventDetailPage(
       ? await Promise.all([
           listEventAthMovilSubmissions(event.id),
           getEventRegistrations(event.id, event.date, {
-          mailsMedals: Boolean(event.mailsMedals),
-          acceptsResults: Boolean(event.acceptsResults),
-          firstDay: event.date || null,
-          lastDay: (event.endDate ?? event.date) || null,
-        }),
+            mailsMedals: Boolean(event.mailsMedals),
+            acceptsResults: Boolean(event.acceptsResults),
+            firstDay: event.date || null,
+            lastDay: (event.endDate ?? event.date) || null,
+          }),
           listEventResultSubmissions(event.id),
           getCancelledRegistrations(event.id),
           listEventFinishers(event.id),
@@ -127,7 +131,7 @@ export default async function EventDetailPage(
         : t("events.detail.registrationOpensSoon");
 
   return (
-    <article className="pb-24 lg:pb-0">
+    <article>
       {/* ---------------------------------------------------------------- */}
       {/* Banner                                                           */}
       {/* ---------------------------------------------------------------- */}
@@ -150,11 +154,9 @@ export default async function EventDetailPage(
             {event.name}
           </h1>
 
-          <div className="mt-6 flex flex-wrap gap-x-7 gap-y-2 font-mono text-[13px] tracking-[0.1em] text-fg-muted uppercase">
+          <div className="mt-6 flex flex-wrap gap-x-7 gap-y-2 font-mono text-[13px] tracking-widest text-fg-muted uppercase">
             <span>{event.place}</span>
-            <span className="text-neon-yellow">
-              {fmt.longDate(event.date)}
-            </span>
+            <span className="text-neon-yellow">{fmt.longDate(event.date)}</span>
             <span>
               {event.startTime
                 ? t("events.detail.startSuffix", {
@@ -246,6 +248,8 @@ export default async function EventDetailPage(
         <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
           <EventRegistrations
             rows={registrations}
+            eventId={event.id}
+            inPerson={hasInPersonCheckIn(event)}
             categories={categoryNames}
             slug={event.slug}
           />
@@ -285,7 +289,7 @@ export default async function EventDetailPage(
                 <span className="font-display text-5xl font-black tracking-[-0.03em] text-neon-yellow">
                   {fmt.moneyWhole(featured.price)}
                 </span>
-                <span className="font-mono text-[12px] tracking-[0.1em] text-fg-dim uppercase">
+                <span className="font-mono text-[12px] tracking-widest text-fg-dim uppercase">
                   {t("events.detail.entry", {
                     category: distanceLabel(t, featured.name),
                   })}
@@ -327,7 +331,7 @@ export default async function EventDetailPage(
                 max={event.capacity}
                 label={t("events.detail.capacity")}
               />
-              <p className="mt-3 font-mono text-[11px] tracking-[0.1em] text-neon-lime uppercase">
+              <p className="mt-3 font-mono text-[11px] tracking-widest text-neon-lime uppercase">
                 {t("events.detail.capacityFull", {
                   percent: Math.round(
                     (event.registered / event.capacity) * 100,
@@ -349,15 +353,15 @@ export default async function EventDetailPage(
                     >
                       <span
                         className={
-                          isFeatured
-                            ? "font-black text-neon-lime"
-                            : "font-bold"
+                          isFeatured ? "font-black text-neon-lime" : "font-bold"
                         }
                       >
                         {distanceLabel(t, c.name)}
                       </span>
                       <span
-                        className={isFeatured ? "text-neon-lime" : "text-fg-muted"}
+                        className={
+                          isFeatured ? "text-neon-lime" : "text-fg-muted"
+                        }
                       >
                         {fmt.moneyWhole(c.price)}
                       </span>
@@ -371,7 +375,7 @@ export default async function EventDetailPage(
               <Eyebrow>{t("events.detail.countdown")}</Eyebrow>
               <p className="mt-3 font-display text-5xl leading-none font-black tracking-[-0.03em]">
                 {fmt.number(days)}
-                <span className="ml-2 align-middle text-lg font-bold tracking-[0.1em] text-fg-dim">
+                <span className="ml-2 align-middle text-lg font-bold tracking-widest text-fg-dim">
                   {t("events.detail.days")}
                 </span>
               </p>
@@ -388,7 +392,12 @@ export default async function EventDetailPage(
       {/* ---------------------------------------------------------------- */}
       {/* Sticky mobile registration bar                                   */}
       {/* ---------------------------------------------------------------- */}
-      <div className="fixed inset-x-0 bottom-14 z-60 grid grid-cols-[auto_1fr] items-center border-t-2 border-line bg-ink lg:hidden">
+      {/* Rides on the tab bar, overlapping its 2px top border. The site
+          layout pads the page for both. */}
+      <div
+        data-mobile-cta
+        className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-60 grid grid-cols-[auto_1fr] items-center border-t-2 border-line bg-ink lg:hidden"
+      >
         <div className="px-4 py-3">
           <span className="font-display text-xl font-black text-neon-yellow">
             {fmt.moneyWhole(featured.price)}

@@ -38,10 +38,12 @@ export default async function SiteLayout({ children }: LayoutProps<"/[lang]">) {
       {/* Keyed by account so signing in or out starts from that account's
           saves rather than whatever the last one left in state. */}
       <SavedEventsProvider key={account?.user.id ?? "guest"} initial={saved}>
-        <div className="flex min-h-dvh flex-col">
+        {/* Bottom padding clears the mobile tab bar, and a page's pinned CTA
+            above it when one is marked data-mobile-cta. It sits below the
+            footer so the footer's last row can scroll clear of both. */}
+        <div className="flex min-h-dvh flex-col max-lg:pb-[calc(3.625rem+env(safe-area-inset-bottom))] max-lg:has-data-mobile-cta:pb-[calc(7.125rem+env(safe-area-inset-bottom))]">
           <SiteHeader />
-          {/* Bottom padding clears the mobile tab bar. */}
-          <main id="main" className="flex-1 pb-16 lg:pb-0">
+          <main id="main" className="flex-1">
             {children}
           </main>
           <SiteFooter />

@@ -4,13 +4,13 @@ import { Link, useAppPathname } from "@/components/i18n/link";
 import { useT } from "@/components/i18n/provider";
 import { cn } from "@/lib/cn";
 import { SELF_PROFILE_PATH } from "@/lib/auth/routes";
+import { useSession } from "./session";
 
+/** Mirrors the header nav: Results and Community are held back for now. */
 const TABS = [
   { href: "/", key: "tabs.home", icon: "▲" },
   { href: "/events", key: "tabs.events", icon: "◈" },
-  { href: "/results", key: "tabs.results", icon: "▣" },
-  { href: "/community", key: "tabs.community", icon: "◎" },
-  { href: SELF_PROFILE_PATH, key: "tabs.profile", icon: "●" },
+  { href: "/about", key: "tabs.about", icon: "◎" },
 ] as const;
 
 /**
@@ -20,16 +20,31 @@ const TABS = [
 export function MobileTabBar() {
   const pathname = useAppPathname();
   const t = useT();
+  const session = useSession();
 
-  const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+  // Guests get a way in rather than a profile tab that bounces to login. The
+  // header's account menu links the profile by id, so match that path too.
+  const accountTab = session.signedIn
+    ? { href: SELF_PROFILE_PATH, key: "tabs.profile", icon: "●" }
+    : { href: "/login", key: "tabs.logIn", icon: "●" };
+  const tabs = [...TABS, accountTab];
+
+  const isActive = (href: string) => {
+    if (href === "/") return pathname === "/";
+    if (href === SELF_PROFILE_PATH && session.signedIn) {
+      return [SELF_PROFILE_PATH, `/runners/${session.id}`].some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`),
+      );
+    }
+    return pathname === href || pathname.startsWith(`${href}/`);
+  };
 
   return (
     <nav
       aria-label={t("nav.primary")}
-      className="fixed inset-x-0 bottom-0 z-70 grid grid-cols-5 border-t-2 border-line bg-ink pb-[env(safe-area-inset-bottom)] lg:hidden"
+      className="fixed inset-x-0 bottom-0 z-70 grid grid-cols-4 border-t-2 border-line bg-ink pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active = isActive(tab.href);
         return (
           <Link

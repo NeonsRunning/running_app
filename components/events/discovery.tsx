@@ -74,7 +74,6 @@ const STATUSES: { value: RegistrationStatus; key: string }[] = [
   { value: "open", key: "events.discovery.statusOpen" },
   { value: "opening-soon", key: "events.discovery.statusOpeningSoon" },
   { value: "almost-full", key: "events.discovery.statusAlmostFull" },
-  { value: "waitlist", key: "events.discovery.statusWaitlist" },
 ];
 
 const SORTS = [

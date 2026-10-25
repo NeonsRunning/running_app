@@ -399,6 +399,8 @@ export type Database = {
           medal_tracking: string | null;
           medal_email_sent_at: string | null;
           medal_picked_up_at: string | null;
+          /** When the runner was checked in on race day; null until then. */
+          checked_in_at: string | null;
           /** The reference number on the runner's ATH Móvil receipt. */
           payment_reference: string | null;
           /** Set while an ATH Móvil payment waits for an admin's review. */
@@ -768,6 +770,10 @@ export type Database = {
       };
       mark_medal_picked_up: {
         Args: { p_registration_id: string };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      set_checked_in: {
+        Args: { p_registration_id: string; p_checked_in: boolean };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
       set_medal_delivery: {

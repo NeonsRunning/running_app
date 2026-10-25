@@ -62,9 +62,11 @@
   "tabs": {
     "home": "Home",
     "events": "Events",
+    "about": "About",
     "results": "Results",
     "community": "Community",
-    "profile": "Profile"
+    "profile": "Profile",
+    "logIn": "Log In"
   },
   "footer": {
     "blurb": "Race discovery, registration and results for the Caribbean running community. Built by runners who are at the start line too.",
@@ -129,7 +131,6 @@
       "open": "Registration open",
       "opening-soon": "Opening soon",
       "almost-full": "Almost full",
-      "waitlist": "Waitlist",
       "closed": "Closed"
     },
     "wave": {
@@ -275,8 +276,7 @@
       "sortPrice": "Price",
       "statusOpen": "Open now",
       "statusOpeningSoon": "Opening soon",
-      "statusAlmostFull": "Almost full",
-      "statusWaitlist": "Waitlist"
+      "statusAlmostFull": "Almost full"
     },
     "detail": {
       "notFound": "Race not found",
@@ -519,9 +519,6 @@
       "racePass": "Race pass",
       "bibNumber": "Bib number",
       "bibMeta": "{name} · {category}",
-      "qrTitle": "QR check-in pass",
-      "qrBody": "Show this at the check-in tent. Works offline once downloaded.",
-      "downloadPass": "Download pass",
       "receiptSentTo": "Receipt sent to",
       "totalCharged": "Total charged",
       "registrationConfirmed": "Registration confirmed",
@@ -1242,25 +1239,29 @@
         "items": [
           {
             "q": "Do I need an account to register?",
-            "a": "You can browse every race and read the full event information without an account. Registering creates one, because we need somewhere to keep your bib, your waiver and your results."
+            "a": "Yes. You can browse every race and read the full event information without one, but a registration belongs to an account: that is where your bib, your payment, your results and your medal live."
           },
           {
             "q": "Can I register someone else?",
-            "a": "Yes. On the runner information step, enter their details rather than yours. The confirmation and bib go to the email you enter there, and the receipt goes to you."
+            "a": "Each account holds one registration per race, along with the bib, results and medal that come with it. To sign up a friend or family member, they need an account of their own."
           },
           {
             "q": "When do I get my bib number?",
-            "a": "Immediately. Your bib appears on the confirmation screen and on your profile. Physical bibs are collected at the expo or on race morning, depending on the event."
+            "a": "As soon as your payment is confirmed. Pay by card and it appears on the confirmation screen right away; pay with ATH Móvil and it arrives by email once the payment is verified. Either way it is also on your profile."
           },
           {
             "q": "What if a race is full?",
-            "a": "Full races show a waitlist button instead of Register. If a spot opens, waitlisted runners are offered it in order and have 24 hours to claim it."
+            "a": "A full race stops taking registrations. Spots held by checkouts that were never paid are released, so one may still open up before registration closes."
           }
         ]
       },
       {
         "title": "Money",
         "items": [
+          {
+            "q": "How can I pay?",
+            "a": "By card, or with ATH Móvil on races that offer it. ATH Móvil payments are checked by hand: your spot is held while we verify the payment, which can take up to 48 hours, and your bib is emailed once it is confirmed."
+          },
           {
             "q": "What is the service fee?",
             "a": "A flat $2.00 per registration, shown in the order summary before you pay. There is no percentage cut on top. Puerto Rico sales tax (IVU, 11.5%) applies to the registration, extras, service fee and shipping, but not to donations."
@@ -1280,15 +1281,23 @@
         "items": [
           {
             "q": "How does check-in work?",
-            "a": "Show the QR code on your race pass at the check-in tent. It works offline once you have opened it, so no signal at the start village is fine."
+            "a": "Give your name or bib number at the check-in tent. The volunteer finds you on the race’s list and checks you in."
           },
           {
-            "q": "When are results posted?",
-            "a": "Within two hours of the last finisher for chip-timed races. You get a notification the moment yours is live, with your splits, placings and a share card."
+            "q": "Can my kit or medal be mailed to me?",
+            "a": "If the organizer offers it. Mailing your kit is an extra with a shipping and handling price the organizer sets, and you get an email when it ships. On races that mail finisher medals, you choose at sign-up between picking yours up and having it mailed at no extra cost, and you can switch to the mail from your profile later."
           },
           {
-            "q": "My result is wrong. What now?",
-            "a": "Contact the organizer from the event page — they hold the timing data and can correct it. Corrections propagate to your profile automatically."
+            "q": "What is an \"anywhere\" race?",
+            "a": "A virtual race, or one you complete wherever you like. There is no venue or start line: you run it on your own and report your finish with a screenshot."
+          },
+          {
+            "q": "How do results work?",
+            "a": "On races that accept results, you report your own finish after race day: enter your finish time and upload a screenshot of the run from Strava, Nike Run Club, a watch app or similar. The organizer reviews it, and once it is accepted it appears in your profile's race history, with the event's medal under achievements. You get an email either way."
+          },
+          {
+            "q": "My result was rejected or is wrong. What now?",
+            "a": "If the organizer rejects your evidence, you will see their note and can send new evidence from the race page. An accepted result can no longer be resubmitted, so if something is wrong with it, contact the organizer from the event page."
           }
         ]
       },
@@ -1297,11 +1306,11 @@
         "items": [
           {
             "q": "What does it cost to list a race?",
-            "a": "Nothing to list. Runners pay the flat service fee at checkout, and payouts land in your account within five business days of race day."
+            "a": "Nothing to list. Runners pay the flat service fee at checkout. Payouts settle within five business days of race day, net of refunds, chargebacks and any donations owed to a named charity."
           },
           {
             "q": "Can I move from runner to organizer?",
-            "a": "Yes — switch on organizer tools from your settings. You never need a second account, and your runner profile and results stay exactly as they are."
+            "a": "Yes, on the same account. Organizer tools are switched on by the NEONS RUNNING team, so write to us and we will enable them. Your runner profile and results stay exactly as they are."
           }
         ]
       }
@@ -1476,104 +1485,43 @@
     "deletionCancelledTitle": "Request withdrawn. Your account stays as it is.",
     "requestOrganizer": "Request organizer access"
   },
-  "participants": {
-    "searchPlaceholder": "Search name, bib or email",
-    "searchAria": "Search participants",
-    "paymentStatus": "Payment status",
-    "all": "All",
-    "paid": "Paid",
-    "unpaid": "Unpaid",
-    "sendEmail": "Send email",
-    "emailQueuedTitle": "Email queued",
-    "emailQueuedBody": "{count} runners will receive it.",
-    "exportCsv": "Export CSV",
-    "exportTitle": "Export started",
-    "exportBody": "{count} rows written to CSV.",
-    "manualRegistration": "Manual registration",
-    "shown": "shown",
-    "checkedIn": "checked in",
-    "unpaidCount": "unpaid",
-    "selected": "{count} selected",
-    "emptyTitle": "No participants match",
-    "emptyBody": "Try a partial name or a bib number. Registrations sync from the live event within a minute.",
-    "selectAll": "Select all visible participants",
-    "selectOne": "Select {name}",
-    "columns": {
-      "bib": "Bib",
-      "runner": "Runner",
-      "age": "Age",
-      "gender": "Gender",
-      "distance": "Distance",
-      "shirt": "Shirt",
-      "registered": "Registered",
-      "payment": "Payment",
-      "checkin": "Check-in"
-    },
-    "csv": {
-      "paid": "Paid",
-      "unpaid": "Unpaid",
-      "yes": "Yes",
-      "no": "No"
-    },
-    "in": "In ✓",
-    "checkIn": "Check in",
-    "checkedInLong": "Checked in ✓",
-    "cardMeta": "Bib {bib} · {distance} · {age} {gender} · shirt {shirt}",
-    "modalDescription": "Add a runner who paid at the expo or by transfer.",
-    "addRunner": "Add runner",
-    "runnerAddedTitle": "Runner added",
-    "runnerAddedBody": "Bib #1060 assigned and a confirmation email sent.",
-    "fullName": "Full name",
-    "namePlaceholder": "Runner name",
-    "email": "Email",
-    "distance": "Distance",
-    "shirtSize": "Shirt size",
-    "nextBib": "Next bib",
-    "nextBibNote": "#1060 will be assigned automatically."
-  },
-  "participantsPage": {
-    "metaTitle": "Participants",
-    "metaDescription": "Search, filter, export and check in registered runners.",
-    "eyebrow": "Neon Night 10K · {date}",
-    "title": "Participants",
-    "backToDashboard": "← Dashboard",
-    "checkin": "Race-day check-in"
-  },
   "checkin": {
     "metaTitle": "Race-day check-in",
-    "metaDescription": "Scan or search to check runners in at the start village.",
+    "metaDescription": "Search by name or bib number to check runners in at the start village.",
     "backToSearch": "Back to search",
-    "eventCheckin": "Neon Night 10K · Check-in",
+    "eventCheckin": "{event} · Check-in",
     "bibNumber": "Bib number",
-    "runnerMeta": "{distance} · {age} {gender} · shirt {shirt}",
+    "runnerMeta": "{distance} · {age} {gender}",
     "registration": "Registration",
     "payment": "Payment",
-    "collectAtDesk": "Collect {amount} at the desk",
     "shirtRow": "Shirt · {size}",
     "checkedIn": "Checked in",
     "clearedForStart": "{name} is cleared for the start line.",
     "nextRunner": "Next runner",
     "undoCheckin": "Undo check-in",
     "checkIn": "Check in",
-    "paymentOutstanding": "Payment outstanding — collect before checking in.",
     "checkedInTitle": "Checked in",
     "checkedInBody": "Bib #{bib} is cleared for the start line.",
     "reversedTitle": "Check-in reversed",
     "reversedBody": "Bib #{bib}",
-    "backToDashboard": "Back to organizer dashboard",
     "title": "Race-day check-in",
     "ofTotal": "of {total}",
-    "scanning": "Scanning…",
-    "scanQr": "Scan QR code",
-    "orSearch": "or search",
     "searchPlaceholder": "Runner name or bib number",
     "searchAria": "Search for a participant",
     "noRunner": "No runner found for “{query}”. Check the bib number or try a surname.",
     "listMeta": "{distance} · shirt {shirt}",
     "in": "In",
-    "unpaid": "Unpaid",
     "complete": "Complete",
-    "outstanding": "Outstanding"
+    "kitRow": "Race kit",
+    "kitMailed": "Mailed — nothing to hand over",
+    "backToEvent": "Back to the event page",
+    "noRunners": "No confirmed runners yet. Paid sign-ups appear here with their bib.",
+    "errors": {
+      "title": "Check-in not saved",
+      "notAllowed": "Only the event’s organizer can check runners in.",
+      "registrationMissing": "This runner is no longer registered for the race.",
+      "checkInFailed": "Something went wrong. Try again."
+    }
   },
   "charts": {
     "chart": "Chart",
@@ -2137,7 +2085,8 @@
       "pickedUpBody": "{name}’s medal is recorded as picked up.",
       "deliveryMail": "Mail",
       "deliveryPickup": "Pickup"
-    }
+    },
+    "checkin": "Race-day check-in"
   },
   "cancelledRegistrations": {
     "title": "Removed runners",
