@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useId, useRef, type ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 export type TabItem<T extends string> = { value: T; label: ReactNode };
@@ -8,8 +8,21 @@ export type TabItem<T extends string> = { value: T; label: ReactNode };
 /**
  * ARIA tablist with roving focus. Arrow keys move between tabs, Home/End jump
  * to the ends — the keyboard contract screen-reader users expect from tabs.
+ *
+ * Tabs and their panels link up by id. The ids are namespaced by `id`, from
+ * `useTabsId()` in the component rendering both, so two tab sets on one page
+ * — or a tab value that happens to match another element's id — never
+ * collide.
  */
+export function useTabsId(): string {
+  return useId();
+}
+
+const tabId = (ns: string, value: string) => `${ns}-tab-${value}`;
+const panelId = (ns: string, value: string) => `${ns}-panel-${value}`;
+
 export function Tabs<T extends string>({
+  id,
   items,
   value,
   onChange,
@@ -17,6 +30,8 @@ export function Tabs<T extends string>({
   className,
   scrollable = true,
 }: {
+  /** From `useTabsId()`; the same value goes to every `TabPanel`. */
+  id: string;
   items: TabItem<T>[];
   value: T;
   onChange: (value: T) => void;
@@ -70,9 +85,9 @@ export function Tabs<T extends string>({
             key={item.value}
             role="tab"
             type="button"
-            id={`tab-${item.value}`}
+            id={tabId(id, item.value)}
             aria-selected={active}
-            aria-controls={`panel-${item.value}`}
+            aria-controls={panelId(id, item.value)}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(item.value)}
             className={cn(
@@ -92,10 +107,13 @@ export function Tabs<T extends string>({
 }
 
 export function TabPanel({
+  id,
   value,
   active,
   children,
 }: {
+  /** The `id` given to `Tabs`. */
+  id: string;
   value: string;
   active: boolean;
   children: ReactNode;
@@ -104,8 +122,8 @@ export function TabPanel({
   return (
     <div
       role="tabpanel"
-      id={`panel-${value}`}
-      aria-labelledby={`tab-${value}`}
+      id={panelId(id, value)}
+      aria-labelledby={tabId(id, value)}
       tabIndex={0}
       className="focus-visible:outline-none"
     >

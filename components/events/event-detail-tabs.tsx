@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpecCell } from "@/components/ui/card";
-import { Tabs, TabPanel } from "@/components/ui/tabs";
+import { Tabs, TabPanel, useTabsId } from "@/components/ui/tabs";
 import {
   BibIcon,
   ChipIcon,
@@ -72,10 +72,12 @@ export function EventDetailTabs({
   const t = useT();
   const fmt = useFormat();
   const [tab, setTab] = useState<TabValue>("overview");
+  const tabsId = useTabsId();
 
   return (
     <div>
       <Tabs
+        id={tabsId}
         items={TAB_ITEMS.map((item) => ({
           value: item.value,
           label: t(item.key),
@@ -86,7 +88,7 @@ export function EventDetailTabs({
       />
 
       {/* ---------------------------------------------------------------- */}
-      <TabPanel value="overview" active={tab === "overview"}>
+      <TabPanel id={tabsId} value="overview" active={tab === "overview"}>
         <section className="border-b-2 border-line px-5 py-9 sm:px-8 lg:px-10">
           <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
             {t("events.tabs.about")}
@@ -144,7 +146,7 @@ export function EventDetailTabs({
       </TabPanel>
 
       {/* ---------------------------------------------------------------- */}
-      <TabPanel value="details" active={tab === "details"}>
+      <TabPanel id={tabsId} value="details" active={tab === "details"}>
         <div className="grid gap-0.5 bg-line sm:grid-cols-2">
           <SpecCell
             label={t("events.tabs.specDistance")}
@@ -233,7 +235,7 @@ export function EventDetailTabs({
       </TabPanel>
 
       {/* ---------------------------------------------------------------- */}
-      <TabPanel value="course" active={tab === "course"}>
+      <TabPanel id={tabsId} value="course" active={tab === "course"}>
         {event.routeImage ? (
           <RouteImage event={event} src={event.routeImage} />
         ) : (
@@ -299,7 +301,7 @@ export function EventDetailTabs({
       </TabPanel>
 
       {/* ---------------------------------------------------------------- */}
-      <TabPanel value="schedule" active={tab === "schedule"}>
+      <TabPanel id={tabsId} value="schedule" active={tab === "schedule"}>
         <div className="px-5 py-9 sm:px-8 lg:px-10">
           <ol className="border-t-2 border-line">
             {event.schedule.map((item) => (
@@ -330,7 +332,7 @@ export function EventDetailTabs({
       </TabPanel>
 
       {/* ---------------------------------------------------------------- */}
-      <TabPanel value="organizer" active={tab === "organizer"}>
+      <TabPanel id={tabsId} value="organizer" active={tab === "organizer"}>
         <div className="px-5 py-9 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 border-2 border-line bg-carbon p-6 sm:flex-row sm:p-8">
             <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-gradient-to-br from-neon-yellow to-neon-lime text-2xl font-black text-ink">
