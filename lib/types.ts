@@ -27,7 +27,6 @@ export type RegistrationStatus =
   | "open"
   | "opening-soon"
   | "almost-full"
-  | "waitlist"
   | "closed";
 
 export type RaceCategory = {
@@ -228,20 +227,6 @@ export type Runner = {
     /** Signed up but not paid yet: there is no bib until it is. */
     pending?: boolean;
   }[];
-};
-
-export type Participant = {
-  bib: string;
-  name: string;
-  initials: string;
-  age: number;
-  gender: "M" | "F" | "X";
-  distance: Distance;
-  shirt: "XS" | "S" | "M" | "L" | "XL" | "XXL";
-  registeredOn: string;
-  paid: boolean;
-  checkedIn: boolean;
-  email: string;
 };
 
 export type AppNotification = {

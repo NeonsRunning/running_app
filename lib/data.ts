@@ -1,6 +1,5 @@
 import type {
   AppNotification,
-  Participant,
   Runner,
 } from "./types";
 import type { Locale } from "./i18n/config";
@@ -128,21 +127,6 @@ export const RUNNERS: Runner[] = [
   },
 ];
 
-export const PARTICIPANTS: Participant[] = [
-  { bib: "1048", name: "Alex Rivera", initials: "AR", age: 32, gender: "M", distance: "10K", shirt: "M", registeredOn: "12 Aug 2026", paid: true, checkedIn: false, email: "alex.rivera@email.com" },
-  { bib: "1049", name: "María Colón", initials: "MC", age: 28, gender: "F", distance: "10K", shirt: "S", registeredOn: "12 Aug 2026", paid: true, checkedIn: true, email: "maria.colon@email.com" },
-  { bib: "1050", name: "Jorge Torres", initials: "JT", age: 41, gender: "M", distance: "Half Marathon", shirt: "L", registeredOn: "11 Aug 2026", paid: true, checkedIn: true, email: "jorge.torres@email.com" },
-  { bib: "1051", name: "Lourdes Díaz", initials: "LD", age: 35, gender: "F", distance: "5K", shirt: "M", registeredOn: "11 Aug 2026", paid: false, checkedIn: false, email: "lourdes.diaz@email.com" },
-  { bib: "1052", name: "Kevin Ortiz", initials: "KO", age: 24, gender: "M", distance: "10K", shirt: "L", registeredOn: "10 Aug 2026", paid: true, checkedIn: false, email: "kevin.ortiz@email.com" },
-  { bib: "1053", name: "Sofía Ramos", initials: "SR", age: 30, gender: "F", distance: "Half Marathon", shirt: "XS", registeredOn: "10 Aug 2026", paid: true, checkedIn: false, email: "sofia.ramos@email.com" },
-  { bib: "1054", name: "Néstor Vega", initials: "NV", age: 52, gender: "M", distance: "5K", shirt: "XL", registeredOn: "09 Aug 2026", paid: true, checkedIn: true, email: "nestor.vega@email.com" },
-  { bib: "1055", name: "Carla Mendoza", initials: "CM", age: 27, gender: "F", distance: "10K", shirt: "S", registeredOn: "09 Aug 2026", paid: true, checkedIn: false, email: "carla.mendoza@email.com" },
-  { bib: "1056", name: "Diego Santiago", initials: "DS", age: 38, gender: "M", distance: "10K", shirt: "M", registeredOn: "08 Aug 2026", paid: false, checkedIn: false, email: "diego.santiago@email.com" },
-  { bib: "1057", name: "Paola Quiñones", initials: "PQ", age: 22, gender: "F", distance: "5K", shirt: "M", registeredOn: "08 Aug 2026", paid: true, checkedIn: false, email: "paola.q@email.com" },
-  { bib: "1058", name: "Ramón Feliciano", initials: "RF", age: 45, gender: "M", distance: "Half Marathon", shirt: "L", registeredOn: "07 Aug 2026", paid: true, checkedIn: true, email: "ramon.f@email.com" },
-  { bib: "1059", name: "Yaritza Pagán", initials: "YP", age: 33, gender: "F", distance: "10K", shirt: "M", registeredOn: "07 Aug 2026", paid: true, checkedIn: false, email: "yaritza.pagan@email.com" },
-];
-
 export const NOTIFICATIONS: AppNotification[] = [
   {
     id: "n1",
@@ -238,14 +222,6 @@ export function getRunnerById(id: string, locale: Locale): Runner | undefined {
 
 export function currentRunner(locale: Locale): Runner {
   return localizeRunner(RUNNERS[0], locale);
-}
-
-export function getParticipants(locale: Locale): Participant[] {
-  if (locale !== "es") return PARTICIPANTS;
-  return PARTICIPANTS.map((p) => ({
-    ...p,
-    registeredOn: localizeDateStamp(p.registeredOn),
-  }));
 }
 
 export function getNotifications(locale: Locale): AppNotification[] {

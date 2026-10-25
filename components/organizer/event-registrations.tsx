@@ -16,7 +16,10 @@ import {
   returnRegistrationToPendingAction,
 } from "@/lib/events/remove-registration";
 import { markKitShippedAction } from "@/lib/events/ship-kit";
-import { markMedalPickedUpAction, markMedalShippedAction } from "@/lib/events/ship-medal";
+import {
+  markMedalPickedUpAction,
+  markMedalShippedAction,
+} from "@/lib/events/ship-medal";
 import { cn } from "@/lib/cn";
 import { MAX_TRACKING_LENGTH } from "@/lib/events/vocabulary";
 
@@ -87,7 +90,10 @@ function parcelOf(row: EventRegistrationRow, kind: Parcel) {
 /** A finisher whose medal is ready to go out by mail. */
 const medalToMail = (row: EventRegistrationRow) =>
   Boolean(
-    row.medal?.byMail && row.medal.finished && row.medal.address && !row.medal.shippedAt,
+    row.medal?.byMail &&
+    row.medal.finished &&
+    row.medal.address &&
+    !row.medal.shippedAt,
   );
 
 /**
@@ -103,10 +109,16 @@ const medalToMail = (row: EventRegistrationRow) =>
  */
 export function EventRegistrations({
   rows: initial,
+  eventId,
+  inPerson,
   categories,
   slug,
 }: {
   rows: EventRegistrationRow[];
+  /** Links the race-day check-in station. */
+  eventId: string;
+  /** Runners gather in one place, so the station is offered. */
+  inPerson: boolean;
   /** Category id → its distance name, for the Distance column. */
   categories: Record<string, string>;
   /** Names the CSV file. */
@@ -124,7 +136,9 @@ export function EventRegistrations({
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [removed, setRemoved] = useState<ReadonlySet<string>>(new Set());
-  const [confirming, setConfirming] = useState<EventRegistrationRow | null>(null);
+  const [confirming, setConfirming] = useState<EventRegistrationRow | null>(
+    null,
+  );
   const [reverting, setReverting] = useState<EventRegistrationRow | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [shipping, setShipping] = useState<{
@@ -139,8 +153,12 @@ export function EventRegistrations({
     ReadonlyMap<string, { shippedAt: string; tracking: string | null }>
   >(new Map());
   // Medals handed over here, by registration id, likewise.
-  const [pickedUp, setPickedUp] = useState<ReadonlyMap<string, string>>(new Map());
-  const [handingOut, setHandingOut] = useState<EventRegistrationRow | null>(null);
+  const [pickedUp, setPickedUp] = useState<ReadonlyMap<string, string>>(
+    new Map(),
+  );
+  const [handingOut, setHandingOut] = useState<EventRegistrationRow | null>(
+    null,
+  );
   const tableRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
 
@@ -165,12 +183,16 @@ export function EventRegistrations({
           const handedOver = pickedUp.get(r.id);
           return {
             ...r,
-            ...(kit ? { shippedAt: kit.shippedAt, shippingTracking: kit.tracking } : {}),
+            ...(kit
+              ? { shippedAt: kit.shippedAt, shippingTracking: kit.tracking }
+              : {}),
             ...((medal || handedOver) && r.medal
               ? {
                   medal: {
                     ...r.medal,
-                    ...(medal ? { shippedAt: medal.shippedAt, tracking: medal.tracking } : {}),
+                    ...(medal
+                      ? { shippedAt: medal.shippedAt, tracking: medal.tracking }
+                      : {}),
                     ...(handedOver ? { pickedUpAt: handedOver } : {}),
                   },
                 }
@@ -214,7 +236,8 @@ export function EventRegistrations({
   }
 
   function method(row: EventRegistrationRow) {
-    if (row.paymentMethod === "ath_movil") return t("eventRegistrations.athMovil");
+    if (row.paymentMethod === "ath_movil")
+      return t("eventRegistrations.athMovil");
     if (row.paymentMethod === "stripe") return t("eventRegistrations.card");
     return "—";
   }
@@ -316,7 +339,8 @@ export function EventRegistrations({
     if (kind === "kit" && !parcel.address) return null;
     if (kind === "medal") {
       if (!row.medal) return null;
-      if (!row.medal.shippedAt && !row.medal.byMail) return pickupControl(row, row.medal);
+      if (!row.medal.shippedAt && !row.medal.byMail)
+        return pickupControl(row, row.medal);
       // Not finished, or no address: nothing to mail yet, so no button.
       const waiting = row.medal.shippedAt
         ? null
@@ -373,7 +397,10 @@ export function EventRegistrations({
   }
 
   /** A medal picked up in person: when it was, or the button to say so. */
-  function pickupControl(row: EventRegistrationRow, medal: NonNullable<EventRegistrationRow["medal"]>) {
+  function pickupControl(
+    row: EventRegistrationRow,
+    medal: NonNullable<EventRegistrationRow["medal"]>,
+  ) {
     const note = (key: string, date?: string) => (
       <p
         className={cn(
@@ -386,7 +413,10 @@ export function EventRegistrations({
     );
 
     if (medal.pickedUpAt) {
-      return note("eventRegistrations.medal.pickedUpOn", paidOn.format(new Date(medal.pickedUpAt)));
+      return note(
+        "eventRegistrations.medal.pickedUpOn",
+        paidOn.format(new Date(medal.pickedUpAt)),
+      );
     }
     if (!medal.canHandOut) return note("eventRegistrations.medal.pickupNotYet");
     return (
@@ -396,7 +426,9 @@ export function EventRegistrations({
           variant="outline"
           size="sm"
           disabled={busy !== null}
-          aria-label={t("eventRegistrations.medal.markPickedUpAria", { name: row.runnerName })}
+          aria-label={t("eventRegistrations.medal.markPickedUpAria", {
+            name: row.runnerName,
+          })}
           onClick={() => setHandingOut(row)}
         >
           {t("eventRegistrations.medal.markPickedUp")}
@@ -419,7 +451,9 @@ export function EventRegistrations({
       result.ok
         ? {
             title: t("eventRegistrations.medal.pickedUpTitle"),
-            body: t("eventRegistrations.medal.pickedUpBody", { name: row.runnerName }),
+            body: t("eventRegistrations.medal.pickedUpBody", {
+              name: row.runnerName,
+            }),
           }
         : {
             title: t("eventRegistrations.shipErrors.pickupTitle"),
@@ -492,7 +526,9 @@ export function EventRegistrations({
         size="sm"
         disabled={busy !== null}
         aria-busy={busy === row.id}
-        aria-label={t("eventRegistrations.removeAria", { name: row.runnerName })}
+        aria-label={t("eventRegistrations.removeAria", {
+          name: row.runnerName,
+        })}
         onClick={() => setConfirming(row)}
         className="hover:border-danger hover:text-danger"
       >
@@ -576,7 +612,9 @@ export function EventRegistrations({
     <section id="registrations" aria-label={t("eventRegistrations.title")}>
       <SectionHeading
         title={t("eventRegistrations.title")}
-        kicker={t("eventRegistrations.count", { count: fmt.number(rows.length) })}
+        kicker={t("eventRegistrations.count", {
+          count: fmt.number(rows.length),
+        })}
       />
 
       {rows.length === 0 ? (
@@ -611,9 +649,16 @@ export function EventRegistrations({
                 className="sm:mr-auto sm:ml-2 sm:items-center"
               />
             ) : null}
-            <Button variant="outline" size="md" onClick={exportCsv}>
-              {t("eventRegistrations.exportCsv")}
-            </Button>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button variant="outline" size="md" onClick={exportCsv}>
+                {t("eventRegistrations.exportCsv")}
+              </Button>
+              {inPerson ? (
+                <Button href={`/organizer/events/${eventId}/checkin`} size="md">
+                  {t("eventRegistrations.checkin")}
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           {shown.length === 0 ? (
@@ -625,7 +670,7 @@ export function EventRegistrations({
               {/* Table on wide screens. */}
               <div
                 ref={tableRef}
-                className="hidden max-h-[34rem] overflow-auto md:block"
+                className="hidden max-h-136 overflow-auto md:block"
               >
                 <table className="w-full border-collapse">
                   <thead>
@@ -656,14 +701,16 @@ export function EventRegistrations({
                           {row.bib ?? "—"}
                         </td>
                         <td className="px-4 py-3.5">
-                          <p className="text-sm font-bold break-words">
+                          <p className="text-sm font-bold wrap-break-word">
                             {row.runnerName}
                           </p>
                           <p className="text-[11px] break-all text-fg-faint">
                             {row.email} · {row.phone}
                           </p>
                           {row.club ? (
-                            <p className="text-[11px] text-fg-faint">{row.club}</p>
+                            <p className="text-[11px] text-fg-faint">
+                              {row.club}
+                            </p>
                           ) : null}
                           {row.mailingAddress ? (
                             <p className="mt-1 text-[11px] whitespace-pre-line text-fg-faint">
@@ -672,14 +719,21 @@ export function EventRegistrations({
                               })}
                             </p>
                           ) : null}
-                          {medalAddressLine(row, "mt-1 text-[11px] text-fg-faint")}
+                          {medalAddressLine(
+                            row,
+                            "mt-1 text-[11px] text-fg-faint",
+                          )}
                         </td>
                         <td className="px-4 py-3.5 text-sm">{distance(row)}</td>
                         <td className="px-4 py-3.5 text-sm">
                           {genderLabel(t, row.gender)}
                         </td>
-                        <td className="px-4 py-3.5 text-sm tabular-nums">{row.age}</td>
-                        <td className="px-4 py-3.5 text-sm">{row.shirtSize ?? "—"}</td>
+                        <td className="px-4 py-3.5 text-sm tabular-nums">
+                          {row.age}
+                        </td>
+                        <td className="px-4 py-3.5 text-sm">
+                          {row.shirtSize ?? "—"}
+                        </td>
                         <td className="px-4 py-3.5 text-sm">{method(row)}</td>
                         <td className="px-4 py-3.5 font-mono text-sm tabular-nums">
                           {fmt.money(row.amount)}
@@ -695,7 +749,7 @@ export function EventRegistrations({
               </div>
 
               {/* Cards on phones — nine columns cannot shrink honestly. */}
-              <ul ref={listRef} className="max-h-[34rem] overflow-y-auto md:hidden">
+              <ul ref={listRef} className="max-h-136 overflow-y-auto md:hidden">
                 {visible.map((row) => (
                   <li
                     key={row.id}
@@ -703,7 +757,7 @@ export function EventRegistrations({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-base font-bold break-words">
+                        <p className="text-base font-bold wrap-break-word">
                           {row.runnerName}
                         </p>
                         <p className="mt-0.5 text-[12px] break-all text-fg-dim">
@@ -716,7 +770,10 @@ export function EventRegistrations({
                             })}
                           </p>
                         ) : null}
-                        {medalAddressLine(row, "mt-0.5 text-[12px] text-fg-dim")}
+                        {medalAddressLine(
+                          row,
+                          "mt-0.5 text-[12px] text-fg-dim",
+                        )}
                       </div>
                       <span className="font-mono text-base font-bold text-neon-lime tabular-nums">
                         #{row.bib ?? "—"}
@@ -749,7 +806,11 @@ export function EventRegistrations({
                       total: fmt.number(shown.length),
                     })}
                   </p>
-                  <Pagination page={current} pageCount={pageCount} onChange={goTo} />
+                  <Pagination
+                    page={current}
+                    pageCount={pageCount}
+                    onChange={goTo}
+                  />
                 </div>
               ) : null}
             </div>
@@ -806,11 +867,16 @@ export function EventRegistrations({
       <Modal
         open={shipping !== null}
         onClose={() => setShipping(null)}
-        title={t(target?.shippedAt ? targetCopy.trackingTitle : targetCopy.shipTitle, {
-          name: shipping?.row.runnerName ?? "",
-        })}
+        title={t(
+          target?.shippedAt ? targetCopy.trackingTitle : targetCopy.shipTitle,
+          {
+            name: shipping?.row.runnerName ?? "",
+          },
+        )}
         description={t(
-          target?.shippedAt ? targetCopy.trackingDescription : targetCopy.shipDescription,
+          target?.shippedAt
+            ? targetCopy.trackingDescription
+            : targetCopy.shipDescription,
           { name: shipping?.row.runnerName ?? "" },
         )}
         footer={

@@ -1,6 +1,7 @@
 "use client";
 
 import { Link } from "@/components/i18n/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,83 +10,103 @@ import { useToast } from "@/components/ui/toast";
 import { useFormat, useT } from "@/components/i18n/provider";
 import type { Translate } from "@/lib/i18n/translate";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
-import { cn } from "@/lib/cn";
-import type { Participant } from "@/lib/types";
+import { setCheckedInAction } from "@/lib/events/check-in";
+import type { CheckInList, CheckInRunner } from "@/lib/events/organizer";
 
 /**
  * Race-day check-in. Designed for one thumb, in sunlight, by a volunteer who
  * has never seen the app: oversized targets, very high contrast, one decision
  * per screen, and no destructive action without a visible undo.
+ *
+ * A tap shows at once and saves behind it; the list then refreshes from the
+ * server, which also brings in runners checked in on another phone.
  */
-export function CheckInStation({ initial }: { initial: Participant[] }) {
-  const [people, setPeople] = useState(initial);
-  const [query, setQuery] = useState("");
-  const [activeBib, setActiveBib] = useState<string | null>(null);
-  const [scanning, setScanning] = useState(false);
+export function CheckInStation({ list }: { list: CheckInList }) {
+  const { event, runners: initial } = list;
+  const router = useRouter();
   const { toast } = useToast();
   const t = useT();
   const fmt = useFormat();
+  const [query, setQuery] = useState("");
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  // Taps not yet back from the server: registration id → checked-in time.
+  const [pending, setPending] = useState<ReadonlyMap<string, string | null>>(new Map());
 
-  const active = people.find((p) => p.bib === activeBib) ?? null;
+  // Refreshed rows already carry what was tapped here.
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setPending(new Map());
+  }
+
+  const people = useMemo(
+    () =>
+      initial.map((p) =>
+        pending.has(p.id) ? { ...p, checkedInAt: pending.get(p.id) ?? null } : p,
+      ),
+    [initial, pending],
+  );
+
+  const active = people.find((p) => p.id === activeId) ?? null;
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
     return people
-      .filter((p) => `${p.name} ${p.bib}`.toLowerCase().includes(q))
+      .filter((p) => `${p.name} ${p.bib ?? ""}`.toLowerCase().includes(q))
       .slice(0, 6);
   }, [people, query]);
 
-  const checkedIn = people.filter((p) => p.checkedIn).length;
+  const checkedIn = people.filter((p) => p.checkedInAt).length;
 
-  function simulateScan() {
-    setScanning(true);
-    window.setTimeout(() => {
-      setScanning(false);
-      const next = people.find((p) => !p.checkedIn);
-      if (next) {
-        setActiveBib(next.bib);
-        setQuery("");
-      }
-    }, 1100);
-  }
-
-  function confirm(bib: string) {
-    setPeople((prev) =>
-      prev.map((p) => (p.bib === bib ? { ...p, checkedIn: true } : p)),
+  async function save(runner: CheckInRunner, checkIn: boolean) {
+    const bib = runner.bib ?? "—";
+    setBusy(true);
+    setPending((prev) =>
+      new Map(prev).set(runner.id, checkIn ? new Date().toISOString() : null),
     );
-    toast({
-      title: t("checkin.checkedInTitle"),
-      body: t("checkin.checkedInBody", { bib }),
-    });
-  }
+    const result = await setCheckedInAction(runner.id, checkIn);
+    setBusy(false);
 
-  function undo(bib: string) {
-    setPeople((prev) =>
-      prev.map((p) => (p.bib === bib ? { ...p, checkedIn: false } : p)),
+    if (!result.ok) {
+      setPending((prev) => {
+        const next = new Map(prev);
+        next.delete(runner.id);
+        return next;
+      });
+      toast({
+        title: t("checkin.errors.title"),
+        body: t(`checkin.errors.${result.error}`),
+        tone: "danger",
+      });
+      return;
+    }
+
+    toast(
+      checkIn
+        ? { title: t("checkin.checkedInTitle"), body: t("checkin.checkedInBody", { bib }) }
+        : { title: t("checkin.reversedTitle"), body: t("checkin.reversedBody", { bib }), tone: "info" },
     );
-    toast({
-      title: t("checkin.reversedTitle"),
-      body: t("checkin.reversedBody", { bib }),
-      tone: "info",
-    });
+    router.refresh();
   }
 
   /* ---------------- Participant screen ---------------- */
   if (active) {
-    const ready = active.paid;
     return (
       <div className="mx-auto flex min-h-dvh max-w-2xl flex-col">
         <header className="flex items-center gap-3 border-b-2 border-line px-4 py-4">
           <button
             type="button"
-            onClick={() => setActiveBib(null)}
+            onClick={() => setActiveId(null)}
             className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-line-strong text-lg"
             aria-label={t("checkin.backToSearch")}
           >
             ←
           </button>
-          <Eyebrow>{t("checkin.eventCheckin")}</Eyebrow>
+          <Eyebrow className="min-w-0 truncate">
+            {t("checkin.eventCheckin", { event: event.name })}
+          </Eyebrow>
         </header>
 
         <div className="flex-1 px-4 py-8">
@@ -94,9 +115,9 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
               {t("checkin.bibNumber")}
             </Eyebrow>
             <p className="mt-2 font-display text-8xl leading-none font-black tracking-[-0.04em]">
-              {active.bib}
+              {active.bib ?? "—"}
             </p>
-            <h1 className="mt-5 font-display text-4xl font-black uppercase">
+            <h1 className="mt-5 font-display text-4xl font-black wrap-break-word uppercase">
               {active.name}
             </h1>
             <p className="mt-2 font-mono text-sm tracking-[0.14em] text-fg-dim uppercase">
@@ -104,31 +125,29 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
                 distance: distanceLabel(t, active.distance),
                 age: active.age,
                 gender: genderLabel(t, active.gender),
-                shirt: active.shirt,
               })}
             </p>
           </div>
 
           <ul className="mt-9 border-t-2 border-line">
-            <CheckRow label={t("checkin.registration")} ok t={t} />
-            <CheckRow
-              label={t("checkin.payment")}
-              ok={active.paid}
-              detail={
-                active.paid
-                  ? undefined
-                  : t("checkin.collectAtDesk", { amount: fmt.moneyWhole(40) })
-              }
-              t={t}
-            />
-            <CheckRow
-              label={t("checkin.shirtRow", { size: active.shirt })}
-              ok
-              t={t}
-            />
+            <CheckRow label={t("checkin.registration")} t={t} />
+            <CheckRow label={t("checkin.payment")} t={t} />
+            {active.shirtSize ? (
+              <CheckRow
+                label={t("checkin.shirtRow", { size: active.shirtSize })}
+                t={t}
+              />
+            ) : null}
+            {active.kitByMail ? (
+              <CheckRow
+                label={t("checkin.kitRow")}
+                detail={t("checkin.kitMailed")}
+                t={t}
+              />
+            ) : null}
           </ul>
 
-          {active.checkedIn ? (
+          {active.checkedInAt ? (
             <div className="animate-pop-in mt-9 border-2 border-neon-lime bg-neon-lime/10 px-5 py-8 text-center">
               <p className="font-display text-5xl font-black text-neon-lime uppercase">
                 {t("checkin.checkedIn")}
@@ -137,13 +156,14 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
                 {t("checkin.clearedForStart", { name: active.name })}
               </p>
               <div className="mt-6 flex flex-col gap-3">
-                <Button size="lg" onClick={() => setActiveBib(null)}>
+                <Button size="lg" onClick={() => setActiveId(null)}>
                   {t("checkin.nextRunner")}
                 </Button>
                 <Button
                   variant="ghost"
                   size="md"
-                  onClick={() => undo(active.bib)}
+                  disabled={busy}
+                  onClick={() => save(active, false)}
                 >
                   {t("checkin.undoCheckin")}
                 </Button>
@@ -153,21 +173,13 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
             <div className="mt-9">
               <button
                 type="button"
-                onClick={() => confirm(active.bib)}
-                className={cn(
-                  "min-h-24 w-full border-2 text-center font-display text-4xl font-black tracking-[0.06em] uppercase transition-colors active:translate-y-px",
-                  ready
-                    ? "border-neon-lime bg-neon-lime text-ink"
-                    : "border-neon-yellow bg-neon-yellow text-ink",
-                )}
+                disabled={busy}
+                aria-busy={busy}
+                onClick={() => save(active, true)}
+                className="min-h-24 w-full border-2 border-neon-lime bg-neon-lime text-center font-display text-4xl font-black tracking-[0.06em] text-ink uppercase transition-colors active:translate-y-px disabled:opacity-60"
               >
                 {t("checkin.checkIn")}
               </button>
-              {!ready ? (
-                <p className="mt-3 text-center text-sm font-semibold text-neon-yellow">
-                  {t("checkin.paymentOutstanding")}
-                </p>
-              ) : null}
             </div>
           )}
         </div>
@@ -175,21 +187,21 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
     );
   }
 
-  /* ---------------- Scan / search screen ---------------- */
+  /* ---------------- Search screen ---------------- */
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col">
       <header className="flex items-center gap-3 border-b-2 border-line px-4 py-4">
         <Link
-          href="/organizer"
+          href={`/events/${event.slug}`}
           className="flex h-12 w-12 shrink-0 items-center justify-center border-2 border-line-strong text-lg"
-          aria-label={t("checkin.backToDashboard")}
+          aria-label={t("checkin.backToEvent")}
         >
           ←
         </Link>
         <div className="min-w-0">
           <Eyebrow>{t("checkin.title")}</Eyebrow>
           <p className="mt-0.5 truncate text-[15px] font-extrabold uppercase">
-            Neon Night 10K
+            {event.name}
           </p>
         </div>
         <div className="flex-1" />
@@ -204,92 +216,60 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
       </header>
 
       <div className="flex-1 px-4 py-6">
-        <button
-          type="button"
-          onClick={simulateScan}
-          disabled={scanning}
-          aria-busy={scanning}
-          className={cn(
-            "relative flex min-h-56 w-full flex-col items-center justify-center gap-4 border-2 transition-colors",
-            scanning
-              ? "border-neon-lime bg-neon-lime/8"
-              : "border-neon-lime bg-neon-lime text-ink",
-          )}
-        >
-          {/* Viewfinder corners. */}
-          <span
-            aria-hidden="true"
-            className={cn(
-              "absolute inset-6 border-2 border-dashed",
-              scanning ? "border-neon-lime" : "border-ink/30",
-            )}
-          />
-          <span aria-hidden="true" className="relative text-5xl">
-            {scanning ? "◌" : "⛶"}
-          </span>
-          <span
-            className={cn(
-              "relative font-display text-2xl font-black tracking-[0.08em] uppercase",
-              scanning && "text-neon-lime",
-            )}
-          >
-            {scanning ? t("checkin.scanning") : t("checkin.scanQr")}
-          </span>
-        </button>
-
-        <div className="my-7 flex items-center gap-4">
-          <span className="h-0.5 flex-1 bg-line" />
-          <span className="font-mono text-[11px] tracking-[0.16em] text-fg-dim uppercase">
-            {t("checkin.orSearch")}
-          </span>
-          <span className="h-0.5 flex-1 bg-line" />
-        </div>
-
-        <Input
-          type="search"
-          inputMode="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={t("checkin.searchPlaceholder")}
-          aria-label={t("checkin.searchAria")}
-          className="min-h-14 text-lg"
-        />
-
-        {query.trim() && matches.length === 0 ? (
-          <p className="mt-5 border-2 border-dashed border-line px-4 py-8 text-center text-sm text-fg-dim">
-            {t("checkin.noRunner", { query })}
+        {people.length === 0 ? (
+          <p className="border-2 border-dashed border-line px-4 py-8 text-center text-sm text-fg-dim">
+            {t("checkin.noRunners")}
           </p>
-        ) : null}
+        ) : (
+          <>
+            <Input
+              type="search"
+              inputMode="search"
+              autoFocus
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("checkin.searchPlaceholder")}
+              aria-label={t("checkin.searchAria")}
+              className="min-h-14 text-lg"
+            />
 
-        <ul className="mt-4">
-          {matches.map((p) => (
-            <li key={p.bib}>
-              <button
-                type="button"
-                onClick={() => setActiveBib(p.bib)}
-                className="flex min-h-16 w-full items-center gap-4 border-b-2 border-line px-2 py-3 text-left hover:bg-carbon"
-              >
-                <span className="font-mono text-lg tabular-nums text-fg-dim">
-                  {p.bib}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-base font-bold">{p.name}</span>
-                  <span className="block font-mono text-[11px] text-fg-dim">
-                    {t("checkin.listMeta", {
-                      distance: distanceLabel(t, p.distance),
-                      shirt: p.shirt,
-                    })}
-                  </span>
-                </span>
-                {p.checkedIn ? (
-                  <Badge tone="green">{t("checkin.in")}</Badge>
-                ) : p.paid ? null : (
-                  <Badge tone="danger">{t("checkin.unpaid")}</Badge>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
+            {query.trim() && matches.length === 0 ? (
+              <p className="mt-5 border-2 border-dashed border-line px-4 py-8 text-center text-sm text-fg-dim">
+                {t("checkin.noRunner", { query })}
+              </p>
+            ) : null}
+
+            <ul className="mt-4">
+              {matches.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveId(p.id)}
+                    className="flex min-h-16 w-full items-center gap-4 border-b-2 border-line px-2 py-3 text-left hover:bg-carbon"
+                  >
+                    <span className="font-mono text-lg tabular-nums text-fg-dim">
+                      {p.bib ?? "—"}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-base font-bold">{p.name}</span>
+                      <span className="block font-mono text-[11px] text-fg-dim">
+                        {p.shirtSize
+                          ? t("checkin.listMeta", {
+                              distance: distanceLabel(t, p.distance),
+                              shirt: p.shirtSize,
+                            })
+                          : distanceLabel(t, p.distance)}
+                      </span>
+                    </span>
+                    {p.checkedInAt ? (
+                      <Badge tone="green">{t("checkin.in")}</Badge>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </div>
     </div>
   );
@@ -297,12 +277,10 @@ export function CheckInStation({ initial }: { initial: Participant[] }) {
 
 function CheckRow({
   label,
-  ok,
   detail,
   t,
 }: {
   label: string;
-  ok: boolean;
   detail?: string;
   t: Translate;
 }) {
@@ -311,18 +289,13 @@ function CheckRow({
       <span className="text-lg font-semibold">{label}</span>
       <span className="flex items-center gap-3">
         {detail ? (
-          <span className="text-sm text-neon-yellow">{detail}</span>
+          <span className="text-right text-sm text-fg-dim">{detail}</span>
         ) : null}
         <span
-          className={cn(
-            "flex h-9 w-9 items-center justify-center border-2 text-lg font-black",
-            ok
-              ? "border-neon-lime text-neon-lime"
-              : "border-neon-yellow text-neon-yellow",
-          )}
-          aria-label={ok ? t("checkin.complete") : t("checkin.outstanding")}
+          className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-neon-lime text-lg font-black text-neon-lime"
+          aria-label={t("checkin.complete")}
         >
-          {ok ? "✓" : "!"}
+          ✓
         </span>
       </span>
     </li>

@@ -49,7 +49,6 @@ const STATUS_TONE: Record<RegistrationStatus, BadgeTone> = {
   open: "lime",
   "opening-soon": "outline",
   "almost-full": "yellow",
-  waitlist: "neutral",
   closed: "danger",
 };
 

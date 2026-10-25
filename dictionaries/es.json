@@ -53,9 +53,11 @@
   "tabs": {
     "home": "Inicio",
     "events": "Carreras",
+    "about": "Nosotros",
     "results": "Resultados",
     "community": "Comunidad",
-    "profile": "Perfil"
+    "profile": "Perfil",
+    "logIn": "Iniciar sesión"
   },
   "footer": {
     "blurb": "Descubrimiento, inscripción y resultados de carreras para la comunidad corredora del Caribe. Hecho por corredores que también están en la línea de salida.",
@@ -120,7 +122,6 @@
       "open": "Inscripción abierta",
       "opening-soon": "Abre pronto",
       "almost-full": "Casi lleno",
-      "waitlist": "Lista de espera",
       "closed": "Cerrada"
     },
     "wave": {
@@ -266,8 +267,7 @@
       "sortPrice": "Precio",
       "statusOpen": "Abierta ahora",
       "statusOpeningSoon": "Abre pronto",
-      "statusAlmostFull": "Casi llena",
-      "statusWaitlist": "Lista de espera"
+      "statusAlmostFull": "Casi llena"
     },
     "detail": {
       "notFound": "Carrera no encontrada",
@@ -511,9 +511,6 @@
       "racePass": "Pase de carrera",
       "bibNumber": "Número de dorsal",
       "bibMeta": "{name} · {category}",
-      "qrTitle": "Pase QR para el registro",
-      "qrBody": "Muéstralo en la carpa de registro. Funciona sin conexión una vez descargado.",
-      "downloadPass": "Descargar pase",
       "receiptSentTo": "Recibo enviado a",
       "totalCharged": "Total cobrado",
       "registrationConfirmed": "Inscripción confirmada",
@@ -1235,25 +1232,29 @@
         "items": [
           {
             "q": "¿Necesito una cuenta para inscribirme?",
-            "a": "Puedes ver todas las carreras y leer la información completa de cada evento sin cuenta. Inscribirte crea una, porque necesitamos dónde guardar tu dorsal, tu descargo de responsabilidad y tus resultados."
+            "a": "Sí. Puedes ver todas las carreras y leer la información completa de cada evento sin cuenta, pero cada inscripción pertenece a una: ahí se guardan tu dorsal, tu pago, tus resultados y tu medalla."
           },
           {
             "q": "¿Puedo inscribir a otra persona?",
-            "a": "Sí. En el paso de datos del corredor, escribe los suyos en lugar de los tuyos. La confirmación y el dorsal van al correo que pongas ahí, y el recibo te llega a ti."
+            "a": "Cada cuenta tiene una inscripción por carrera, con el dorsal, los resultados y la medalla que la acompañan. Para inscribir a un amigo o familiar, esa persona necesita su propia cuenta."
           },
           {
             "q": "¿Cuándo recibo mi número de dorsal?",
-            "a": "Al instante. Tu dorsal aparece en la pantalla de confirmación y en tu perfil. Los dorsales físicos se recogen en la expo o la mañana de la carrera, según el evento."
+            "a": "En cuanto se confirma tu pago. Si pagas con tarjeta, aparece en la pantalla de confirmación al instante; si pagas con ATH Móvil, te llega por correo cuando se verifica el pago. En ambos casos también aparece en tu perfil."
           },
           {
             "q": "¿Y si una carrera está llena?",
-            "a": "Las carreras llenas muestran un botón de lista de espera en lugar de Inscribirse. Si se libera un cupo, se ofrece por orden a quienes están en lista y tienen 24 horas para reclamarlo."
+            "a": "Una carrera llena deja de aceptar inscripciones. Los cupos retenidos por pagos que nunca se completaron se liberan, así que todavía puede abrirse uno antes del cierre de inscripciones."
           }
         ]
       },
       {
         "title": "Dinero",
         "items": [
+          {
+            "q": "¿Cómo puedo pagar?",
+            "a": "Con tarjeta, o con ATH Móvil en las carreras que lo ofrecen. Los pagos por ATH Móvil se verifican a mano: tu cupo queda retenido mientras verificamos el pago, lo que puede tardar hasta 48 horas, y te enviamos el dorsal por correo en cuanto se confirma."
+          },
           {
             "q": "¿Qué es el cargo por servicio?",
             "a": "Una tarifa fija de $2.00 por inscripción, visible en el resumen del pedido antes de pagar. No hay porcentaje adicional. El IVU de Puerto Rico (11.5%) aplica a la inscripción, los extras, el cargo por servicio y el envío, pero no a los donativos."
@@ -1273,15 +1274,23 @@
         "items": [
           {
             "q": "¿Cómo funciona el registro?",
-            "a": "Muestra el código QR de tu pase de carrera en la carpa de registro. Funciona sin conexión una vez que lo has abierto, así que no pasa nada si no hay señal en la villa de salida."
+            "a": "Da tu nombre o número de dorsal en la carpa de registro. El voluntario te busca en la lista de la carrera y te registra."
           },
           {
-            "q": "¿Cuándo se publican los resultados?",
-            "a": "En menos de dos horas tras el último finalista en carreras con cronometraje por chip. Recibes una notificación en cuanto el tuyo está listo, con tus parciales, posiciones y una tarjeta para compartir."
+            "q": "¿Me pueden enviar el paquete o la medalla por correo?",
+            "a": "Si el organizador lo ofrece. El envío del paquete es un extra con un precio de envío y manejo que fija el organizador, y te avisamos por correo cuando sale. En las carreras que envían la medalla de finisher, eliges al inscribirte entre recogerla en persona o recibirla por correo sin costo adicional, y puedes cambiar al correo desde tu perfil más adelante."
           },
           {
-            "q": "Mi resultado está mal. ¿Y ahora?",
-            "a": "Contacta al organizador desde la página del evento — ellos tienen los datos de cronometraje y pueden corregirlo. Las correcciones se propagan a tu perfil automáticamente."
+            "q": "¿Qué es una carrera \"en cualquier lugar\"?",
+            "a": "Una carrera virtual, o una que completas donde quieras. No hay sede ni línea de salida: la corres por tu cuenta y reportas tu llegada con una captura."
+          },
+          {
+            "q": "¿Cómo funcionan los resultados?",
+            "a": "En las carreras que aceptan resultados, tú reportas tu llegada después de la carrera: escribe tu tiempo y sube una captura de la carrera desde Strava, Nike Run Club, la app de tu reloj o similar. El organizador la revisa y, una vez aceptada, aparece en el historial de carreras de tu perfil, con la medalla del evento en tus logros. Te avisamos por correo en cualquier caso."
+          },
+          {
+            "q": "Mi resultado fue rechazado o está mal. ¿Y ahora?",
+            "a": "Si el organizador rechaza tu evidencia, verás su nota y podrás enviar nueva evidencia desde la página de la carrera. Un resultado aceptado ya no se puede volver a enviar, así que si tiene algún error, contacta al organizador desde la página del evento."
           }
         ]
       },
@@ -1290,11 +1299,11 @@
         "items": [
           {
             "q": "¿Cuánto cuesta publicar una carrera?",
-            "a": "Publicar no cuesta nada. Los corredores pagan el cargo fijo por servicio al inscribirse, y los pagos llegan a tu cuenta en un plazo de cinco días hábiles tras la carrera."
+            "a": "Publicar no cuesta nada. Los corredores pagan el cargo fijo por servicio al inscribirse. Los pagos se liquidan en un plazo de cinco días hábiles tras la carrera, descontando reembolsos, contracargos y los donativos destinados a una organización benéfica."
           },
           {
             "q": "¿Puedo pasar de corredor a organizador?",
-            "a": "Sí — activa las herramientas de organizador desde tus ajustes. Nunca necesitas una segunda cuenta, y tu perfil de corredor y tus resultados se quedan exactamente como están."
+            "a": "Sí, con la misma cuenta. El equipo de NEONS RUNNING activa las herramientas de organizador, así que escríbenos y las habilitamos. Tu perfil de corredor y tus resultados se quedan exactamente como están."
           }
         ]
       }
@@ -1469,104 +1478,43 @@
     "deletionCancelledTitle": "Solicitud retirada. Tu cuenta sigue como está.",
     "requestOrganizer": "Pedir acceso de organizador"
   },
-  "participants": {
-    "searchPlaceholder": "Buscar nombre, dorsal o correo",
-    "searchAria": "Buscar participantes",
-    "paymentStatus": "Estado del pago",
-    "all": "Todos",
-    "paid": "Pagado",
-    "unpaid": "Sin pagar",
-    "sendEmail": "Enviar correo",
-    "emailQueuedTitle": "Correo en cola",
-    "emailQueuedBody": "{count} corredores lo recibirán.",
-    "exportCsv": "Exportar CSV",
-    "exportTitle": "Exportación iniciada",
-    "exportBody": "{count} filas escritas en el CSV.",
-    "manualRegistration": "Inscripción manual",
-    "shown": "mostrados",
-    "checkedIn": "registrados",
-    "unpaidCount": "sin pagar",
-    "selected": "{count} seleccionados",
-    "emptyTitle": "Ningún participante coincide",
-    "emptyBody": "Prueba con parte del nombre o un número de dorsal. Las inscripciones se sincronizan desde el evento en vivo en menos de un minuto.",
-    "selectAll": "Seleccionar todos los participantes visibles",
-    "selectOne": "Seleccionar a {name}",
-    "columns": {
-      "bib": "Dorsal",
-      "runner": "Corredor",
-      "age": "Edad",
-      "gender": "Género",
-      "distance": "Distancia",
-      "shirt": "Camiseta",
-      "registered": "Inscrito",
-      "payment": "Pago",
-      "checkin": "Registro"
-    },
-    "csv": {
-      "paid": "Pagado",
-      "unpaid": "Sin pagar",
-      "yes": "Sí",
-      "no": "No"
-    },
-    "in": "Dentro ✓",
-    "checkIn": "Registrar",
-    "checkedInLong": "Registrado ✓",
-    "cardMeta": "Dorsal {bib} · {distance} · {age} {gender} · talla {shirt}",
-    "modalDescription": "Añade un corredor que pagó en la expo o por transferencia.",
-    "addRunner": "Añadir corredor",
-    "runnerAddedTitle": "Corredor añadido",
-    "runnerAddedBody": "Dorsal n.º 1060 asignado y correo de confirmación enviado.",
-    "fullName": "Nombre completo",
-    "namePlaceholder": "Nombre del corredor",
-    "email": "Correo electrónico",
-    "distance": "Distancia",
-    "shirtSize": "Talla de camiseta",
-    "nextBib": "Próximo dorsal",
-    "nextBibNote": "Se asignará el n.º 1060 automáticamente."
-  },
-  "participantsPage": {
-    "metaTitle": "Participantes",
-    "metaDescription": "Busca, filtra, exporta y registra a los corredores inscritos.",
-    "eyebrow": "Neon Night 10K · {date}",
-    "title": "Participantes",
-    "backToDashboard": "← Panel",
-    "checkin": "Registro el día de la carrera"
-  },
   "checkin": {
     "metaTitle": "Registro el día de la carrera",
-    "metaDescription": "Escanea o busca para registrar a los corredores en la villa de salida.",
+    "metaDescription": "Busca por nombre o número de dorsal para registrar a los corredores en la villa de salida.",
     "backToSearch": "Volver a la búsqueda",
-    "eventCheckin": "Neon Night 10K · Registro",
+    "eventCheckin": "{event} · Registro",
     "bibNumber": "Número de dorsal",
-    "runnerMeta": "{distance} · {age} {gender} · talla {shirt}",
+    "runnerMeta": "{distance} · {age} {gender}",
     "registration": "Inscripción",
     "payment": "Pago",
-    "collectAtDesk": "Cobrar {amount} en el mostrador",
     "shirtRow": "Camiseta · {size}",
     "checkedIn": "Registrado",
     "clearedForStart": "{name} está listo para la línea de salida.",
     "nextRunner": "Siguiente corredor",
     "undoCheckin": "Deshacer registro",
     "checkIn": "Registrar",
-    "paymentOutstanding": "Pago pendiente — cobra antes de registrar.",
     "checkedInTitle": "Registrado",
     "checkedInBody": "El dorsal n.º {bib} está listo para la línea de salida.",
     "reversedTitle": "Registro revertido",
     "reversedBody": "Dorsal n.º {bib}",
-    "backToDashboard": "Volver al panel de organizador",
     "title": "Registro el día de la carrera",
     "ofTotal": "de {total}",
-    "scanning": "Escaneando…",
-    "scanQr": "Escanear código QR",
-    "orSearch": "o busca",
     "searchPlaceholder": "Nombre del corredor o número de dorsal",
     "searchAria": "Buscar un participante",
     "noRunner": "No se encontró ningún corredor para «{query}». Revisa el número de dorsal o prueba con un apellido.",
     "listMeta": "{distance} · talla {shirt}",
     "in": "Dentro",
-    "unpaid": "Sin pagar",
     "complete": "Completo",
-    "outstanding": "Pendiente"
+    "kitRow": "Paquete de carrera",
+    "kitMailed": "Enviado por correo — no hay nada que entregar",
+    "backToEvent": "Volver a la página del evento",
+    "noRunners": "Aún no hay corredores confirmados. Las inscripciones pagadas aparecen aquí con su dorsal.",
+    "errors": {
+      "title": "No se guardó el registro",
+      "notAllowed": "Solo el organizador del evento puede registrar corredores.",
+      "registrationMissing": "Este corredor ya no está inscrito en la carrera.",
+      "checkInFailed": "Algo salió mal. Inténtalo de nuevo."
+    }
   },
   "charts": {
     "chart": "Gráfico",
@@ -2130,7 +2078,8 @@
       "pickedUpBody": "La medalla de {name} quedó registrada como recogida.",
       "deliveryMail": "Correo",
       "deliveryPickup": "Recogida"
-    }
+    },
+    "checkin": "Registro del día de la carrera"
   },
   "cancelledRegistrations": {
     "title": "Corredores removidos",
