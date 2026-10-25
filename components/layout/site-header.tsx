@@ -83,6 +83,8 @@ export function SiteHeader() {
   const t = useT();
   const session = useSession();
   const accountRef = useRef<HTMLDivElement>(null);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   /**
    * Both menus record the route they were opened on rather than a plain
@@ -98,7 +100,13 @@ export function SiteHeader() {
   const setAccountOpen = (open: boolean) =>
     setAccountOpenAt(open ? pathname : null);
 
-  // Dismiss the account menu on outside click or Escape.
+  /**
+   * Dismiss the account menu on outside click or Escape. It is a disclosure —
+   * a button that shows a list of plain links — rather than an ARIA `menu`,
+   * which would promise arrow-key navigation; Tab walks the links as anywhere
+   * else. Escape hands focus back to the button, which would otherwise be
+   * lost with the link that held it.
+   */
   useEffect(() => {
     if (!accountOpen) return;
     // Close via the state setter directly — the helper above is a fresh
@@ -108,7 +116,9 @@ export function SiteHeader() {
         setAccountOpenAt(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAccountOpenAt(null);
+      if (e.key !== "Escape") return;
+      setAccountOpenAt(null);
+      accountButtonRef.current?.focus();
     };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
@@ -117,6 +127,18 @@ export function SiteHeader() {
       document.removeEventListener("keydown", onKey);
     };
   }, [accountOpen]);
+
+  // The mobile menu closes on Escape too, back to its toggle.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setMenuOpenAt(null);
+      menuButtonRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -179,10 +201,11 @@ export function SiteHeader() {
 
             <div ref={accountRef} className="relative hidden md:block">
               <button
+                ref={accountButtonRef}
                 type="button"
                 onClick={() => setAccountOpen(!accountOpen)}
                 aria-expanded={accountOpen}
-                aria-haspopup="menu"
+                aria-controls="account-menu"
                 className="flex cursor-pointer items-center gap-2.5 border-2 border-line-strong py-1.5 pr-3 pl-1.5 transition-colors hover:border-fg-dim"
               >
                 {session.avatarUrl ? (
@@ -211,14 +234,13 @@ export function SiteHeader() {
 
               {accountOpen ? (
                 <div
-                  role="menu"
+                  id="account-menu"
                   className="animate-rise-in absolute right-0 mt-2 w-60 border-2 border-line-strong bg-charcoal py-2 shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
                 >
                   {accountMenu(session).map(({ href, key, Icon }) => (
                     <Link
                       key={key}
                       href={href}
-                      role="menuitem"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-fg-muted hover:bg-graphite hover:text-fg"
                     >
                       <Icon size={16} className="shrink-0 text-fg-dim" />
@@ -234,7 +256,6 @@ export function SiteHeader() {
                     its own.
                   */}
                   <SignOutButton
-                    role="menuitem"
                     className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-danger hover:bg-graphite"
                   >
                     <SignOutIcon size={16} className="shrink-0" />
@@ -253,6 +274,7 @@ export function SiteHeader() {
         )}
 
         <button
+          ref={menuButtonRef}
           type="button"
           onClick={() => setMenuOpen(!menuOpen)}
           aria-expanded={menuOpen}

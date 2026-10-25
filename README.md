@@ -395,8 +395,12 @@ refuse every call):
   `email_outbox` and sent from there; this finishes what the original request
   did not and retries failures, up to 8 tries. Rows that gave up keep their
   `last_error`: `select * from email_outbox where sent_at is null and attempts >= 8`.
+  A send that timed out waiting for Brevo is not retried — Brevo may well
+  have sent it, and a runner told twice is worse than a row to check — so it
+  is among those rows too, with a `last_error` starting "Unconfirmed".
 
-On Vercel, a `vercel.json` cron entry sends the header by itself:
+On Vercel, the `vercel.json` at the root of the repository holds both cron
+entries, and Vercel sends the header by itself:
 
 ```json
 {
@@ -406,6 +410,11 @@ On Vercel, a `vercel.json` cron entry sends the header by itself:
   ]
 }
 ```
+
+Both schedules run more than once a day, which needs a Vercel Pro (or
+Enterprise) plan: on Hobby, cron jobs may run at most once a day and a
+deployment with these entries is refused. On Hobby, call the routes from
+another scheduler instead, with the same header.
 
 The database schedules its own clean-ups with `pg_cron`: abandoned checkouts
 hourly, sent outbox rows after 30 days, rate-limit counters after 2 days.
@@ -426,6 +435,8 @@ CRITICAL {"code":"REFUND_FAILED","message":"A refund failed; the runner is still
 | `REFUND_FAILED` | Stripe is retrying through the webhook; if it keeps failing, refund the PaymentIntent by hand. |
 | `PAYMENT_DISPUTED` | Answer the dispute in the Stripe dashboard before its deadline. |
 | `EMAIL_GAVE_UP` | An outbox email failed 8 times; its row in `email_outbox` has the error. |
+| `EMAIL_UNCONFIRMED` | Brevo did not answer an outbox send in time. Look the address up in Brevo's logs; resend only if it is not there. |
+| `EMAIL_NOT_MARKED_SENT` | An outbox email went but its row was not marked; set its `sent_at` by hand, or it goes again in 15 minutes. |
 | `DELETION_REQUEST_NOT_EMAILED` / `DELETION_CANCELLATION_NOT_EMAILED` | Check `account_deletion_requests` and tell the team by hand. |
 | `RATE_LIMIT_UNAVAILABLE` | The database could not count rate limits; calls are being let through. |
 | `SITE_URL_MISSING` | Set `NEXT_PUBLIC_SITE_URL` in production. |

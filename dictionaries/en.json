@@ -567,6 +567,9 @@
     }
   },
   "emails": {
+    "common": {
+      "manage": "Choose which emails you get"
+    },
     "registrationConfirmed": {
       "subject": "You’re in: {event}",
       "preheader": "Your bib is #{bib}. Here are your race details.",
