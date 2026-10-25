@@ -7,9 +7,11 @@ import { Field, Input } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { useT } from "@/components/i18n/provider";
 import {
+  lookupAthMovilOwnerAction,
   saveAthMovilAccountAction,
   setAthMovilAccountActiveAction,
   type AccountResult,
+  type OwnerLookupResult,
 } from "@/lib/ath-movil/accounts";
 import {
   ATH_MOVIL_QR_BUCKET,
@@ -18,7 +20,7 @@ import {
   MAX_LABEL_LENGTH,
   athMovilQrUrl,
 } from "@/lib/ath-movil/config";
-import type { AthMovilAccountRow } from "@/lib/ath-movil/queries";
+import type { AthMovilAccountRow, AthMovilOwner } from "@/lib/ath-movil/queries";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -131,8 +133,8 @@ export function AthMovilAccounts({
                   </p>
                 )}
                 <p className="mt-1 text-[13px] text-fg-dim">
-                  {account.ownerHandle
-                    ? t("adminAccounts.ownerIs", { handle: account.ownerHandle })
+                  {account.owner
+                    ? t("adminAccounts.ownerIs", { handle: account.owner.handle })
                     : t("adminAccounts.ownerNone")}
                 </p>
               </div>
@@ -238,6 +240,35 @@ function AccountForm({
     owner?: string;
   }>({});
   const [error, setError] = useState<string>();
+  // The owner is saved by account id, and only once the admin has seen the
+  // name a typed handle resolves to: `owner` is that confirmed profile, and
+  // `ownerText` what is in the box. They part ways as soon as the box is
+  // edited, and saving waits until a look-up brings them back together.
+  const savedOwner = account?.owner ?? null;
+  const [owner, setOwner] = useState<AthMovilOwner | null>(savedOwner);
+  const [ownerText, setOwnerText] = useState(savedOwner ? `@${savedOwner.handle}` : "");
+  const [looking, setLooking] = useState(false);
+  const typedHandle = ownerText.trim().replace(/^@/, "").toLowerCase();
+  const ownerPending = typedHandle !== "" && typedHandle !== owner?.handle;
+
+  async function lookUp() {
+    if (!typedHandle) return;
+    setLooking(true);
+    setFieldErrors((f) => ({ ...f, owner: undefined }));
+    const result = await lookupAthMovilOwnerAction(typedHandle).catch(
+      (): OwnerLookupResult => ({ ok: false, error: "ownerNotFound" }),
+    );
+    setLooking(false);
+    if (result.ok) {
+      setOwner(result.owner);
+      setOwnerText(`@${result.owner.handle}`);
+    } else if (result.error === "notAdmin") {
+      setError(result.error);
+    } else {
+      setOwner(null);
+      setFieldErrors((f) => ({ ...f, owner: result.error }));
+    }
+  }
 
   /** Drop an upload no save has claimed. Best effort. */
   function discard(path: string | null) {
@@ -269,6 +300,10 @@ function AccountForm({
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const data = new FormData(e.currentTarget);
+    if (ownerPending) {
+      setFieldErrors((f) => ({ ...f, owner: "ownerUnconfirmed" }));
+      return;
+    }
     setSaving(true);
     setError(undefined);
     const result = await saveAthMovilAccountAction({
@@ -276,7 +311,7 @@ function AccountForm({
       label: String(data.get("label") ?? ""),
       path: String(data.get("path") ?? ""),
       qrPath,
-      ownerHandle: String(data.get("owner") ?? ""),
+      ownerId: typedHandle && owner ? owner.id : null,
     }).catch((): AccountResult => ({ ok: false, error: "saveFailed" }));
     setSaving(false);
 
@@ -348,18 +383,50 @@ function AccountForm({
           optional
         >
           {(p) => (
-            <Input
-              {...p}
-              name="owner"
-              translate="no"
-              defaultValue={account?.ownerHandle ? `@${account.ownerHandle}` : ""}
-              autoComplete="off"
-              autoCapitalize="none"
-              spellCheck={false}
-              placeholder="@club-corredores"
-            />
+            <div className="flex flex-wrap gap-3">
+              <Input
+                {...p}
+                name="owner"
+                translate="no"
+                value={ownerText}
+                onChange={(e) => setOwnerText(e.target.value)}
+                onKeyDown={(e) => {
+                  // Enter looks the handle up rather than saving past it.
+                  if (e.key === "Enter" && ownerPending) {
+                    e.preventDefault();
+                    void lookUp();
+                  }
+                }}
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="@club-corredores"
+                className="min-w-0 flex-1"
+              />
+              <Button
+                variant="outline"
+                size="md"
+                disabled={!ownerPending || looking || saving}
+                aria-busy={looking}
+                onClick={() => void lookUp()}
+              >
+                {looking ? t("adminAccounts.ownerLooking") : t("adminAccounts.ownerLookup")}
+              </Button>
+            </div>
           )}
         </Field>
+        {/* Always mounted, so the resolved name is announced and not only
+            seen: a live region that appears with its text can go unread. */}
+        <p role="status" className="-mt-3 text-[13px] font-semibold text-neon-lime empty:hidden sm:col-span-2">
+          {owner && typedHandle && !ownerPending
+            ? t(
+                owner.id === savedOwner?.id
+                  ? "adminAccounts.ownerCurrent"
+                  : "adminAccounts.ownerFound",
+                { name: owner.name, handle: owner.handle },
+              )
+            : ""}
+        </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-5 border-t-2 border-line p-5 sm:p-6">

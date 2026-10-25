@@ -1,0 +1,22 @@
+-- ---------------------------------------------------------------------------
+-- Handles are no longer the runner's to rewrite
+--
+-- `20261012120000_events.sql` left `handle` among the profile columns a
+-- signed-in runner may update, but nothing in the app changes a handle:
+-- `handle_new_user()` picks it at sign-up and settings never offers it. The
+-- grant only let a runner rewrite theirs straight through the Data API.
+--
+-- That mattered because a handle is how people point at a profile. The ATH
+-- Móvil admin assigned an account's owner by typed handle, so an organizer
+-- could claim a handle the admin knew as someone else's (one just given up,
+-- say) and be made the owner of that business account. The admin screen now
+-- stores the owner by account id after showing the name; this closes the
+-- other half, so a handle only ever changes through the service role or the
+-- dashboard.
+--
+-- `insert (handle)` stays: inserting is limited by policy to the runner's
+-- own row, which the sign-up trigger has already created, so it cannot be
+-- used to pick a second handle.
+-- ---------------------------------------------------------------------------
+
+revoke update (handle) on public.profiles from authenticated;
