@@ -16,6 +16,12 @@ alter table public.registrations
 comment on column public.registrations.checked_in_at is
   'When the runner was checked in on race day. Null until then, or after an undo.';
 
+-- Supabase's default privileges grant every table in public to anon and
+-- authenticated, so "no grants" in the registrations migration still left
+-- writes open; with no write policy they only failed silently. Take them
+-- away, as for events: functions and the service role are the writers.
+revoke insert, update, delete on public.registrations from anon, authenticated;
+
 -- ---------------------------------------------------------------------------
 -- set_checked_in(): check a runner in, or undo it. Checking in someone
 -- already in keeps the first time. Errors:
