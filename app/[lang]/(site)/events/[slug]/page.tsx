@@ -16,6 +16,7 @@ import { ShareRow } from "@/components/events/share-row";
 import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
 import { getUser, isPlatformAdmin } from "@/lib/auth/session";
 import { daysUntil } from "@/lib/data";
+import { spotsLeft as openSpots } from "@/lib/events/availability";
 import {
   getCancelledRegistrations,
   getEventRegistrations,
@@ -135,7 +136,11 @@ export default async function EventDetailPage(
     pendingPayments !== null &&
     (Boolean(event.athMovil) || pendingPayments.length > 0);
   const days = daysUntil(event.date);
-  const spotsLeft = event.capacity - event.registered;
+  const spotsLeft = openSpots(event.capacity, event.registered);
+  const percentFull =
+    event.capacity > 0
+      ? Math.min(100, Math.round((event.registered / event.capacity) * 100))
+      : 0;
   const categoryNames = Object.fromEntries(
     event.categories.map((c) => [c.id, c.name]),
   );
@@ -143,15 +148,19 @@ export default async function EventDetailPage(
     event.categories.find((c) => c.name === event.featuredDistance) ??
     event.categories[0];
 
-  // Before registration opens or after it closes there is nothing to sign up
-  // for, so the button gives way to a notice saying why.
+  // Before registration opens, after it closes, or once the race is sold out
+  // there is nothing to sign up for, so the button gives way to a notice
+  // saying why.
   const canRegister =
     event.registrationStatus !== "opening-soon" &&
-    event.registrationStatus !== "closed";
+    event.registrationStatus !== "closed" &&
+    event.registrationStatus !== "full";
   const unavailable =
     event.registrationStatus === "closed"
       ? t("events.detail.registrationClosed")
-      : event.registrationOpens
+      : event.registrationStatus === "full"
+        ? t("events.detail.soldOut")
+        : event.registrationOpens
         ? t("events.detail.registrationOpensOn", {
             date: event.registrationOpens,
           })
@@ -367,9 +376,7 @@ export default async function EventDetailPage(
               />
               <p className="mt-3 font-mono text-[11px] tracking-widest text-neon-lime uppercase">
                 {t("events.detail.capacityFull", {
-                  percent: Math.round(
-                    (event.registered / event.capacity) * 100,
-                  ),
+                  percent: percentFull,
                   spots: fmt.number(spotsLeft),
                 })}
               </p>

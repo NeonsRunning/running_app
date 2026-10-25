@@ -715,6 +715,36 @@ export type Database = {
         };
         Returns: { id: string; total: number }[];
       };
+      /** A published event's accepted results, runners with a public profile only. */
+      public_event_results: {
+        Args: { p_event_id: string };
+        Returns: {
+          id: string;
+          runner_id: string;
+          runner_name: string;
+          bib: number;
+          category_id: string;
+          category_position: number;
+          distance: Database["public"]["Enums"]["race_distance"];
+          distance_km: number;
+          finish_seconds: number;
+          place: number;
+        }[];
+      };
+      /** Published events with any result `public_event_results()` lists. */
+      public_result_events: {
+        Args: Record<PropertyKey, never>;
+        Returns: {
+          event_id: string;
+          slug: string;
+          name: string;
+          event_date: string | null;
+          anywhere: boolean;
+          city: string | null;
+          region: string;
+          finishers: number;
+        }[];
+      };
       save_event: {
         Args: {
           p_id: string | null;

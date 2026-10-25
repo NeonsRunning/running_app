@@ -128,7 +128,8 @@ export function eventJsonLd(
 
   const availability = (c: RunningEvent["categories"][number]) => {
     if (event.registrationStatus === "opening-soon") return `${SCHEMA}PreOrder`;
-    if (event.registrationStatus === "closed") return `${SCHEMA}SoldOut`;
+    if (event.registrationStatus === "closed" || event.registrationStatus === "full")
+      return `${SCHEMA}SoldOut`;
     return c.registered >= c.capacity ? `${SCHEMA}SoldOut` : `${SCHEMA}InStock`;
   };
 

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/auth/session";
-import { puertoRicoToday } from "@/lib/dates";
+import { isIsoDate, puertoRicoToday } from "@/lib/dates";
 import { scheduleEventSavedEmails } from "@/lib/email/event-updated";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -71,7 +71,11 @@ const RAISED = "P0001";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Keys `save_event()` raises that belong beside the categories. */
-const CATEGORY_ERRORS = new Set(["categoriesRequired", "capacityBelowRegistered"]);
+const CATEGORY_ERRORS = new Set([
+  "categoriesRequired",
+  "capacityBelowRegistered",
+  "categoryDistanceLocked",
+]);
 
 function readText(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -98,12 +102,10 @@ function readDecimal(value: string): number {
   return /^\d+(\.\d{1,2})?$/.test(normalized) ? Number(normalized) : NaN;
 }
 
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_24 = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-function isDate(value: string): boolean {
-  return ISO_DATE.test(value) && !Number.isNaN(Date.parse(`${value}T12:00:00Z`));
-}
+/** A real calendar date: "2026-02-31" is refused, not rolled into March. */
+const isDate = isIsoDate;
 
 /** "18:00" → "6:00 PM", the clock format the fixtures and `formatClock` use. */
 function to12h(hour: number, minute: string): string {
@@ -351,11 +353,13 @@ export async function saveEventAction(
   if (!isOneOf(EVENT_TYPES, type)) fieldErrors.type = "typeRequired";
 
   // Compared as ISO strings, which sort as dates; "today" is the island's.
-  // A race that already happened can still be edited, as long as its date is
-  // left alone.
+  // A published race that already happened can still be edited, as long as
+  // its date is left alone. A draft gets no such pass: publishing one dated
+  // in the past would list a race nobody can run.
   const today = puertoRicoToday();
+  const live = existing?.status === "published";
   if (eventDate && !isDate(eventDate)) fieldErrors.event_date = "dateInvalid";
-  else if (eventDate && eventDate < today && eventDate !== existing?.event_date)
+  else if (eventDate && eventDate < today && !(live && eventDate === existing?.event_date))
     fieldErrors.event_date = "dateInPast";
   else requireFor("event_date", Boolean(eventDate), "dateRequired");
 
@@ -364,7 +368,7 @@ export async function saveEventAction(
   if (endDate && !isDate(endDate)) fieldErrors.end_date = "dateInvalid";
   else if (endDate && isDate(eventDate) && endDate < eventDate)
     fieldErrors.end_date = "endBeforeStart";
-  else if (endDate && endDate < today && endDate !== existing?.end_date)
+  else if (endDate && endDate < today && !(live && endDate === existing?.end_date))
     fieldErrors.end_date = "dateInPast";
 
   // Optional: a race runners start any time across its dates has none, and
@@ -377,6 +381,10 @@ export async function saveEventAction(
   if (closes && !isDate(closes)) fieldErrors.registration_closes = "dateInvalid";
   else if (closes && isDate(lastDay) && closes > lastDay)
     fieldErrors.registration_closes = "closesAfterEvent";
+  // Going live with registration already closed would list a race nobody can
+  // sign up for. Once live, an organizer may still close it early.
+  else if (publishing && !live && closes && closes < today)
+    fieldErrors.registration_closes = "closesInPast";
   else requireFor("registration_closes", Boolean(closes), "dateRequired");
 
   if (opens && !isDate(opens)) fieldErrors.registration_opens = "dateInvalid";
@@ -615,6 +623,8 @@ export async function saveEventAction(
       return { fieldErrors: { categories: "categoryHasRegistrations" } };
     if (error?.code === RAISED && CATEGORY_ERRORS.has(error.message))
       return { fieldErrors: { categories: error.message } };
+    if (error?.code === RAISED && error.message === "eventCapacityBelowRegistered")
+      return { fieldErrors: { capacity: error.message } };
     // Not a listed account, or retired while the wizard was open.
     if (error?.code === RAISED && error.message === "athMovilAccountInvalid")
       return { fieldErrors: { ath_movil_account_id: "athMovilAccountInvalid" } };

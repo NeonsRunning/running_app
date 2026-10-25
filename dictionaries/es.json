@@ -122,7 +122,8 @@
       "open": "Inscripción abierta",
       "opening-soon": "Abre pronto",
       "almost-full": "Casi lleno",
-      "closed": "Cerrada"
+      "closed": "Cerrada",
+      "full": "Agotado"
     },
     "wave": {
       "wave-a": "Corral A",
@@ -157,7 +158,8 @@
       "draft": "Borrador",
       "closing": "Cerrando",
       "finished": "Finalizado",
-      "removed": "Retirado"
+      "removed": "Retirado",
+      "closed": "Inscripción cerrada"
     },
     "series": {
       "50": "50+",
@@ -290,7 +292,8 @@
       "raceCategories": "Categorías",
       "countdown": "Cuenta regresiva",
       "days": "DÍAS",
-      "registrationCloses": "La inscripción cierra el {date} a las 11:59 p. m."
+      "registrationCloses": "La inscripción cierra el {date} a las 11:59 p. m.",
+      "soldOut": "Agotado"
     },
     "tabs": {
       "label": "Información del evento",
@@ -430,7 +433,8 @@
       "waiverPre": "He leído y acepto el",
       "waiverLink": "descargo de responsabilidad",
       "waiverPost": "y confirmo que estoy en condiciones médicas de participar.",
-      "waiverError": "▲ Tienes que aceptar el descargo antes de continuar."
+      "waiverError": "▲ Tienes que aceptar el descargo antes de continuar.",
+      "soldOut": "Esta carrera está agotada: no quedan espacios."
     },
     "step2": {
       "title": "Datos del corredor",
@@ -861,16 +865,25 @@
     "allResults": "Todos los resultados",
     "index": {
       "metaTitle": "Resultados",
-      "metaDescription": "Tiempos oficiales por chip y clasificaciones de todas las carreras de NEONS RUNNING.",
+      "metaDescription": "Tiempos y clasificaciones de las carreras de NEONS RUNNING.",
       "eyebrow": "Cronometraje oficial",
       "title": "Resultados de carreras",
-      "body": "Tiempos por chip, parciales y posiciones por grupo de edad, publicados en menos de dos horas tras el último finalista. Busca cualquier carrera abajo.",
+      "body": "Tiempos de las carreras de NEONS RUNNING, aceptados por el organizador de cada una. Elige una carrera para ver sus resultados.",
       "emptyTitle": "Aún no hay resultados",
       "emptyBody": "Los tiempos oficiales aparecen aquí a medida que se corren las carreras y los organizadores publican sus resultados.",
       "emptyAction": "Ver carreras"
     },
     "emptyTitle": "Aún no hay resultados",
-    "emptyBody": "Los tiempos de chip y las posiciones aparecen aquí cuando el organizador los publique."
+    "emptyBody": "Los tiempos aparecen aquí a medida que los corredores los envían y el organizador los acepta.",
+    "finishers": "{count} finalistas",
+    "listedNote": "Cada corredor envía su tiempo y el organizador lo acepta. Solo aparecen los corredores con perfil público.",
+    "columns": {
+      "place": "Lugar",
+      "bib": "Número",
+      "runner": "Corredor",
+      "time": "Tiempo",
+      "pace": "Ritmo"
+    }
   },
   "organizer": {
     "metaTitle": "Panel de organizador",
@@ -1735,7 +1748,10 @@
       "imageUnreadable": "No se pudo leer esa imagen. Prueba otra foto o guárdala como JPG primero.",
       "imageUploadFailed": "No se pudo subir la imagen — inténtalo de nuevo en un momento.",
       "imageInvalid": "Esa imagen no se puede usar. Súbela de nuevo.",
-      "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil."
+      "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil.",
+      "categoryDistanceLocked": "Hay corredores inscritos en una categoría cuya distancia cambiaste. Devuélvele su distancia o añade una categoría nueva.",
+      "eventCapacityBelowRegistered": "El cupo del evento no puede quedar por debajo de los corredores ya inscritos o con un espacio reservado.",
+      "closesInPast": "La inscripción ya estaría cerrada. Elige una fecha de cierre de hoy en adelante."
     },
     "editEvent": "Editar evento",
     "editingAsAdmin": "Editando como admin",
@@ -1771,7 +1787,9 @@
       "title": "Ofrecer medallas por correo",
       "detail": "Al inscribirse, cada corredor elige recoger su medalla en persona o recibirla por correo, sin costo adicional para él — inclúyelo en tus precios. Las medallas por correo salen cuando pasa el día de la carrera: marcas cada una como enviada desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando el corredor la recoge.",
       "detailResults": "Al inscribirse, cada corredor elige recoger su medalla en persona o recibirla por correo, sin costo adicional para él — inclúyelo en tus precios. Cuando aceptes la evidencia de llegada de un corredor, marcas su medalla como enviada desde la página del evento y le escribimos, o como recogida cuando la recoja."
-    }
+    },
+    "categoryLocked": "Tiene inscripciones",
+    "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar."
   },
   "organizerOnly": {
     "eyebrow": "Solo organizadores",

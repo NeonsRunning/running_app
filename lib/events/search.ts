@@ -25,6 +25,7 @@ export const EVENT_SORTS = [
 ] as const;
 export type EventSort = (typeof EVENT_SORTS)[number];
 
+// No "full": `search_events()` files a sold-out race under "almost-full".
 const STATUSES: RegistrationStatus[] = [
   "open",
   "opening-soon",

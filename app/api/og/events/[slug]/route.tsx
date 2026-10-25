@@ -19,8 +19,15 @@ export async function GET(
   const lang = request.nextUrl.searchParams.get("lang") ?? "";
   const locale = isLocale(lang) ? lang : DEFAULT_LOCALE;
 
+  // Only a published race has a card (`findEvent` reads published rows). A
+  // miss is not cached, so a race published a moment later gets its card.
   const found = await findEvent(slug, locale);
-  if (!found) return new Response("Not found", { status: 404 });
+  if (!found) {
+    return new Response("Not found", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
 
   const { event } = found;
   const t = await getTranslator(locale);
@@ -35,10 +42,12 @@ export async function GET(
       title: event.name,
       lines: [fmt.eventDates(event.date, event.endDate), event.place],
     },
-    // Previews are fetched once per share; an hour-old card is fine.
+    // Previews are fetched once per share, so a few minutes' cache is
+    // plenty. Kept short so a removed or renamed race stops showing its old
+    // card within about 15 minutes, not a day.
     {
       headers: {
-        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+        "Cache-Control": "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
       },
     },
   );
