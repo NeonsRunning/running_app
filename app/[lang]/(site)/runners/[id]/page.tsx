@@ -40,6 +40,7 @@ import {
   waveLabel,
 } from "@/lib/i18n/labels";
 import type { RunningEvent } from "@/lib/types";
+import { NOINDEX } from "@/lib/seo";
 
 /**
  * A runner's page — public to a visitor, and the runner's own home when they
@@ -83,11 +84,18 @@ export async function generateMetadata(
   // Signed out at `/runners/me`: the page redirects to login, so name the tab
   // for where the runner was headed rather than resolving a profile.
   const target = id === SELF_ID ? await getViewerId() : id;
-  if (!target) return { title: t("account.profile") };
+  if (!target) return { title: t("account.profile"), robots: NOINDEX };
 
   const runner = await getRunnerView(target, locale);
-  if (!runner) return { title: t("runner.notFound") };
-  return { title: runner.name, description: runner.bio ?? undefined };
+  if (!runner) return { title: t("runner.notFound"), robots: NOINDEX };
+  return {
+    title: runner.name,
+    description:
+      runner.bio || t("runner.metaDescription", { name: runner.name }),
+    // A public profile is public to people with the link; being listed in
+    // search is a further step no runner has opted into.
+    robots: NOINDEX,
+  };
 }
 
 /**

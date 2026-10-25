@@ -6,12 +6,15 @@ import { SectionHeading } from "@/components/ui/misc";
 import { RUNNERS, getClubs, getCommunityFeed } from "@/lib/data";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
+import { NOINDEX } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("community.metaTitle"),
     description: t("community.metaDescription"),
+    // Placeholder runners until the community launches.
+    robots: NOINDEX,
   };
 }
 

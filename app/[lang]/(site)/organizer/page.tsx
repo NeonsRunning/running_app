@@ -17,12 +17,14 @@ import {
   getOrganizerEvents,
 } from "@/lib/events/organizer";
 import { createFormatters } from "@/lib/i18n/format";
+import { NOINDEX } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("organizer.metaTitle"),
     description: t("organizer.metaDescription"),
+    robots: NOINDEX,
   };
 }
 

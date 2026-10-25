@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Eyebrow } from "@/components/ui/badge";
 import { getLegalDoc, getLegalDocs, getLegalSlugs } from "@/lib/legal";
 import { getLocale, getT } from "@/lib/i18n/server";
+import { pageAlternates } from "@/lib/seo";
 
 export function generateStaticParams() {
   return getLegalSlugs().map((doc) => ({ doc }));
@@ -18,7 +19,11 @@ export async function generateMetadata(
 
   const found = getLegalDoc(doc, locale);
   if (!found) return { title: t("legal.notFound") };
-  return { title: found.title, description: found.summary };
+  return {
+    title: found.title,
+    description: found.summary,
+    alternates: await pageAlternates(`/legal/${found.slug}`),
+  };
 }
 
 /** Turn a heading into a stable anchor id for the table of contents. */

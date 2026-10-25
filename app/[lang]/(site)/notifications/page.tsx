@@ -3,12 +3,14 @@ import { NotificationCenter } from "@/components/notifications/notification-cent
 import { getNotifications } from "@/lib/data";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { requireUser } from "@/lib/auth/session";
+import { NOINDEX } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("notifications.metaTitle"),
     description: t("notifications.metaDescription"),
+    robots: NOINDEX,
   };
 }
 

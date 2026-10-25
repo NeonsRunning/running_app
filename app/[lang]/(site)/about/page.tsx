@@ -7,12 +7,14 @@ import { SectionHeading } from "@/components/ui/misc";
 import { getPlatformStats } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
+import { pageAlternates } from "@/lib/seo";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
   return {
     title: t("about.metaTitle"),
     description: t("about.metaDescription"),
+    alternates: await pageAlternates("/about"),
   };
 }
 

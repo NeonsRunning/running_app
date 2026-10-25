@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+import { NOINDEX } from "@/lib/seo";
+
+/** Registration, publishing and check-in are steps, not pages to land on. */
+export const metadata: Metadata = { robots: NOINDEX };
+
 /**
  * Focused flows — registration, publishing, race-day check-in. These take over
  * the screen: no site header, no footer, no bottom tab bar competing with the

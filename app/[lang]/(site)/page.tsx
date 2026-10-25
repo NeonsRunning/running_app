@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { BrandTagline, NeonsMark } from "@/components/brand/logo";
 import { Link } from "@/components/i18n/link";
 import { EventCardCompact, EventRow } from "@/components/events/event-card";
@@ -10,14 +11,44 @@ import { getPlatformStats, listPublishedEvents } from "@/lib/events/queries";
 import { getAccount, isOrganizer } from "@/lib/auth/session";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
+import { LOCALE_TAGS } from "@/lib/i18n/config";
+import { jsonLd, pageAlternates } from "@/lib/seo";
+import { siteOrigin } from "@/lib/site-url";
 
 /** Community is held back for a later release; flip to show the strip again. */
 const SHOW_COMMUNITY = false;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return { alternates: await pageAlternates("/") };
+}
 
 export default async function LandingPage() {
   const locale = await getLocale();
   const t = await getT();
   const fmt = createFormatters(locale);
+  const origin = await siteOrigin();
+
+  // Who runs the site, for search engines' knowledge panel.
+  const organization = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${origin}/#organization`,
+        name: t("meta.applicationName"),
+        url: `${origin}/`,
+        logo: `${origin}/brand/neons-running.png`,
+        sameAs: ["https://www.instagram.com/neonsrunning/"],
+      },
+      {
+        "@type": "WebSite",
+        name: t("meta.applicationName"),
+        url: `${origin}${t.path("/")}`,
+        inLanguage: LOCALE_TAGS[locale],
+        publisher: { "@id": `${origin}/#organization` },
+      },
+    ],
+  };
 
   // The publish CTA is organizer-only, so the viewer has to be resolved here
   // rather than read from the client session context.
@@ -39,6 +70,8 @@ export default async function LandingPage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={jsonLd(organization)} />
+
       {/* ---------------------------------------------------------------- */}
       {/* Hero                                                             */}
       {/* ---------------------------------------------------------------- */}
