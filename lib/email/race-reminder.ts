@@ -6,9 +6,10 @@ import { formatClock, formatLongDate } from "@/lib/i18n/format";
 import { distanceLabel } from "@/lib/i18n/labels";
 import { getTranslator } from "@/lib/i18n/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { hasBrevoEnv, sendEmail } from "./brevo";
+import { hasBrevoEnv, sendEmail, UnconfirmedSendError } from "./brevo";
 import { renderEmail } from "./layout";
 import { getEmailSettingsOf, type EmailSettings } from "./recipient";
+import { optionalEmailLinks } from "./unsubscribe";
 
 /**
  * "Your race is tomorrow" — the reminder every confirmed runner gets the day
@@ -18,7 +19,9 @@ import { getEmailSettingsOf, type EmailSettings } from "./recipient";
  * for the confirmation email: the update that sets `reminder_email_sent_at`
  * while it is still null wins, so overlapping runs never send twice, and a
  * failed send gives the claim back for the next run. A runner who switched
- * reminders off in settings is claimed and skipped.
+ * reminders off in settings is claimed and skipped. A send that timed out
+ * waiting for Brevo keeps its claim: Brevo may well have sent it, and a
+ * second reminder is worse than a missing one (see `UnconfirmedSendError`).
  *
  * One run works through every runner racing tomorrow, a batch at a time,
  * until none are left or its time is nearly up; then the next run carries on
@@ -60,8 +63,14 @@ function readBatch(date: string, after: string | null) {
 
 export async function sendRaceReminders(
   origin: string,
-): Promise<{ sent: number; failed: number; skipped: number; finished: boolean }> {
-  const result = { sent: 0, failed: 0, skipped: 0, finished: true };
+): Promise<{
+  sent: number;
+  failed: number;
+  unconfirmed: number;
+  skipped: number;
+  finished: boolean;
+}> {
+  const result = { sent: 0, failed: 0, unconfirmed: 0, skipped: 0, finished: true };
   if (!hasBrevoEnv()) return result;
 
   const started = Date.now();
@@ -109,15 +118,20 @@ async function remind(
   settings: EmailSettings | undefined,
   date: string,
   origin: string,
-): Promise<"sent" | "failed" | "skipped"> {
+): Promise<"sent" | "failed" | "unconfirmed" | "skipped"> {
   const admin = createAdminClient();
-  const { data: claimed } = await admin
+  const { data: claimed, error: claimError } = await admin
     .from("registrations")
     .update({ reminder_email_sent_at: new Date().toISOString() })
     .eq("id", row.id)
     .is("reminder_email_sent_at", null)
     .select("id")
     .maybeSingle();
+  // Not claimed, so nothing to give back: the next run tries again.
+  if (claimError) {
+    console.error(`Claiming the race reminder for ${row.id} failed:`, claimError.message);
+    return "failed";
+  }
   // Sent by a run that overlapped this one.
   if (!claimed) return "skipped";
   // Switched off in settings. The claim stays, so later runs skip the row.
@@ -129,6 +143,13 @@ async function remind(
     const locale = settings?.locale ?? DEFAULT_LOCALE;
     const t = await getTranslator(locale);
     const k = (key: string) => `emails.raceReminder.${key}`;
+    const { manage, listUnsubscribe } = optionalEmailLinks({
+      origin,
+      locale,
+      t,
+      userId: row.runner_id,
+      preference: "reminders",
+    });
 
     const startTime = category?.start_time ?? event.start_time;
     const start = startTime
@@ -164,11 +185,18 @@ async function remind(
           url: `${origin}${localizePath(`/events/${event.slug}`, locale)}`,
         },
         footer: t(k("footer"), { event: event.name }),
+        manage,
       }),
       tags: ["race-reminder"],
+      listUnsubscribe,
     });
     return "sent";
   } catch (err) {
+    if (err instanceof UnconfirmedSendError) {
+      // The claim stays: no later run reminds this runner again.
+      console.error(`Race reminder for ${row.id} unconfirmed, not retried:`, err.message);
+      return "unconfirmed";
+    }
     console.error(`Race reminder for ${row.id} failed:`, err);
     await admin
       .from("registrations")

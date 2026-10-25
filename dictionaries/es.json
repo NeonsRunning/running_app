@@ -565,6 +565,9 @@
     }
   },
   "emails": {
+    "common": {
+      "manage": "Elige qué correos recibes"
+    },
     "registrationConfirmed": {
       "subject": "¡Estás inscrito! {event}",
       "preheader": "Tu número es el #{bib}. Aquí tienes los detalles de tu carrera.",

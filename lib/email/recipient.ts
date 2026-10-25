@@ -93,6 +93,8 @@ export async function getEmailSettingOf(userId: string): Promise<EmailSettings> 
 }
 
 export type ConfirmedRunner = {
+  /** Their account, for the unsubscribe link on an optional email. */
+  runnerId: string;
   email: string;
   firstName: string;
   name: string;
@@ -126,6 +128,7 @@ export async function getConfirmedRunners(
   return data
     .filter((r) => !only || (settings.get(r.runner_id) ?? DEFAULT_SETTINGS)[only])
     .map((r) => ({
+      runnerId: r.runner_id,
       email: r.email,
       firstName: r.first_name,
       name: `${r.first_name} ${r.last_name}`,
