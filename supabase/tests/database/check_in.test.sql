@@ -73,7 +73,7 @@ insert into public.registrations (
 );
 -- End of fixtures.
 
-select plan(9);
+select plan(14);
 
 -- Ana cannot check herself in, and Omar does not organize the race.
 select tests.act_as('00000000-0000-4000-8000-000000000003');
@@ -150,6 +150,88 @@ select isnt(
 );
 
 reset role;
+
+-- An id that matches no sign-up says so.
+select tests.act_as('00000000-0000-4000-8000-000000000001');
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_checked_in('00000000-0000-4000-9000-0000000000b9', true) $$,
+  'P0001',
+  'registrationMissing',
+  'an unknown sign-up is missing, not forbidden'
+);
+
+reset role;
+
+-- Only a race run in one place has a tent to check in at.
+update public.events set type = 'Virtual Race'
+where id = '00000000-0000-4000-9000-0000000000e1';
+
+select tests.act_as('00000000-0000-4000-8000-000000000001');
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_checked_in('00000000-0000-4000-9000-0000000000b1', false) $$,
+  'P0001',
+  'noCheckIn',
+  'a virtual race has no check-in'
+);
+
+reset role;
+
+update public.events set type = 'Road Race'
+where id = '00000000-0000-4000-9000-0000000000e1';
+
+-- An organizer no longer: the account was turned back into a runner's.
+update public.profiles set account_type = 'runner'
+where id = '00000000-0000-4000-8000-000000000001';
+
+select tests.act_as('00000000-0000-4000-8000-000000000001');
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_checked_in('00000000-0000-4000-9000-0000000000b1', false) $$,
+  'P0001',
+  'notAllowed',
+  'a demoted organizer checks no one in'
+);
+
+reset role;
+
+update public.profiles set account_type = 'organizer'
+where id = '00000000-0000-4000-8000-000000000001';
+
+-- Taken down by an admin: no longer the organizer's, and closed to all.
+update public.events set status = 'removed'
+where id = '00000000-0000-4000-9000-0000000000e1';
+
+select tests.act_as('00000000-0000-4000-8000-000000000001');
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_checked_in('00000000-0000-4000-9000-0000000000b1', false) $$,
+  'P0001',
+  'notAllowed',
+  'the organizer cannot check in on a removed event'
+);
+
+reset role;
+
+select tests.act_as('00000000-0000-4000-8000-000000000005');
+set local role authenticated;
+
+select throws_ok(
+  $$ select public.set_checked_in('00000000-0000-4000-9000-0000000000b1', false) $$,
+  'P0001',
+  'noCheckIn',
+  'nor anyone else: it is not published'
+);
+
+reset role;
+
+update public.events set status = 'published'
+where id = '00000000-0000-4000-9000-0000000000e1';
 
 -- A sign-up taken off the event cannot be checked in.
 update public.registrations set status = 'cancelled', cancelled_at = now()

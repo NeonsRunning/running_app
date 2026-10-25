@@ -111,7 +111,10 @@ export async function submitRaceResultAction(
 
 export type ReviewResult =
   | { ok: true }
-  | { ok: false; error: "notAllowed" | "alreadyReviewed" | "reviewFailed" };
+  | {
+      ok: false;
+      error: "notAllowed" | "alreadyReviewed" | "registrationMissing" | "reviewFailed";
+    };
 
 /**
  * Accept: the result goes on the runner's profile, with the event's medal.
@@ -145,6 +148,10 @@ export async function reviewRaceResultAction(
     if (key === "notAllowed") return { ok: false, error: "notAllowed" };
     // Someone else reviewed it first, or the runner re-sent it meanwhile.
     if (key === "resultMissing") return { ok: false, error: "alreadyReviewed" };
+    // The sign-up was removed, or put back to pending, meanwhile.
+    if (key === "registrationMissing") {
+      return { ok: false, error: "registrationMissing" };
+    }
     console.error(`Reviewing result ${resultId} failed:`, error?.message);
     return { ok: false, error: "reviewFailed" };
   }
@@ -188,8 +195,11 @@ export async function disqualifyRaceResultAction(
     const key = error?.code === RAISED ? error.message : "";
     if (key === "notAllowed") return { ok: false, error: "notAllowed" };
     if (key === "reasonRequired") return { ok: false, error: "reasonRequired" };
-    // Disqualified a moment ago, from another tab or by an admin.
-    if (key === "resultMissing") return { ok: false, error: "alreadyChanged" };
+    // Disqualified a moment ago, from another tab or by an admin; or the
+    // sign-up is no longer paid.
+    if (key === "resultMissing" || key === "registrationMissing") {
+      return { ok: false, error: "alreadyChanged" };
+    }
     console.error(`Disqualifying result ${resultId} failed:`, error?.message);
     return { ok: false, error: "disqualifyFailed" };
   }

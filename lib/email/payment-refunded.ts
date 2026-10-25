@@ -26,6 +26,8 @@ export type RefundReason =
   | "registrationMissing"
   | "amountMismatch"
   | "paymentUnderReview"
+  | "registrationClosed"
+  | "registrationCancelled"
   | "duplicate";
 
 export async function schedulePaymentRefundedEmail(

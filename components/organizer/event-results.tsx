@@ -50,7 +50,11 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
     ).catch(() => ({ ok: false, error: "reviewFailed" }) as const);
     setBusy(null);
 
-    if (result.ok || result.error === "alreadyReviewed") {
+    if (
+      result.ok ||
+      result.error === "alreadyReviewed" ||
+      result.error === "registrationMissing"
+    ) {
       setRows((all) => all.filter((r) => r.id !== row.id));
       setRejecting(null);
       setNote("");

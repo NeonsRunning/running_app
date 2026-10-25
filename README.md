@@ -58,7 +58,7 @@ lib/
   content/    per-locale copy layered over the fixtures
 dictionaries/ es.json (the key set) and en.json
 supabase/     SQL migrations
-middleware.ts locale routing and Supabase token refresh
+proxy.ts      locale routing and Supabase token refresh
 ```
 
 `lib/data.ts` is the only data source. Every page reads through the accessors at
@@ -110,7 +110,7 @@ Every chart also has a table view.
 
 Spanish and English. Spanish is the default and sits at the root of the URL
 space (`/events`); English is prefixed (`/en/events`). Every route lives under
-`app/[lang]` and `middleware.ts` rewrites the unprefixed paths onto it, so the
+`app/[lang]` and `proxy.ts` rewrites the unprefixed paths onto it, so the
 address bar stays clean and `/es/events` redirects to the canonical `/events`.
 
 The locale is decided by the path alone — nothing sniffed, nothing negotiated.
@@ -158,7 +158,7 @@ state and the forms work before React hydrates.
 lib/supabase/env.ts      credentials, read in one place
 lib/supabase/client.ts   browser client
 lib/supabase/server.ts   server components, actions, route handlers
-lib/supabase/proxy.ts    token refresh for middleware
+lib/supabase/proxy.ts    token refresh for the proxy
 lib/auth/actions.ts      sign in / sign up / recover / sign out
 lib/auth/session.ts      getUser, requireAccount, the Session the UI renders
 lib/auth/routes.ts       which paths need a session
@@ -172,7 +172,7 @@ Two rules hold everywhere:
 
 - **Authorization always hangs off `getUser()`, never `getSession()`.** The
   former revalidates the token with Supabase; the latter trusts a cookie the
-  browser could have rewritten. The middleware gate is an optimisation — pages
+  browser could have rewritten. The proxy gate is an optimisation — pages
   that read account data call `requireUser()` as well.
 - **Errors are keys, not sentences.** Supabase answers in English; the app
   speaks Spanish first. Actions return keys like `invalidCredentials`, and the
@@ -197,7 +197,14 @@ Email templates need no changes. `app/[lang]/auth/confirm` accepts both the
 stock `{{ .ConfirmationURL }}` link and a `{{ .TokenHash }}` one — switching
 the templates to the latter is worth doing anyway, because a token hash is
 verified straight against Supabase and so survives being opened in a different
-browser from the one that asked for the reset.
+browser from the one that asked for the reset. A token-hash link is not spent
+on sight: it forwards to `/confirm-link`, which signs in only when the runner
+presses Continue (otherwise anyone could mail a stranger a link that quietly
+signs them in to the sender's account).
+
+Turn on **Authentication → Providers → Email → Secure password change** in
+the dashboard as well. `updatePasswordAction` already asks for the current
+password unless the session came from a recovery link in the last hour.
 
 ### Flows
 
@@ -395,17 +402,23 @@ refuse every call):
   `email_outbox` and sent from there; this finishes what the original request
   did not and retries failures, up to 8 tries. Rows that gave up keep their
   `last_error`: `select * from email_outbox where sent_at is null and attempts >= 8`.
+  A send that timed out waiting for Brevo is not retried — Brevo may well
+  have sent it, and a runner told twice is worse than a row to check — so it
+  is among those rows too, with a `last_error` starting "Unconfirmed".
 
-On Vercel, a `vercel.json` cron entry sends the header by itself:
+The database calls both routes itself, with `pg_cron` and `pg_net`
+(`supabase/migrations/20261125120000_schedule_cron_routes.sql`), since
+Vercel's Hobby plan allows cron jobs at most once a day. It reads where to
+call and the secret from Supabase Vault; set both once per environment, in
+the SQL editor:
 
-```json
-{
-  "crons": [
-    { "path": "/api/cron/race-reminders", "schedule": "5 * * * *" },
-    { "path": "/api/cron/email-outbox", "schedule": "*/10 * * * *" }
-  ]
-}
+```sql
+select vault.create_secret('https://your-site.example', 'cron_site_url');
+select vault.create_secret('<the CRON_SECRET set on Vercel>', 'cron_secret');
 ```
+
+Until both are set the jobs do nothing. To see how calls went:
+`select * from net._http_response order by created desc limit 20`.
 
 The database schedules its own clean-ups with `pg_cron`: abandoned checkouts
 hourly, sent outbox rows after 30 days, rate-limit counters after 2 days.
@@ -426,6 +439,8 @@ CRITICAL {"code":"REFUND_FAILED","message":"A refund failed; the runner is still
 | `REFUND_FAILED` | Stripe is retrying through the webhook; if it keeps failing, refund the PaymentIntent by hand. |
 | `PAYMENT_DISPUTED` | Answer the dispute in the Stripe dashboard before its deadline. |
 | `EMAIL_GAVE_UP` | An outbox email failed 8 times; its row in `email_outbox` has the error. |
+| `EMAIL_UNCONFIRMED` | Brevo did not answer an outbox send in time. Look the address up in Brevo's logs; resend only if it is not there. |
+| `EMAIL_NOT_MARKED_SENT` | An outbox email went but its row was not marked; set its `sent_at` by hand, or it goes again in 15 minutes. |
 | `DELETION_REQUEST_NOT_EMAILED` / `DELETION_CANCELLATION_NOT_EMAILED` | Check `account_deletion_requests` and tell the team by hand. |
 | `RATE_LIMIT_UNAVAILABLE` | The database could not count rate limits; calls are being let through. |
 | `SITE_URL_MISSING` | Set `NEXT_PUBLIC_SITE_URL` in production. |

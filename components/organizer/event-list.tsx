@@ -26,6 +26,7 @@ const STATUS_TONE: Record<
   Live: "lime",
   Draft: "outline",
   Closing: "yellow",
+  Closed: "neutral",
   Finished: "neutral",
   Removed: "danger",
 };
@@ -207,9 +208,9 @@ function EventCard({
               })}
             </Link>
           ) : null}
-          {/* Registrations hold an event in place; no point offering
-              a delete the database will refuse. */}
-          {event.registered === 0 ? (
+          {/* Paid, cancelled or under-review sign-ups hold an event in
+              place; no point offering a delete the database will refuse. */}
+          {event.deletable ? (
             <DeleteEventButton
               id={event.id}
               name={event.name}

@@ -21,7 +21,8 @@ export type Translate = {
 /**
  * Resolve a dotted key against the dictionary. Missing keys return the key
  * itself so a gap shows up in the UI as an obvious breadcrumb rather than an
- * empty space or a crash.
+ * empty space or a crash — and are logged as a warning, in production too,
+ * where a raw key in a page or an email is a bug someone should hear of.
  */
 function resolve(dict: Dictionary, key: string): unknown {
   let node: unknown = dict;
@@ -54,9 +55,7 @@ export function createTranslator(
   const t = ((key, vars) => {
     const value = resolve(dict, key);
     if (typeof value !== "string") {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn(`[i18n] missing string for "${key}" (${locale})`);
-      }
+      console.warn(`[i18n] missing string for "${key}" (${locale})`);
       return key;
     }
     return interpolate(value, vars);

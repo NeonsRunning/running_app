@@ -109,30 +109,38 @@ export async function listEventAthMovilSubmissions(
   }));
 }
 
+/** The organizer who holds an account's business app, as the admin sees them. */
+export type AthMovilOwner = { id: string; handle: string; name: string };
+
 export type AthMovilAccountRow = AthMovilAccount & {
   qrPath: string | null;
   active: boolean;
   /**
-   * Handle of the organizer who holds the business app and may approve
-   * payments into it; null when only platform admins review. Filled in only
-   * for the admin page (`withOwners`).
+   * The organizer who holds the business app and may approve payments into
+   * it; null when only platform admins review. Stored by account id — a
+   * handle is the runner's to change — and filled in only for the admin page
+   * (`withOwners`).
    */
-  ownerHandle: string | null;
+  owner: AthMovilOwner | null;
 };
 
 /**
- * Handles of these accounts' owners, by id. Read with the service role: an
- * owner's profile may be private, and only admins ever see this — callers
- * must have checked that first.
+ * These accounts' owners, by id. Read with the service role: an owner's
+ * profile may be private, and only admins ever see this — callers must have
+ * checked that first.
  */
-export async function getOwnerHandles(ownerIds: (string | null)[]): Promise<Map<string, string>> {
+export async function getOwners(
+  ownerIds: (string | null)[],
+): Promise<Map<string, AthMovilOwner>> {
   const ids = [...new Set(ownerIds.filter((id): id is string => Boolean(id)))];
   if (!ids.length) return new Map();
   const { data } = await createAdminClient()
     .from("profiles")
-    .select("id, handle")
+    .select("id, handle, full_name")
     .in("id", ids);
-  return new Map((data ?? []).map((p) => [p.id, p.handle]));
+  return new Map(
+    (data ?? []).map((p) => [p.id, { id: p.id, handle: p.handle, name: p.full_name }]),
+  );
 }
 
 /**
@@ -154,14 +162,14 @@ export async function listAthMovilAccounts({
   const { data, error } = await query.order("label");
   if (error || !data) return [];
 
-  const handles = withOwners
-    ? await getOwnerHandles(data.map((r) => r.owner_id))
-    : new Map<string, string>();
+  const owners = withOwners
+    ? await getOwners(data.map((r) => r.owner_id))
+    : new Map<string, AthMovilOwner>();
 
   return data.map((r) => ({
     ...toAthMovilAccount(r),
     qrPath: r.qr_path,
     active: r.active,
-    ownerHandle: r.owner_id ? (handles.get(r.owner_id) ?? null) : null,
+    owner: r.owner_id ? (owners.get(r.owner_id) ?? null) : null,
   }));
 }

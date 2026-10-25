@@ -40,6 +40,11 @@ export type EmailContent = {
   outro?: string[];
   cta?: { label: string; url: string };
   footer: string;
+  /**
+   * Under the footer, on the emails a runner can switch off: a link to the
+   * switches in settings (lib/email/unsubscribe.ts).
+   */
+  manage?: { label: string; url: string };
 };
 
 export type RenderedEmail = { subject: string; html: string; text: string };
@@ -59,6 +64,7 @@ export function renderEmail(c: EmailContent): RenderedEmail {
     ...outro.flatMap((p) => [p, ""]),
     ...(c.cta ? [`${c.cta.label}: ${c.cta.url}`, ""] : []),
     c.footer,
+    ...(c.manage ? ["", `${c.manage.label}: ${c.manage.url}`] : []),
   ].join("\n");
 
   const paragraphs = (ps: string[]) =>
@@ -120,7 +126,11 @@ export function renderEmail(c: EmailContent): RenderedEmail {
             : `
         <tr><td style="padding:8px 28px;"></td></tr>`
         }
-        <tr><td style="padding:18px 28px;border-top:1px solid ${LINE};color:${MUTED};font-size:12px;line-height:1.5;">${escape(c.footer)}</td></tr>
+        <tr><td style="padding:18px 28px;border-top:1px solid ${LINE};color:${MUTED};font-size:12px;line-height:1.5;">${escape(c.footer)}${
+          c.manage
+            ? `<br><a href="${escape(c.manage.url)}" style="color:${MUTED};text-decoration:underline;">${escape(c.manage.label)}</a>`
+            : ""
+        }</td></tr>
       </table>
     </td></tr>
   </table>

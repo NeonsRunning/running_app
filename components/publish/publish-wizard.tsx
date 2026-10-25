@@ -341,6 +341,7 @@ export function PublishWizard({
         capacity: "",
         start: "",
         registered: 0,
+        locked: false,
       },
     ]);
   }
@@ -439,7 +440,9 @@ export function PublishWizard({
               {t("publish.viewListing")}
             </Button>
           ) : null}
-          {eventId && !asAdmin ? (
+          {/* Paid, cancelled or under-review sign-ups keep the event; no
+              point offering a delete the database will refuse. */}
+          {eventId && !asAdmin && initial.deletable ? (
             <Button
               variant="ghost"
               size="sm"
@@ -857,9 +860,11 @@ export function PublishWizard({
                   <div className="flex items-center justify-between border-b-2 border-line px-5 py-3.5">
                     <Eyebrow>{t("publish.category", { n: i + 1 })}</Eyebrow>
                     {/* Runners already in a category hold it in place. */}
-                    {c.registered > 0 ? (
+                    {c.locked ? (
                       <span className="font-mono text-[11px] tracking-wider text-fg-dim uppercase">
-                        {t("publish.categoryRegistered", { count: c.registered })}
+                        {c.registered > 0
+                          ? t("publish.categoryRegistered", { count: c.registered })
+                          : t("publish.categoryLocked")}
                       </span>
                     ) : categories.length > 1 ? (
                       <button
@@ -876,11 +881,19 @@ export function PublishWizard({
                     ) : null}
                   </div>
                   <div className="grid items-end gap-5 p-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_minmax(0,1.5fr)]">
-                    <Field label={t("publish.distance")}>
+                    <Field
+                      label={t("publish.distance")}
+                      hint={c.locked ? t("publish.categoryDistanceLockedHint") : undefined}
+                    >
                       {(p) => (
                         <Select
                           {...p}
-                          name="category_distance"
+                          // What runners signed up for stays the distance
+                          // they run; `save_event()` refuses a change too.
+                          // A disabled select is not submitted, so a hidden
+                          // input below carries the value.
+                          name={c.locked ? undefined : "category_distance"}
+                          disabled={c.locked}
                           value={c.distance}
                           onChange={(e) => {
                             const distance = e.target.value as Distance;
@@ -898,12 +911,17 @@ export function PublishWizard({
                         </Select>
                       )}
                     </Field>
+                    {c.locked ? (
+                      <input type="hidden" name="category_distance" value={c.distance} />
+                    ) : null}
                     <Field label={t("publish.distanceKm")}>
                       {(p) => (
                         <Input
                           {...p}
                           name="category_km"
                           value={c.km}
+                          readOnly={c.locked}
+                          className={c.locked ? "opacity-40" : undefined}
                           inputMode="decimal"
                           onChange={(e) => updateCategory(c.key, { km: e.target.value })}
                         />

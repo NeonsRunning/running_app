@@ -7,14 +7,15 @@ import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
 import { getTranslator } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { initialsOf } from "@/lib/profile/queries";
+import { registrationStatus } from "./availability";
 import { EVENTS_PAGE_SIZE, type EventPage, type EventSearch } from "./search";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { selectAll } from "@/lib/supabase/paginate";
 import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/database.types";
 import type {
   AidStation,
   Organizer,
-  RegistrationStatus,
   Runner,
   RunningEvent,
   ScheduleItem,
@@ -81,19 +82,6 @@ export function todayIso(): string {
   return puertoRicoToday();
 }
 
-function registrationStatus(
-  row: PublishedRow,
-  registered: number,
-  capacity: number,
-): RegistrationStatus {
-  const today = todayIso();
-  if (today > row.registration_closes) return "closed";
-  if (row.registration_opens && today < row.registration_opens)
-    return "opening-soon";
-  if (capacity > 0 && registered / capacity >= 0.9) return "almost-full";
-  return "open";
-}
-
 function toEvent(
   row: PublishedRow,
   counts: Counts,
@@ -121,7 +109,7 @@ function toEvent(
   const capacity =
     row.capacity ?? categories.reduce((sum, c) => sum + c.capacity, 0);
   const registered = categories.reduce((sum, c) => sum + c.registered, 0);
-  const status = registrationStatus(row, registered, capacity);
+  const status = registrationStatus(row, registered, capacity, categories);
   const [year, , day] = row.event_date.split("-");
   const description = row.description
     .split(/\r?\n\s*\r?\n/)
@@ -263,19 +251,23 @@ async function selectEvents(where: {
   if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
-  // Explicit, though the policy already hides other people's drafts: an
-  // organizer's own drafts must not show up in the public listing either.
-  let query = supabase
-    .from("events")
-    .select(EVENT_COLUMNS)
-    .eq("status", "published");
-  if (where.slug) query = query.eq("slug", where.slug);
-  if (where.ids) query = query.in("id", where.ids);
-  // Listed until its last day has passed, not just its first.
-  if (where.from) query = query.gte("last_day", where.from);
-
-  const { data, error } = await query.order("event_date");
-  return error || !data ? [] : (data as unknown as EventRow[]).filter(isPublished);
+  // Paged: every published race, as the sitemap asks for, can pass the
+  // API's 1000-row cap. Ordered by id after the date, so pages neither
+  // repeat nor skip a race.
+  const { data, error } = await selectAll((from, to) => {
+    // Explicit, though the policy already hides other people's drafts: an
+    // organizer's own drafts must not show up in the public listing either.
+    let query = supabase
+      .from("events")
+      .select(EVENT_COLUMNS)
+      .eq("status", "published");
+    if (where.slug) query = query.eq("slug", where.slug);
+    if (where.ids) query = query.in("id", where.ids);
+    // Listed until its last day has passed, not just its first.
+    if (where.from) query = query.gte("last_day", where.from);
+    return query.order("event_date").order("id").range(from, to);
+  });
+  return error ? [] : (data as unknown as EventRow[]).filter(isPublished);
 }
 
 /**

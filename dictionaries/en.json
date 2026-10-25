@@ -122,7 +122,8 @@
       "open": "Registration open",
       "opening-soon": "Opening soon",
       "almost-full": "Almost full",
-      "closed": "Closed"
+      "closed": "Closed",
+      "full": "Sold out"
     },
     "wave": {
       "wave-a": "Wave A",
@@ -157,7 +158,8 @@
       "draft": "Draft",
       "closing": "Closing",
       "finished": "Finished",
-      "removed": "Removed"
+      "removed": "Removed",
+      "closed": "Reg. closed"
     },
     "series": {
       "50": "50+",
@@ -290,7 +292,8 @@
       "raceCategories": "Race categories",
       "countdown": "Countdown",
       "days": "DAYS",
-      "registrationCloses": "Registration closes {date}, 11:59 PM."
+      "registrationCloses": "Registration closes {date}, 11:59 PM.",
+      "soldOut": "Sold out"
     },
     "tabs": {
       "label": "Event information",
@@ -416,6 +419,8 @@
       "holdLimitReached": "Your spot was held for 2 hours without a payment, so it was released. You can try again in 15 minutes.",
       "referenceUsed": "That reference number was already used for another registration. Check the receipt in your ATH Móvil app and enter the reference for this payment.",
       "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment.",
+      "registrationCancelledRefunded": "This registration was cancelled by the organizer, so this payment has been refunded in full.",
+      "referenceLimitReached": "Several reference numbers for this registration couldn’t be verified, so it can’t take another. Contact us if you sent the payment.",
       "rateLimited": "Too many checkout attempts in the last hour. Wait a little and try again."
     },
     "confirmToastTitle": "You're in!",
@@ -428,7 +433,8 @@
       "waiverPre": "I have read and accept the",
       "waiverLink": "race waiver",
       "waiverPost": "and confirm I am medically fit to participate.",
-      "waiverError": "▲ You must accept the waiver before continuing."
+      "waiverError": "▲ You must accept the waiver before continuing.",
+      "soldOut": "This race is sold out: every spot is taken."
     },
     "step2": {
       "title": "Runner information",
@@ -565,6 +571,9 @@
     }
   },
   "emails": {
+    "common": {
+      "manage": "Choose which emails you get"
+    },
     "registrationConfirmed": {
       "subject": "You’re in: {event}",
       "preheader": "Your bib is #{bib}. Here are your race details.",
@@ -621,6 +630,8 @@
         "registrationMissing": "Your registration was no longer open by the time your payment cleared, so we refunded it in full.",
         "amountMismatch": "Your order changed after this payment started, so we refunded this payment in full. Check your registration before paying again.",
         "paymentUnderReview": "You already sent an ATH Móvil payment for this registration, which is being reviewed, so we refunded the card payment in full.",
+        "registrationClosed": "Registration for this race had closed by the time your payment cleared, so we refunded it in full.",
+        "registrationCancelled": "Your registration had been cancelled by the organizer by the time this payment cleared, so we refunded it in full.",
         "duplicate": "Your registration was already confirmed with an earlier payment, so we refunded this second charge in full. Your spot is unchanged."
       },
       "timing": "Refunds usually take 5 to 10 business days to show on your statement.",
@@ -854,16 +865,25 @@
     "allResults": "All results",
     "index": {
       "metaTitle": "Results",
-      "metaDescription": "Official chip times and leaderboards from every NEONS RUNNING race.",
+      "metaDescription": "Finish times and leaderboards from NEONS RUNNING races.",
       "eyebrow": "Official timing",
       "title": "Race results",
-      "body": "Chip times, splits and age-group placings, posted within two hours of the last finisher. Search any race below.",
+      "body": "Finish times from NEONS RUNNING races, accepted by each race’s organizer. Pick a race to see its results.",
       "emptyTitle": "No results yet",
       "emptyBody": "Official times show up here as races are run and organizers post their results.",
       "emptyAction": "Browse races"
     },
     "emptyTitle": "No results posted yet",
-    "emptyBody": "Chip times and placings appear here once the organizer posts them."
+    "emptyBody": "Finish times appear here as runners send them in and the organizer accepts them.",
+    "finishers": "{count} finishers",
+    "listedNote": "Finish times are sent in by each runner and accepted by the organizer. Only runners with a public profile are listed.",
+    "columns": {
+      "place": "Place",
+      "bib": "Bib",
+      "runner": "Runner",
+      "time": "Time",
+      "pace": "Pace"
+    }
   },
   "organizer": {
     "metaTitle": "Organizer dashboard",
@@ -1093,7 +1113,11 @@
       "passwordShort": "Use at least 8 characters.",
       "passwordMismatch": "The two passwords do not match.",
       "saving": "Saving…",
-      "submit": "Save password"
+      "submit": "Save password",
+      "currentPassword": "Current password",
+      "currentHint": "You opened this page without a reset link, so confirm your current password first. Don’t know it? Log out and use “Forgot password?”.",
+      "currentRequired": "Enter your current password.",
+      "currentWrong": "That is not your current password."
     },
     "verify": {
       "metaTitle": "Check your email",
@@ -1127,6 +1151,19 @@
       "missingEmail": "We do not know which address to verify. Start from sign-up.",
       "oauth": "Google sign-in did not complete. Try again or use your email.",
       "link": "That link has expired or was already used. Request a new one."
+    },
+    "confirmLink": {
+      "metaTitle": "Confirm sign-in",
+      "title": "Confirm it’s you",
+      "intro": "This link from your email signs this browser in to the account it was sent to.",
+      "introRecovery": "This link from your email signs this browser in to the account it was sent to, so you can set a new password.",
+      "signedInAs": "You’re signed in as {email} right now. Continuing signs you in to the account this link belongs to instead.",
+      "warning": "Only continue if you asked for this email yourself. If someone else sent you this link, close this page.",
+      "submit": "Continue",
+      "submitRecovery": "Continue to New Password",
+      "working": "Confirming…",
+      "footerPre": "Not expecting this?",
+      "footerLink": "Back to log in"
     }
   },
   "error": {
@@ -1494,9 +1531,11 @@
     "undoCheckin": "Undo check-in",
     "checkIn": "Check in",
     "checkedInTitle": "Checked in",
-    "checkedInBody": "Bib #{bib} is cleared for the start line.",
+    "checkedInBody": "{name} · bib #{bib} is cleared for the start line.",
+    "checkedInBodyNoBib": "{name} is cleared for the start line. No bib on record — send them to the desk for one.",
     "reversedTitle": "Check-in reversed",
-    "reversedBody": "Bib #{bib}",
+    "reversedBody": "{name} · bib #{bib}",
+    "reversedBodyNoBib": "{name} · no bib",
     "title": "Race-day check-in",
     "ofTotal": "of {total}",
     "searchPlaceholder": "Runner name or bib number",
@@ -1505,14 +1544,22 @@
     "listMeta": "{distance} · shirt {shirt}",
     "in": "In",
     "complete": "Complete",
+    "attention": "Needs attention",
     "kitRow": "Race kit",
     "kitMailed": "Mailed — nothing to hand over",
+    "kitNotShipped": "Asked for by mail but never shipped — hand it over here",
+    "paymentUnderReview": "ATH Móvil payment under review",
+    "underReview": "Payment review",
+    "reviewTitle": "Payment under review",
+    "reviewBody": "{name}’s ATH Móvil payment hasn’t been approved yet, so they can’t be checked in. Resolve it at the desk.",
+    "openPaymentReview": "Open payment review",
     "backToEvent": "Back to the event page",
     "noRunners": "No confirmed runners yet. Paid sign-ups appear here with their bib.",
     "errors": {
       "title": "Check-in not saved",
       "notAllowed": "Only the event’s organizer can check runners in.",
       "registrationMissing": "This runner is no longer registered for the race.",
+      "noCheckIn": "This race has no check-in: it isn’t published, or it’s run virtually or anywhere.",
       "checkInFailed": "Something went wrong. Try again."
     }
   },
@@ -1728,7 +1775,10 @@
       "imageUnreadable": "Couldn’t read that image. Try another photo, or save it as JPG first.",
       "imageUploadFailed": "Couldn’t upload the image — try again in a moment.",
       "imageInvalid": "That image can’t be used. Upload it again.",
-      "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off."
+      "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off.",
+      "categoryDistanceLocked": "Runners are signed up for a category whose distance you changed. Put its distance back, or add a new category instead.",
+      "eventCapacityBelowRegistered": "The event’s cap can’t go below the runners already registered or holding a spot.",
+      "closesInPast": "Registration would already be closed. Pick a closing date from today on."
     },
     "editEvent": "Edit event",
     "editingAsAdmin": "Editing as admin",
@@ -1764,7 +1814,9 @@
       "title": "Offer finisher medals by mail",
       "detail": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Mailed medals go out once race day is over: you mark each one shipped from the event page and we email the runner. Pickups you mark as runners collect them.",
       "detailResults": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Once you accept a runner’s finish evidence, you mark their medal shipped from the event page and we email them, or mark it picked up when they collect it."
-    }
+    },
+    "categoryLocked": "Has sign-ups",
+    "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is."
   },
   "organizerOnly": {
     "eyebrow": "Organizers only",
@@ -1910,6 +1962,7 @@
       "title": "Couldn’t save the review",
       "notAllowed": "Only this event’s organizer can review its results.",
       "alreadyReviewed": "This result was already reviewed, or the runner replaced it.",
+      "registrationMissing": "This runner’s sign-up was removed or is waiting on payment again, so the result can’t be reviewed.",
       "reviewFailed": "Something went wrong — try again in a moment."
     }
   },
@@ -1983,6 +2036,7 @@
       "notAthMovil": "Only ATH Móvil payments can go back to pending — card payments are confirmed by Stripe.",
       "resultAccepted": "This runner’s result was accepted — their sign-up can’t go back to pending.",
       "resultDisqualified": "This runner’s result was disqualified — their sign-up can’t go back to pending.",
+      "alreadyDelivered": "This runner’s kit or medal was already mailed or handed over — their sign-up can’t go back to pending. Remove the runner instead if the payment never arrived.",
       "revertFailed": "Something went wrong — try again in a moment."
     },
     "errors": {
@@ -2149,8 +2203,13 @@
       "notAdmin": "Only platform admins can change ATH Móvil accounts.",
       "saveFailed": "Something went wrong — try again in a moment.",
       "ownerNotFound": "No account has that handle.",
-      "ownerNotOrganizer": "That account isn’t an organizer, so it couldn’t approve payments."
-    }
+      "ownerNotOrganizer": "That account isn’t an organizer, so it couldn’t approve payments.",
+      "ownerUnconfirmed": "Look up the handle and check the name before saving."
+    },
+    "ownerLookup": "Look Up",
+    "ownerLooking": "Looking up…",
+    "ownerFound": "Will be assigned to {name} (@{handle}).",
+    "ownerCurrent": "Assigned to {name} (@{handle})."
   },
   "adminEvents": {
     "metaTitle": "Events",

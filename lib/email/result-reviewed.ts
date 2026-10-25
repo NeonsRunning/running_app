@@ -8,6 +8,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
 import { getEmailSettingOf } from "./recipient";
+import { optionalEmailLinks } from "./unsubscribe";
 import { siteOrigin } from "@/lib/site-url";
 
 /**
@@ -62,6 +63,17 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
       : "resultRejected";
   const t = await getTranslator(locale);
   const k = (key: string) => `emails.${template}.${key}`;
+  // Optional, so it carries a way out — except a disqualification, which
+  // goes regardless of the switch.
+  const optional = disqualified
+    ? null
+    : optionalEmailLinks({
+        origin,
+        locale,
+        t,
+        userId: result.runner_id,
+        preference: "results",
+      });
 
   await sendEmail({
     to: { email: reg.email, name: `${reg.first_name} ${reg.last_name}` },
@@ -93,9 +105,11 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
         )}`,
       },
       footer: t(k("footer"), { event: event.name }),
+      manage: optional?.manage,
     }),
     tags: [
       accepted ? "result-accepted" : disqualified ? "result-disqualified" : "result-rejected",
     ],
+    listUnsubscribe: optional?.listUnsubscribe,
   });
 }

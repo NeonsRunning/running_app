@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { DEFAULT_LOCALE, isLocale, localizePath } from "@/lib/i18n/config";
-import { SELF_PROFILE_PATH, safeNextPath } from "@/lib/auth/routes";
+import { DEFAULT_LOCALE, isLocale } from "@/lib/i18n/config";
+import { SELF_PROFILE_PATH, appUrl, safeNextPath } from "@/lib/auth/routes";
+import { siteOrigin } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -25,30 +26,25 @@ export async function GET(
 
   /**
    * Behind a load balancer `nextUrl.host` is the internal address, which
-   * would send the runner somewhere unreachable. The forwarded host is the
-   * one their browser knows.
+   * would send the runner somewhere unreachable — and `x-forwarded-host` is
+   * whatever the client sent. The configured site origin is the one their
+   * browser knows and the only one this redirects to.
    */
-  const destination = (path: string, search?: string) => {
-    const url = request.nextUrl.clone();
-    const forwardedHost = request.headers.get("x-forwarded-host");
-    if (forwardedHost) url.host = forwardedHost;
-    url.pathname = localizePath(path, locale);
-    url.search = search ?? "";
-    return url;
-  };
+  const origin = await siteOrigin();
+  const destination = (path: string) => appUrl(origin, path, locale);
 
   // The provider reports a refusal in the query string rather than an error
   // status — a denied consent screen arrives here, not as a failed request.
   if (params.get("error")) {
-    return NextResponse.redirect(destination("/login", "?error=oauth"));
+    return NextResponse.redirect(destination("/login?error=oauth"));
   }
 
   const code = params.get("code");
-  if (!code) return NextResponse.redirect(destination("/login", "?error=oauth"));
+  if (!code) return NextResponse.redirect(destination("/login?error=oauth"));
 
   const supabase = await createClient();
   const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return NextResponse.redirect(destination("/login", "?error=oauth"));
+  if (error) return NextResponse.redirect(destination("/login?error=oauth"));
 
   const next = safeNextPath(params.get("next")) ?? SELF_PROFILE_PATH;
   return NextResponse.redirect(destination(next));

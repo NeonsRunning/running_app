@@ -27,6 +27,8 @@ export type RegistrationStatus =
   | "open"
   | "opening-soon"
   | "almost-full"
+  /** Sold out: the event's cap, or every category's, is reached. */
+  | "full"
   | "closed";
 
 export type RaceCategory = {

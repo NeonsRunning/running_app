@@ -122,7 +122,8 @@
       "open": "Inscripción abierta",
       "opening-soon": "Abre pronto",
       "almost-full": "Casi lleno",
-      "closed": "Cerrada"
+      "closed": "Cerrada",
+      "full": "Agotado"
     },
     "wave": {
       "wave-a": "Corral A",
@@ -157,7 +158,8 @@
       "draft": "Borrador",
       "closing": "Cerrando",
       "finished": "Finalizado",
-      "removed": "Retirado"
+      "removed": "Retirado",
+      "closed": "Inscripción cerrada"
     },
     "series": {
       "50": "50+",
@@ -290,7 +292,8 @@
       "raceCategories": "Categorías",
       "countdown": "Cuenta regresiva",
       "days": "DÍAS",
-      "registrationCloses": "La inscripción cierra el {date} a las 11:59 p. m."
+      "registrationCloses": "La inscripción cierra el {date} a las 11:59 p. m.",
+      "soldOut": "Agotado"
     },
     "tabs": {
       "label": "Información del evento",
@@ -416,6 +419,8 @@
       "holdLimitReached": "Tu espacio estuvo reservado 2 horas sin pago, así que se liberó. Puedes intentarlo otra vez en 15 minutos.",
       "referenceUsed": "Ese número de referencia ya se usó en otra inscripción. Revisa el recibo en tu app de ATH Móvil y escribe la referencia de este pago.",
       "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago.",
+      "registrationCancelledRefunded": "El organizador canceló esta inscripción, así que te reembolsamos este pago completo.",
+      "referenceLimitReached": "No se pudieron verificar varios números de referencia de esta inscripción, así que no acepta otro. Escríbenos si enviaste el pago.",
       "rateLimited": "Demasiados intentos de pago en la última hora. Espera un poco y vuelve a intentarlo."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
@@ -428,7 +433,8 @@
       "waiverPre": "He leído y acepto el",
       "waiverLink": "descargo de responsabilidad",
       "waiverPost": "y confirmo que estoy en condiciones médicas de participar.",
-      "waiverError": "▲ Tienes que aceptar el descargo antes de continuar."
+      "waiverError": "▲ Tienes que aceptar el descargo antes de continuar.",
+      "soldOut": "Esta carrera está agotada: no quedan espacios."
     },
     "step2": {
       "title": "Datos del corredor",
@@ -565,6 +571,9 @@
     }
   },
   "emails": {
+    "common": {
+      "manage": "Elige qué correos recibes"
+    },
     "registrationConfirmed": {
       "subject": "¡Estás inscrito! {event}",
       "preheader": "Tu número es el #{bib}. Aquí tienes los detalles de tu carrera.",
@@ -621,6 +630,8 @@
         "registrationMissing": "Tu inscripción ya no estaba abierta cuando se procesó tu pago, así que lo reembolsamos completo.",
         "amountMismatch": "Tu orden cambió después de iniciar este pago, así que lo reembolsamos completo. Revisa tu inscripción antes de pagar de nuevo.",
         "paymentUnderReview": "Ya enviaste un pago por ATH Móvil para esta inscripción, que está en revisión, así que reembolsamos completo el pago con tarjeta.",
+        "registrationClosed": "La inscripción para esta carrera ya había cerrado cuando se procesó tu pago, así que lo reembolsamos completo.",
+        "registrationCancelled": "El organizador ya había cancelado tu inscripción cuando se procesó este pago, así que lo reembolsamos completo.",
         "duplicate": "Tu inscripción ya estaba confirmada con un pago anterior, así que reembolsamos completo este segundo cargo. Tu espacio no cambia."
       },
       "timing": "Los reembolsos suelen tardar de 5 a 10 días laborables en aparecer en tu estado de cuenta.",
@@ -854,16 +865,25 @@
     "allResults": "Todos los resultados",
     "index": {
       "metaTitle": "Resultados",
-      "metaDescription": "Tiempos oficiales por chip y clasificaciones de todas las carreras de NEONS RUNNING.",
+      "metaDescription": "Tiempos y clasificaciones de las carreras de NEONS RUNNING.",
       "eyebrow": "Cronometraje oficial",
       "title": "Resultados de carreras",
-      "body": "Tiempos por chip, parciales y posiciones por grupo de edad, publicados en menos de dos horas tras el último finalista. Busca cualquier carrera abajo.",
+      "body": "Tiempos de las carreras de NEONS RUNNING, aceptados por el organizador de cada una. Elige una carrera para ver sus resultados.",
       "emptyTitle": "Aún no hay resultados",
       "emptyBody": "Los tiempos oficiales aparecen aquí a medida que se corren las carreras y los organizadores publican sus resultados.",
       "emptyAction": "Ver carreras"
     },
     "emptyTitle": "Aún no hay resultados",
-    "emptyBody": "Los tiempos de chip y las posiciones aparecen aquí cuando el organizador los publique."
+    "emptyBody": "Los tiempos aparecen aquí a medida que los corredores los envían y el organizador los acepta.",
+    "finishers": "{count} finalistas",
+    "listedNote": "Cada corredor envía su tiempo y el organizador lo acepta. Solo aparecen los corredores con perfil público.",
+    "columns": {
+      "place": "Lugar",
+      "bib": "Número",
+      "runner": "Corredor",
+      "time": "Tiempo",
+      "pace": "Ritmo"
+    }
   },
   "organizer": {
     "metaTitle": "Panel de organizador",
@@ -1093,7 +1113,11 @@
       "passwordShort": "Usa al menos 8 caracteres.",
       "passwordMismatch": "Las dos contraseñas no coinciden.",
       "saving": "Guardando…",
-      "submit": "Guardar contraseña"
+      "submit": "Guardar contraseña",
+      "currentPassword": "Contraseña actual",
+      "currentHint": "Abriste esta página sin un enlace de recuperación, así que confirma primero tu contraseña actual. ¿No la recuerdas? Cierra sesión y usa “¿Olvidaste la contraseña?”.",
+      "currentRequired": "Escribe tu contraseña actual.",
+      "currentWrong": "Esa no es tu contraseña actual."
     },
     "verify": {
       "metaTitle": "Revisa tu correo",
@@ -1127,6 +1151,19 @@
       "missingEmail": "No sabemos qué dirección verificar. Empieza desde el registro.",
       "oauth": "El acceso con Google no se completó. Intenta otra vez o usa tu correo.",
       "link": "Ese enlace venció o ya se usó. Pide uno nuevo."
+    },
+    "confirmLink": {
+      "metaTitle": "Confirmar acceso",
+      "title": "Confirma que eres tú",
+      "intro": "Este enlace de tu correo abre sesión en este navegador con la cuenta a la que se envió.",
+      "introRecovery": "Este enlace de tu correo abre sesión en este navegador con la cuenta a la que se envió, para que crees una contraseña nueva.",
+      "signedInAs": "Ahora mismo tienes sesión abierta como {email}. Si continúas, entrarás con la cuenta de este enlace en su lugar.",
+      "warning": "Continúa solo si tú pediste este correo. Si otra persona te envió este enlace, cierra esta página.",
+      "submit": "Continuar",
+      "submitRecovery": "Continuar a la contraseña nueva",
+      "working": "Confirmando…",
+      "footerPre": "¿No lo esperabas?",
+      "footerLink": "Volver a iniciar sesión"
     }
   },
   "error": {
@@ -1494,9 +1531,11 @@
     "undoCheckin": "Deshacer registro",
     "checkIn": "Registrar",
     "checkedInTitle": "Registrado",
-    "checkedInBody": "El dorsal n.º {bib} está listo para la línea de salida.",
+    "checkedInBody": "{name} · dorsal n.º {bib} está listo para la línea de salida.",
+    "checkedInBodyNoBib": "{name} está listo para la línea de salida. No tiene dorsal asignado — envíalo a la mesa para que le den uno.",
     "reversedTitle": "Registro revertido",
-    "reversedBody": "Dorsal n.º {bib}",
+    "reversedBody": "{name} · dorsal n.º {bib}",
+    "reversedBodyNoBib": "{name} · sin dorsal",
     "title": "Registro el día de la carrera",
     "ofTotal": "de {total}",
     "searchPlaceholder": "Nombre del corredor o número de dorsal",
@@ -1505,14 +1544,22 @@
     "listMeta": "{distance} · talla {shirt}",
     "in": "Dentro",
     "complete": "Completo",
+    "attention": "Requiere atención",
     "kitRow": "Paquete de carrera",
     "kitMailed": "Enviado por correo — no hay nada que entregar",
+    "kitNotShipped": "Lo pidió por correo pero nunca se envió — entrégalo aquí",
+    "paymentUnderReview": "Pago ATH Móvil en revisión",
+    "underReview": "Pago en revisión",
+    "reviewTitle": "Pago en revisión",
+    "reviewBody": "El pago ATH Móvil de {name} aún no se ha aprobado, así que no se puede registrar. Resuélvelo en la mesa.",
+    "openPaymentReview": "Abrir revisión de pagos",
     "backToEvent": "Volver a la página del evento",
     "noRunners": "Aún no hay corredores confirmados. Las inscripciones pagadas aparecen aquí con su dorsal.",
     "errors": {
       "title": "No se guardó el registro",
       "notAllowed": "Solo el organizador del evento puede registrar corredores.",
       "registrationMissing": "Este corredor ya no está inscrito en la carrera.",
+      "noCheckIn": "Esta carrera no tiene registro: no está publicada, o es virtual o se corre en cualquier lugar.",
       "checkInFailed": "Algo salió mal. Inténtalo de nuevo."
     }
   },
@@ -1728,7 +1775,10 @@
       "imageUnreadable": "No se pudo leer esa imagen. Prueba otra foto o guárdala como JPG primero.",
       "imageUploadFailed": "No se pudo subir la imagen — inténtalo de nuevo en un momento.",
       "imageInvalid": "Esa imagen no se puede usar. Súbela de nuevo.",
-      "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil."
+      "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil.",
+      "categoryDistanceLocked": "Hay corredores inscritos en una categoría cuya distancia cambiaste. Devuélvele su distancia o añade una categoría nueva.",
+      "eventCapacityBelowRegistered": "El cupo del evento no puede quedar por debajo de los corredores ya inscritos o con un espacio reservado.",
+      "closesInPast": "La inscripción ya estaría cerrada. Elige una fecha de cierre de hoy en adelante."
     },
     "editEvent": "Editar evento",
     "editingAsAdmin": "Editando como admin",
@@ -1764,7 +1814,9 @@
       "title": "Ofrecer medallas por correo",
       "detail": "Al inscribirse, cada corredor elige recoger su medalla en persona o recibirla por correo, sin costo adicional para él — inclúyelo en tus precios. Las medallas por correo salen cuando pasa el día de la carrera: marcas cada una como enviada desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando el corredor la recoge.",
       "detailResults": "Al inscribirse, cada corredor elige recoger su medalla en persona o recibirla por correo, sin costo adicional para él — inclúyelo en tus precios. Cuando aceptes la evidencia de llegada de un corredor, marcas su medalla como enviada desde la página del evento y le escribimos, o como recogida cuando la recoja."
-    }
+    },
+    "categoryLocked": "Tiene inscripciones",
+    "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar."
   },
   "organizerOnly": {
     "eyebrow": "Solo organizadores",
@@ -1910,6 +1962,7 @@
       "title": "No se pudo guardar la revisión",
       "notAllowed": "Solo el organizador de este evento puede revisar sus resultados.",
       "alreadyReviewed": "Este resultado ya fue revisado, o el corredor lo reemplazó.",
+      "registrationMissing": "La inscripción de este corredor fue eliminada o volvió a estar pendiente de pago, así que el resultado no se puede revisar.",
       "reviewFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     }
   },
@@ -1983,6 +2036,7 @@
       "notAthMovil": "Solo los pagos ATH Móvil pueden volver a pendiente — los pagos con tarjeta los confirma Stripe.",
       "resultAccepted": "El resultado de este corredor ya fue aceptado — su inscripción no puede volver a pendiente.",
       "resultDisqualified": "El resultado de este corredor fue descalificado — su inscripción no puede volver a pendiente.",
+      "alreadyDelivered": "El paquete o la medalla de este corredor ya se envió o se entregó — su inscripción no puede volver a pendiente. Elimina al corredor si el pago nunca llegó.",
       "revertFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     },
     "errors": {
@@ -2149,8 +2203,13 @@
       "notAdmin": "Solo los administradores de la plataforma pueden cambiar las cuentas de ATH Móvil.",
       "saveFailed": "Algo salió mal. Inténtalo de nuevo en un momento.",
       "ownerNotFound": "Ninguna cuenta tiene ese usuario.",
-      "ownerNotOrganizer": "Esa cuenta no es de organizador, así que no podría aprobar pagos."
-    }
+      "ownerNotOrganizer": "Esa cuenta no es de organizador, así que no podría aprobar pagos.",
+      "ownerUnconfirmed": "Busca el usuario y verifica el nombre antes de guardar."
+    },
+    "ownerLookup": "Buscar",
+    "ownerLooking": "Buscando…",
+    "ownerFound": "Se asignará a {name} (@{handle}).",
+    "ownerCurrent": "Asignada a {name} (@{handle})."
   },
   "adminEvents": {
     "metaTitle": "Eventos",

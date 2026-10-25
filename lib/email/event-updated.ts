@@ -11,6 +11,7 @@ import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
 import { queueEmails } from "./outbox";
 import { renderEmail } from "./layout";
 import { getConfirmedRunners, getRecipient } from "./recipient";
+import { optionalEmailLinks } from "./unsubscribe";
 import { siteOrigin } from "@/lib/site-url";
 
 /**
@@ -188,6 +189,13 @@ async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: str
   for (const { locale, ...runner } of runners) {
     const t = await getTranslator(locale);
     const k = (key: string) => `emails.eventChanged.${key}`;
+    const { manage, listUnsubscribe } = optionalEmailLinks({
+      origin,
+      locale,
+      t,
+      userId: runner.runnerId,
+      preference: "updates",
+    });
 
     const rows: [string, string][] = [];
     const [whenBefore, whenNow] = [whenLine(before, t, locale), whenLine(saved, t, locale)];
@@ -215,8 +223,10 @@ async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: str
           url: `${origin}${localizePath(`/events/${saved.slug}`, locale)}`,
         },
         footer: t(k("footer"), { event: saved.name }),
+        manage,
       }),
       tags: ["event-changed"],
+      listUnsubscribe,
     });
   }
 

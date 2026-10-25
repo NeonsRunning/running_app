@@ -148,6 +148,7 @@ function recommendedFor(
       (e) =>
         e.date >= today &&
         e.registrationStatus !== "closed" &&
+        e.registrationStatus !== "full" &&
         !exclude.slugs.has(e.slug) &&
         !exclude.ids.has(e.id),
     )

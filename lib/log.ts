@@ -24,12 +24,16 @@ export type CriticalCode =
   | "PAYMENT_DISPUTED"
   /** An outbox email used up its retries and will not be sent. */
   | "EMAIL_GAVE_UP"
+  /** Brevo did not answer in time: an email may not have gone, and is not retried. */
+  | "EMAIL_UNCONFIRMED"
+  /** An outbox email went, but its row could not be marked sent. */
+  | "EMAIL_NOT_MARKED_SENT"
   /** A deletion request, or its withdrawal, did not reach the team. */
   | "DELETION_REQUEST_NOT_EMAILED"
   | "DELETION_CANCELLATION_NOT_EMAILED"
-  /** Rate limiting could not count; calls are being let through. */
+  /** Rate limiting could not count; production is refusing the calls. */
   | "RATE_LIMIT_UNAVAILABLE"
-  /** Production is running without NEXT_PUBLIC_SITE_URL. */
+  /** Production is running without NEXT_PUBLIC_SITE_URL, or with none at all. */
   | "SITE_URL_MISSING";
 
 export function logCritical(

@@ -3,6 +3,7 @@ import { Link } from "@/components/i18n/link";
 import { getT } from "@/lib/i18n/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { ResetPasswordForm } from "@/components/auth/forms";
+import { isRecoverySession } from "@/lib/auth/session";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -10,12 +11,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * The far end of the recovery email. `app/[lang]/auth/confirm` has already
- * spent the link's token by the time this renders, so the runner arrives
- * signed in and can set a new password — that session is the authorization.
+ * The far end of the recovery email. The link's token has been spent by the
+ * time this renders, so the runner arrives signed in and can set a new
+ * password — that recovery session is the authorization. Reached with any
+ * other session, the form asks for the current password as well.
  */
 export default async function ResetPasswordPage() {
   const t = await getT();
+  const recovering = await isRecoverySession();
 
   return (
     <AuthShell
@@ -31,7 +34,7 @@ export default async function ResetPasswordPage() {
         </>
       }
     >
-      <ResetPasswordForm />
+      <ResetPasswordForm requireCurrent={!recovering} />
     </AuthShell>
   );
 }

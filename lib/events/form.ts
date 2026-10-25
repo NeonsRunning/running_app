@@ -17,14 +17,27 @@ export type EventFormCategory = {
   price: string;
   capacity: string;
   start: string;
-  /** Runners already signed up — a floor for the cap, and a lock on removal. */
+  /**
+   * Spots taken: paid, or held by a checkout or an ATH Móvil payment under
+   * review. The floor for the cap, as `save_event()` counts it.
+   */
   registered: number;
+  /**
+   * Any sign-up at all, cancelled or lapsed too: the category can be neither
+   * removed nor moved to another distance.
+   */
+  locked: boolean;
 };
 
 export type EventFormValues = {
   /** Null until the first save. */
   id: string | null;
   status: "draft" | "published";
+  /**
+   * Whether `delete_event()` would take it: nobody has paid, been cancelled
+   * after paying, or sent an ATH Móvil payment still under review.
+   */
+  deletable: boolean;
   slug: string | null;
   name: string;
   description: string;
@@ -86,6 +99,7 @@ export type EventFormValues = {
 export const EMPTY_EVENT_FORM: EventFormValues = {
   id: null,
   status: "draft",
+  deletable: true,
   slug: null,
   name: "",
   description: "",
@@ -129,7 +143,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   acceptsResults: false,
   mailsMedals: false,
   categories: [
-    { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0 },
-    { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0 },
+    { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0, locked: false },
+    { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0, locked: false },
   ],
 };
