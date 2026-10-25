@@ -483,7 +483,7 @@ select is(
 -- policies are out of reach from SQL; what is checked is that nothing goes.
 select throws_ok(
   $$ delete from storage.objects where bucket_id = 'avatars' $$,
-  'a direct delete is refused'
+  '42501', null, 'a direct delete is refused'
 );
 
 reset role;
@@ -537,7 +537,7 @@ set local role authenticated;
 
 select throws_ok(
   $$ delete from storage.objects where bucket_id = 'event-images' $$,
-  'a direct delete is refused'
+  '42501', null, 'a direct delete is refused'
 );
 
 reset role;
