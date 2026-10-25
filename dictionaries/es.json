@@ -1494,9 +1494,11 @@
     "undoCheckin": "Deshacer registro",
     "checkIn": "Registrar",
     "checkedInTitle": "Registrado",
-    "checkedInBody": "El dorsal n.º {bib} está listo para la línea de salida.",
+    "checkedInBody": "{name} · dorsal n.º {bib} está listo para la línea de salida.",
+    "checkedInBodyNoBib": "{name} está listo para la línea de salida. No tiene dorsal asignado — envíalo a la mesa para que le den uno.",
     "reversedTitle": "Registro revertido",
-    "reversedBody": "Dorsal n.º {bib}",
+    "reversedBody": "{name} · dorsal n.º {bib}",
+    "reversedBodyNoBib": "{name} · sin dorsal",
     "title": "Registro el día de la carrera",
     "ofTotal": "de {total}",
     "searchPlaceholder": "Nombre del corredor o número de dorsal",
@@ -1505,14 +1507,22 @@
     "listMeta": "{distance} · talla {shirt}",
     "in": "Dentro",
     "complete": "Completo",
+    "attention": "Requiere atención",
     "kitRow": "Paquete de carrera",
     "kitMailed": "Enviado por correo — no hay nada que entregar",
+    "kitNotShipped": "Lo pidió por correo pero nunca se envió — entrégalo aquí",
+    "paymentUnderReview": "Pago ATH Móvil en revisión",
+    "underReview": "Pago en revisión",
+    "reviewTitle": "Pago en revisión",
+    "reviewBody": "El pago ATH Móvil de {name} aún no se ha aprobado, así que no se puede registrar. Resuélvelo en la mesa.",
+    "openPaymentReview": "Abrir revisión de pagos",
     "backToEvent": "Volver a la página del evento",
     "noRunners": "Aún no hay corredores confirmados. Las inscripciones pagadas aparecen aquí con su dorsal.",
     "errors": {
       "title": "No se guardó el registro",
       "notAllowed": "Solo el organizador del evento puede registrar corredores.",
       "registrationMissing": "Este corredor ya no está inscrito en la carrera.",
+      "noCheckIn": "Esta carrera no tiene registro: no está publicada, o es virtual o se corre en cualquier lugar.",
       "checkInFailed": "Algo salió mal. Inténtalo de nuevo."
     }
   },
@@ -1910,6 +1920,7 @@
       "title": "No se pudo guardar la revisión",
       "notAllowed": "Solo el organizador de este evento puede revisar sus resultados.",
       "alreadyReviewed": "Este resultado ya fue revisado, o el corredor lo reemplazó.",
+      "registrationMissing": "La inscripción de este corredor fue eliminada o volvió a estar pendiente de pago, así que el resultado no se puede revisar.",
       "reviewFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     }
   },
@@ -1983,6 +1994,7 @@
       "notAthMovil": "Solo los pagos ATH Móvil pueden volver a pendiente — los pagos con tarjeta los confirma Stripe.",
       "resultAccepted": "El resultado de este corredor ya fue aceptado — su inscripción no puede volver a pendiente.",
       "resultDisqualified": "El resultado de este corredor fue descalificado — su inscripción no puede volver a pendiente.",
+      "alreadyDelivered": "El paquete o la medalla de este corredor ya se envió o se entregó — su inscripción no puede volver a pendiente. Elimina al corredor si el pago nunca llegó.",
       "revertFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     },
     "errors": {

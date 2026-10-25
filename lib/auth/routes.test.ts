@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { safeNextPath } from "./routes";
+import { loginPath, safeNextPath } from "./routes";
+
+describe("loginPath", () => {
+  it("carries the page the visitor was on", () => {
+    expect(loginPath("/events?distance=5K")).toBe(
+      "/login?next=%2Fevents%3Fdistance%3D5K",
+    );
+  });
+
+  it.each([[undefined], [null], [""], ["/"], ["/login"], ["/signup?x=1"], ["/forgot-password"]])(
+    "sends %j to the bare login screen",
+    (next) => {
+      expect(loginPath(next)).toBe("/login");
+    },
+  );
+});
 
 describe("safeNextPath", () => {
   it.each([

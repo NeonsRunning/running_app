@@ -23,7 +23,9 @@ export default async function CheckInPage(
   if (!admin && !isOrganizer(account.profile)) return <OrganizerOnly />;
 
   // A platform admin opens any organizer's event. For everyone else,
-  // someone else's event reads the same as a missing one.
+  // someone else's event reads the same as a missing one, and so does one
+  // with no check-in. A failed read throws instead: the error page offers a
+  // retry, where a 404 at the tent would send the volunteer away.
   const list = await getCheckInList(admin ? null : account.user.id, id);
   if (!list) notFound();
 

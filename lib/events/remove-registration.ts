@@ -66,6 +66,7 @@ export type ReturnToPendingResult =
         | "notAthMovil"
         | "resultAccepted"
         | "resultDisqualified"
+        | "alreadyDelivered"
         | "revertFailed";
     };
 
@@ -92,6 +93,8 @@ export async function returnRegistrationToPendingAction(
     if (key === "notAthMovil") return { ok: false, error: "notAthMovil" };
     if (key === "resultAccepted") return { ok: false, error: "resultAccepted" };
     if (key === "resultDisqualified") return { ok: false, error: "resultDisqualified" };
+    // The kit or medal went out already: the record of it stays.
+    if (key === "alreadyDelivered") return { ok: false, error: "alreadyDelivered" };
     // Removed or reverted a moment ago, from another tab or by an admin.
     if (key === "registrationMissing") return { ok: false, error: "alreadyChanged" };
     console.error(`Returning ${registrationId} to pending failed:`, error?.message);
