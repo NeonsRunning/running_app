@@ -100,10 +100,11 @@ function flatten(node, prefix = "", out = new Set()) {
 
 function sourceFiles(dir, acc = []) {
   for (const entry of readdirSync(dir)) {
-    if (["node_modules", ".next", ".git", "scripts"].includes(entry)) continue;
+    if (["node_modules", ".next", ".git", ".claude", "scripts"].includes(entry)) continue;
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) sourceFiles(full, acc);
-    else if (/\.(tsx?|mts)$/.test(full)) acc.push(full);
+    // Tests translate against their own fixture dictionaries.
+    else if (/\.(tsx?|mts)$/.test(full) && !/\.test\.tsx?$/.test(full)) acc.push(full);
   }
   return acc;
 }
