@@ -27,6 +27,8 @@ export const LIMITS = {
   authEmailPerEmail: { limit: 5, window: "1 hour" },
   /** Checkouts started or repriced; each may open a Stripe PaymentIntent. */
   checkoutPerUser: { limit: 30, window: "1 hour" },
+  /** ATH Móvil references submitted; each holds a spot and emails reviewers. */
+  athMovilPerUser: { limit: 10, window: "1 hour" },
   /** Deletion requests and withdrawals; each emails the team. */
   deletionPerUser: { limit: 5, window: "1 day" },
   /** Data exports; each reads the whole account. */

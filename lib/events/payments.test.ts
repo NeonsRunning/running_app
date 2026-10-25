@@ -6,7 +6,23 @@ const refundsCreate = vi.fn();
 const scheduleRefundEmail = vi.fn();
 const scheduleConfirmationEmail = vi.fn();
 
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => ({ rpc }) }));
+/** Every filter `recordRefund` puts on its update, as [method, ...args]. */
+const filters: unknown[][] = [];
+const updates: unknown[] = [];
+const query = new Proxy({} as Record<string, unknown>, {
+  get: (_, method: string) =>
+    method === "then"
+      ? (resolve: (v: unknown) => void) => resolve({ error: null })
+      : (...args: unknown[]) => {
+          if (method === "update") updates.push(args[0]);
+          else filters.push([method, ...args]);
+          return query;
+        },
+});
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: () => ({ rpc, from: () => query }),
+}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/stripe/server", () => ({
   getStripe: () => ({ refunds: { create: refundsCreate } }),
@@ -19,7 +35,7 @@ vi.mock("@/lib/email/registration-confirmed", () => ({
   scheduleRegistrationEmail: scheduleConfirmationEmail,
 }));
 
-const { settlePayment } = await import("./payments");
+const { recordRefund, settlePayment } = await import("./payments");
 
 function intent(overrides: Partial<Stripe.PaymentIntent> = {}): Stripe.PaymentIntent {
   return {
@@ -138,6 +154,42 @@ describe("settlePayment", () => {
     expect(scheduleConfirmationEmail).not.toHaveBeenCalled();
   });
 
+  it("refunds a payment for a registration another payment confirmed and that was cancelled since", async () => {
+    const row = { id: "reg-1", status: "cancelled", payment_intent_id: "pi_other" };
+    rpc.mockResolvedValue({ data: row, error: null });
+    refundsCreate.mockResolvedValue(refunded());
+
+    expect(await settlePayment(intent())).toEqual({
+      ok: false,
+      error: "registrationCancelledRefunded",
+    });
+    expect(refundsCreate).toHaveBeenCalledWith(
+      { payment_intent: "pi_1" },
+      { idempotencyKey: "refund-pi_1" },
+    );
+    expect(scheduleRefundEmail).toHaveBeenCalledWith(expect.anything(), "registrationCancelled");
+    expect(scheduleConfirmationEmail).not.toHaveBeenCalled();
+  });
+
+  it("reports that refund failing as a failure, so the webhook retries", async () => {
+    const row = { id: "reg-1", status: "cancelled", payment_intent_id: null };
+    rpc.mockResolvedValue({ data: row, error: null });
+    refundsCreate.mockRejectedValue(new Error("timeout"));
+
+    expect(await settlePayment(intent())).toEqual({ ok: false, error: "registrationFailed" });
+  });
+
+  it.each([
+    ["registrationClosed", "registrationClosed"],
+    ["eventUnavailable", "eventUnavailable"],
+  ])("refunds a payment that cleared after the race stopped taking sign-ups (%s)", async (key, shown) => {
+    rpc.mockResolvedValue(raised(key));
+    refundsCreate.mockResolvedValue(refunded());
+
+    expect(await settlePayment(intent())).toEqual({ ok: false, error: shown });
+    expect(scheduleRefundEmail).toHaveBeenCalledWith(expect.anything(), "registrationClosed");
+  });
+
   it("leaves the payment alone on a database failure, for a retry to confirm", async () => {
     rpc.mockResolvedValue({ data: null, error: { code: "08006", message: "connection lost" } });
 
@@ -155,5 +207,28 @@ describe("settlePayment", () => {
       error: "registrationFailed",
     });
     expect(rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe("recordRefund", () => {
+  beforeEach(() => {
+    filters.length = 0;
+    updates.length = 0;
+  });
+
+  // A pending row can still carry a PaymentIntent `settlePayment` refunded,
+  // and be confirmed later by ATH Móvil; that refund is not its money.
+  it("records a refund only on a registration that payment confirmed by card", async () => {
+    const charge = { payment_intent: "pi_1", amount_refunded: 5023 } as Stripe.Charge;
+
+    expect(await recordRefund(charge)).toBe(true);
+    expect(updates).toEqual([expect.objectContaining({ amount_refunded: 50.23 })]);
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        ["eq", "payment_intent_id", "pi_1"],
+        ["eq", "payment_method", "stripe"],
+        ["in", "status", ["confirmed", "cancelled"]],
+      ]),
+    );
   });
 });

@@ -361,11 +361,42 @@ export async function startRegistrationPaymentAction(
           idempotencyKey: `pi-${reg.id}-${cents}-${existing?.payment_intent_id ?? "none"}`,
         },
       );
-      const { error: saveError } = await createAdminClient()
+      // Saved only over what was on file when the sign-up was written, on a
+      // sign-up still pending. Otherwise the old payment may have confirmed
+      // it in the meantime (it was being paid in another tab, and cancelling
+      // it lost that race): overwriting it would make this new payment look
+      // like the one that confirmed the sign-up, and leave the real one —
+      // which refunds and disputes are matched by — attached to nothing.
+      // The same call run twice at once gets the same PaymentIntent, so the
+      // second save finding it already there is fine too.
+      const previous = reg.payment_intent_id;
+      const { data: saved, error: saveError } = await createAdminClient()
         .from("registrations")
         .update({ payment_intent_id: intent.id })
-        .eq("id", reg.id);
+        .eq("id", reg.id)
+        .eq("status", "pending")
+        .or(
+          `payment_intent_id.eq.${intent.id},` +
+            (previous ? `payment_intent_id.eq.${previous}` : "payment_intent_id.is.null"),
+        )
+        .select("id");
       if (saveError) throw new Error(saveError.message);
+      if (!saved?.length) {
+        // Not recorded anywhere, so it must not stay payable.
+        await stripe.paymentIntents.cancel(intent.id).catch(() => null);
+        const { data: current } = await supabase
+          .from("registrations")
+          .select("status, bib, amount, email, first_name, last_name")
+          .eq("id", reg.id)
+          .maybeSingle();
+        if (current?.status === "confirmed") {
+          revalidatePath("/", "layout");
+          return { ok: true, confirmed: confirmedSignUp(current) };
+        }
+        // Another tab opened a different payment for it: start again from
+        // what is on file now.
+        return { ok: false, error: "registrationFailed" };
+      }
     }
   } catch (err) {
     console.error("Opening a payment failed:", err);
@@ -454,6 +485,14 @@ export async function submitAthMovilPaymentAction(
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "sessionExpired" };
 
+  // Each submission holds a spot until someone reviews it and emails the
+  // reviewers; a script must not send references as fast as it can type.
+  // The database also stops taking them on a sign-up after 3 rejections.
+  const allowed = await withinLimits([
+    { action: "ath-movil:user", who: userData.user.id, limit: LIMITS.athMovilPerUser },
+  ]);
+  if (!allowed) return { ok: false, error: "rateLimited" };
+
   const { data: reg } = await supabase
     .from("registrations")
     .select("status, bib, amount, email, first_name, last_name, payment_intent_id")
@@ -505,6 +544,9 @@ export async function submitAthMovilPaymentAction(
       "paymentUnderReview",
       "soldOut",
       "referenceUsed",
+      "referenceLimitReached",
+      "eventUnavailable",
+      "registrationClosed",
     ]);
     return { ok: false, error: known.has(key) ? key : "registrationFailed" };
   }
