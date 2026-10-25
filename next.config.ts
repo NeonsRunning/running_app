@@ -18,12 +18,51 @@ import type { NextConfig } from "next";
  * `form-action 'self'` is left out on purpose: browsers apply it to the
  * redirect after a form posts, and "Sign in with Google" posts to a server
  * action that redirects to accounts.google.com.
+ *
+ * A fuller policy is sent beside it as Content-Security-Policy-Report-Only:
+ * browsers apply none of it, only report (in the console) what it would have
+ * blocked, so it can be watched before anything is enforced. Its scripts are
+ * still `'unsafe-inline'` — Next's inline bootstrap scripts carry no nonce —
+ * so what it would add is the origin list: scripts, frames and connections
+ * only to this site, Supabase and Stripe.
  */
+
+/** The Supabase project, for API calls, Realtime and Storage images. */
+const supabase = (() => {
+  try {
+    const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
+    return { https: url.origin, wss: `wss://${url.host}` };
+  } catch {
+    return null;
+  }
+})();
+
+const reportOnlyPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.js.stripe.com",
+  "style-src 'self' 'unsafe-inline'",
+  // Profile photos and QR codes live in Supabase Storage; Google sign-in
+  // can hand back a Google-hosted avatar.
+  ["img-src 'self' data: blob:", supabase?.https, "https://*.stripe.com https://lh3.googleusercontent.com"]
+    .filter(Boolean)
+    .join(" "),
+  "font-src 'self'",
+  ["connect-src 'self'", supabase?.https, supabase?.wss, "https://api.stripe.com"]
+    .filter(Boolean)
+    .join(" "),
+  // Stripe's card form and 3-D Secure challenges are frames.
+  "frame-src https://js.stripe.com https://*.js.stripe.com https://hooks.stripe.com",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "object-src 'none'",
+].join("; ");
+
 const securityHeaders = [
   {
     key: "Content-Security-Policy",
     value: "frame-ancestors 'none'; base-uri 'self'; object-src 'none'",
   },
+  { key: "Content-Security-Policy-Report-Only", value: reportOnlyPolicy },
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -40,6 +79,11 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // `app/global-not-found.tsx`: the 404 for a URL whose first segment is
+    // no language, which the `[lang]` root layout cannot render.
+    globalNotFound: true,
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
