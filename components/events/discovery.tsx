@@ -260,7 +260,9 @@ export function EventDiscovery({
     setMaxPrice(95);
   }
 
-  const filterPanel = (
+  // Rendered twice — the desktop sidebar and the mobile drawer — so each copy
+  // takes its own ids for its label/control pairs.
+  const filterPanel = (where: "aside" | "drawer") => (
     <div className="flex flex-col">
       <div className="flex items-center justify-between border-b-2 border-line px-5 py-4">
         <span className="font-mono text-[11px] tracking-[0.18em] uppercase">
@@ -336,7 +338,7 @@ export function EventDiscovery({
 
       <div className="border-b-2 border-line px-5 py-5">
         <label
-          htmlFor="price-filter"
+          htmlFor={`price-filter-${where}`}
           className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase"
         >
           {t("events.discovery.priceUpTo", {
@@ -344,7 +346,7 @@ export function EventDiscovery({
           })}
         </label>
         <input
-          id="price-filter"
+          id={`price-filter-${where}`}
           type="range"
           min={10}
           max={95}
@@ -434,13 +436,19 @@ export function EventDiscovery({
       <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[290px_1fr]">
         {/* Sidebar filters on large screens ------------------------------- */}
         <aside className="hidden border-t-2 border-r-2 border-line lg:block">
-          {filterPanel}
+          {filterPanel("aside")}
         </aside>
 
         <div className="border-t-2 border-line">
           {/* Toolbar ---------------------------------------------------- */}
           <div className="flex flex-wrap items-center gap-4 border-b-2 border-line px-4 py-4 sm:px-6">
-            <span className="font-mono text-[12px] tracking-[0.14em] text-fg-dim uppercase">
+            {/* A status region: the count is how a screen reader learns
+                what a filter or search did. */}
+            <span
+              role="status"
+              aria-atomic="true"
+              className="font-mono text-[12px] tracking-[0.14em] text-fg-dim uppercase"
+            >
               <b className="text-fg">{fmt.number(shown.total)}</b>{" "}
               {shown.total === 1
                 ? t("events.discovery.raceCount_one")
@@ -500,7 +508,7 @@ export function EventDiscovery({
           {/* Mobile filter drawer --------------------------------------- */}
           {filtersOpen ? (
             <div className="animate-rise-in border-b-2 border-line bg-carbon lg:hidden">
-              {filterPanel}
+              {filterPanel("drawer")}
               <div className="p-5">
                 <Button block size="lg" onClick={() => setFiltersOpen(false)}>
                   {t("events.discovery.showResults", {
@@ -757,7 +765,8 @@ function MapMarker({
       type="button"
       onClick={onSelect}
       aria-pressed={active}
-      aria-label={`${e.name} · ${e.place}`}
+      // Starts with the visible text so voice control can target it.
+      aria-label={`${distanceLabel(t, e.featuredDistance)} · ${fmt.moneyWhole(e.fromPrice)} — ${e.name}, ${e.place}`}
       style={style}
       className={cn(
         "border-2 px-2 py-1 text-[10px] font-black whitespace-nowrap transition-colors sm:px-2.5 sm:py-1.5 sm:text-[11px]",

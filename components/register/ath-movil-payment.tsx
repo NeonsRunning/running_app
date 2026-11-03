@@ -176,27 +176,34 @@ function CopyPath({ path }: { path: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={copy}
-      aria-label={t("register.athMovil.copyPath", { path })}
-      className="group inline-flex max-w-full items-baseline gap-3 text-left"
-    >
-      <span
-        translate="no"
-        className="font-mono text-xl font-bold break-all underline decoration-line-strong decoration-dotted underline-offset-4 transition-colors group-hover:decoration-fg-dim"
+    <>
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={t("register.athMovil.copyPath", { path })}
+        className="group inline-flex max-w-full items-baseline gap-3 text-left"
       >
-        {path}
+        <span
+          translate="no"
+          className="font-mono text-xl font-bold break-all underline decoration-line-strong decoration-dotted underline-offset-4 transition-colors group-hover:decoration-fg-dim"
+        >
+          {path}
+        </span>
+        <span
+          aria-hidden="true"
+          className={`shrink-0 font-mono text-[11px] tracking-wider uppercase transition-colors ${
+            copied ? "text-neon-lime" : "text-fg-dim group-hover:text-fg"
+          }`}
+        >
+          {copied ? t("register.athMovil.copied") : t("register.athMovil.copy")}
+        </span>
+      </button>
+      {/* Outside the button: its aria-label hides its contents, so a live
+          region in there is announced unreliably. */}
+      <span role="status" className="sr-only">
+        {copied ? t("register.athMovil.copied") : ""}
       </span>
-      <span
-        aria-live="polite"
-        className={`shrink-0 font-mono text-[11px] tracking-wider uppercase transition-colors ${
-          copied ? "text-neon-lime" : "text-fg-dim group-hover:text-fg"
-        }`}
-      >
-        {copied ? t("register.athMovil.copied") : t("register.athMovil.copy")}
-      </span>
-    </button>
+    </>
   );
 }
 

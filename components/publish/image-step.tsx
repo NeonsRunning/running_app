@@ -112,6 +112,8 @@ export function ImageStep({
     setUploadError(undefined);
     discard(value);
     onChange("");
+    // The Remove button is gone: land on the picker that replaces it.
+    requestAnimationFrame(() => inputRef.current?.focus());
   }
 
   function onDrop(e: DragEvent<HTMLElement>) {
@@ -140,7 +142,11 @@ export function ImageStep({
         // HEIC is listed by extension too: Windows and Android pickers hide
         // .heic files under image/* alone.
         accept="image/*,.heic,.heif"
-        className="sr-only"
+        // `peer` lets the drop zone show this input's focus ring. Once an
+        // image is set the zone is gone and Replace opens the picker, so the
+        // input leaves the tab order rather than sit there unseen.
+        className="peer sr-only"
+        tabIndex={value ? -1 : undefined}
         disabled={busy}
         aria-describedby={messageId}
         aria-invalid={shownError ? true : undefined}
@@ -168,7 +174,7 @@ export function ImageStep({
           htmlFor={inputId}
           {...dropHandlers}
           className={cn(
-            "relative flex aspect-video cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed bg-carbon px-6 text-center transition-colors",
+            "relative flex aspect-video cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed bg-carbon px-6 text-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow",
             dragging || uploading
               ? "border-neon-lime"
               : "border-line-strong hover:border-neon-lime",

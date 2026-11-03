@@ -130,14 +130,10 @@ export function SaveButton({
     <button
       type="button"
       onClick={() => toggle(slug, name)}
-      aria-pressed={on}
-      aria-label={
-        labelled
-          ? undefined
-          : on
-            ? t("events.save.unsaveAria", { name })
-            : t("events.save.saveAria", { name })
-      }
+      // A toggle keeps one name and reports its state (APG). The labelled
+      // version spells its state out in its text instead.
+      aria-pressed={labelled ? undefined : on}
+      aria-label={labelled ? undefined : t("events.save.saveAria", { name })}
       className={cn(
         "group flex shrink-0 items-center justify-center gap-2.5 border-2 transition-colors duration-150",
         labelled

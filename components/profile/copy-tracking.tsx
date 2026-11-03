@@ -34,26 +34,33 @@ export function CopyTracking({ tracking }: { tracking: string }) {
   }
 
   return (
-    <button
-      type="button"
-      onClick={copy}
-      aria-label={t("runner.copyTracking", { tracking })}
-      className="group inline-flex max-w-full items-baseline gap-3 text-left"
-    >
-      <span
-        translate="no"
-        className="font-mono text-base font-bold break-all underline decoration-line-strong decoration-dotted underline-offset-4 transition-colors group-hover:decoration-fg-dim"
+    <>
+      <button
+        type="button"
+        onClick={copy}
+        aria-label={t("runner.copyTracking", { tracking })}
+        className="group inline-flex max-w-full items-baseline gap-3 text-left"
       >
-        {tracking}
+        <span
+          translate="no"
+          className="font-mono text-base font-bold break-all underline decoration-line-strong decoration-dotted underline-offset-4 transition-colors group-hover:decoration-fg-dim"
+        >
+          {tracking}
+        </span>
+        <span
+          aria-hidden="true"
+          className={`shrink-0 font-mono text-[11px] tracking-wider uppercase transition-colors ${
+            copied ? "text-neon-lime" : "text-fg-dim group-hover:text-fg"
+          }`}
+        >
+          {copied ? t("runner.copied") : t("runner.copy")}
+        </span>
+      </button>
+      {/* Outside the button: its aria-label hides its contents, so a live
+          region in there is announced unreliably. */}
+      <span role="status" className="sr-only">
+        {copied ? t("runner.copied") : ""}
       </span>
-      <span
-        aria-live="polite"
-        className={`shrink-0 font-mono text-[11px] tracking-wider uppercase transition-colors ${
-          copied ? "text-neon-lime" : "text-fg-dim group-hover:text-fg"
-        }`}
-      >
-        {copied ? t("runner.copied") : t("runner.copy")}
-      </span>
-    </button>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { useT } from "@/components/i18n/provider";
 import { Button } from "@/components/ui/button";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { Field, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/cn";
@@ -82,8 +83,7 @@ export function MedalDelivery({
           void save();
         }}
       >
-        <div
-          role="radiogroup"
+        <RadioGroup
           aria-label={t("runner.medalDelivery")}
           className="flex flex-wrap gap-2"
         >
@@ -107,7 +107,7 @@ export function MedalDelivery({
               {t(mail ? "runner.medalByMail" : "runner.medalPickup")}
             </button>
           ))}
-        </div>
+        </RadioGroup>
         {draftByMail ? (
           <Field
             label={t("runner.medalAddress")}
@@ -157,7 +157,7 @@ export function MedalDelivery({
       <div className="mt-3">
         <p className="max-w-[60ch] text-[14px] text-fg-muted">{t("runner.medalPickupBody")}</p>
         <button type="button" onClick={() => open(true)} className={link}>
-          {t("runner.switchToMail")} →
+          {t("runner.switchToMail")} <span aria-hidden="true">→</span>
         </button>
       </div>
     );
@@ -175,7 +175,7 @@ export function MedalDelivery({
         </p>
       )}
       <button type="button" onClick={() => open(true)} className={link}>
-        {t(address ? "runner.changeMedalDelivery" : "runner.addMedalAddress")} →
+        {t(address ? "runner.changeMedalDelivery" : "runner.addMedalAddress")} <span aria-hidden="true">→</span>
       </button>
     </div>
   );

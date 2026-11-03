@@ -363,7 +363,7 @@ export default async function RunnerProfilePage(
           hasAside && "lg:grid-cols-[1fr_400px]",
         )}
       >
-        <main className={cn("border-line", hasAside && "lg:border-r-2")}>
+        <div className={cn("border-line", hasAside && "lg:border-r-2")}>
           {/* Achievements ------------------------------------------------ */}
           <section className="border-b-2 border-line px-4 py-10 sm:px-8 lg:px-10">
             <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
@@ -378,9 +378,7 @@ export default async function RunnerProfilePage(
                       "flex items-center gap-4 p-5",
                       a.isNew
                         ? "animate-pop-in bg-neon-yellow/8 shadow-[inset_0_0_0_2px_#FFF200]"
-                        : a.earned
-                          ? "bg-carbon"
-                          : "bg-carbon opacity-45",
+                        : "bg-carbon",
                     )}
                   >
                     {a.image ? (
@@ -392,10 +390,18 @@ export default async function RunnerProfilePage(
                         alt={t("runner.medalAlt", { event: a.name })}
                         loading="lazy"
                         decoding="async"
-                        className="h-14 w-14 shrink-0 object-contain"
+                        className={cn(
+                          "h-14 w-14 shrink-0 object-contain",
+                          // Locked reads as dimmed art, not dimmed text: the
+                          // words still need full contrast (WCAG 1.4.3).
+                          !a.earned && "opacity-45 grayscale",
+                        )}
                       />
                     ) : (
-                      <span aria-hidden="true" className="text-2xl">
+                      <span
+                        aria-hidden="true"
+                        className={cn("text-2xl", !a.earned && "opacity-45 grayscale")}
+                      >
                         {a.emoji}
                       </span>
                     )}
@@ -404,6 +410,7 @@ export default async function RunnerProfilePage(
                         className={cn(
                           "block text-[15px] font-extrabold uppercase",
                           a.isNew && "text-neon-yellow",
+                          !a.earned && "text-fg-dim",
                         )}
                       >
                         {a.name}
@@ -505,7 +512,7 @@ export default async function RunnerProfilePage(
                               href={`/events/${r.eventSlug}`}
                               className="text-[12px] font-extrabold tracking-[0.12em] text-neon-lime uppercase hover:text-neon-yellow"
                             >
-                              {t("runner.resendEvidence")} →
+                              {t("runner.resendEvidence")} <span aria-hidden="true">→</span>
                             </Link>
                           )}
                         </>
@@ -742,7 +749,7 @@ export default async function RunnerProfilePage(
                   href="/events"
                   className="text-[13px] font-extrabold tracking-[0.12em] text-neon-lime uppercase hover:text-neon-yellow"
                 >
-                  {t("runner.findMore")} →
+                  {t("runner.findMore")} <span aria-hidden="true">→</span>
                 </Link>
               </div>
               <div className="mt-6">
@@ -771,7 +778,7 @@ export default async function RunnerProfilePage(
               </div>
             </section>
           ) : null}
-        </main>
+        </div>
 
         {hasAside ? (
           <aside className="border-t-2 border-line lg:border-t-0">

@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
+import { useFocusFirstInvalid } from "@/components/ui/focus";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useSession } from "@/components/layout/session";
@@ -433,6 +434,7 @@ function ProfileForm({
   const t = useT();
   const { toast } = useToast();
   const [state, action, pending] = useActionState(updateProfileAction, undefined);
+  const formRef = useFocusFirstInvalid(state);
 
   useEffect(() => {
     if (!state?.ok) return;
@@ -457,7 +459,7 @@ function ProfileForm({
       : municipalities;
 
   return (
-    <form action={action} noValidate>
+    <form ref={formRef} action={action} noValidate>
       {state?.error ? (
         <p
           role="alert"
@@ -563,6 +565,7 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
     updateRaceDetailsAction,
     undefined,
   );
+  const formRef = useFocusFirstInvalid(state);
 
   useEffect(() => {
     if (!state?.ok) return;
@@ -576,7 +579,7 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
   };
 
   return (
-    <form action={action} noValidate>
+    <form ref={formRef} action={action} noValidate>
       {state?.error ? (
         <p
           role="alert"
@@ -709,6 +712,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
     updateMailingAddressAction,
     undefined,
   );
+  const formRef = useFocusFirstInvalid(state);
 
   useEffect(() => {
     if (!state?.ok) return;
@@ -722,7 +726,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
   };
 
   return (
-    <form action={action} noValidate>
+    <form ref={formRef} action={action} noValidate>
       {state?.error ? (
         <p
           role="alert"

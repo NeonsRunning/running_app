@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/field";
+import { focusFirstInvalid } from "@/components/ui/focus";
 import { useToast } from "@/components/ui/toast";
 import { useLocale, useT } from "@/components/i18n/provider";
 import { sendContactMessageAction } from "@/lib/contact/actions";
@@ -73,6 +74,7 @@ export function ContactForm() {
           next.message = t("contactForm.messageShort");
         setErrors(next);
         if (Object.keys(next).length) {
+          focusFirstInvalid(e.currentTarget);
           toast({
             title: t("contactForm.checkFormTitle"),
             body: t("contactForm.checkFormBody"),

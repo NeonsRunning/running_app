@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useFocusFirstInvalid } from "@/components/ui/focus";
 import { useFormStatus } from "react-dom";
 import { Link } from "@/components/i18n/link";
 import { useLocale, useT } from "@/components/i18n/provider";
@@ -72,9 +73,10 @@ export function LoginForm({
   const t = useT();
   const [state, action, pending] = useActionState(signInAction, undefined);
   const fieldError = useFieldError("auth.login", state);
+  const formRef = useFocusFirstInvalid(state);
 
   return (
-    <form action={action} className="flex flex-col gap-5" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-5" noValidate>
       <LocaleField />
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
@@ -131,9 +133,10 @@ export function SignUpForm() {
   const t = useT();
   const [state, action, pending] = useActionState(signUpAction, undefined);
   const fieldError = useFieldError("auth.signup", state);
+  const formRef = useFocusFirstInvalid(state);
 
   return (
-    <form action={action} className="flex flex-col gap-6" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-6" noValidate>
       <LocaleField />
 
       <AuthAlert error={state?.error} />
@@ -198,6 +201,7 @@ export function ForgotPasswordForm() {
     undefined,
   );
   const fieldError = useFieldError("auth.forgot", state);
+  const formRef = useFocusFirstInvalid(state);
 
   // The confirmation never says whether the address is registered — that
   // would turn this form into an account-lookup tool.
@@ -218,7 +222,7 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <form action={action} className="flex flex-col gap-5" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-5" noValidate>
       <LocaleField />
       <AuthAlert error={state?.error} />
 
@@ -263,9 +267,10 @@ export function ResetPasswordForm({ requireCurrent }: { requireCurrent: boolean 
     undefined,
   );
   const fieldError = useFieldError("auth.reset", state);
+  const formRef = useFocusFirstInvalid(state);
 
   return (
-    <form action={action} className="flex flex-col gap-5" noValidate>
+    <form ref={formRef} action={action} className="flex flex-col gap-5" noValidate>
       <LocaleField />
       <AuthAlert error={state?.error} />
 
