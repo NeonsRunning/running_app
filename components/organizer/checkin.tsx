@@ -50,18 +50,27 @@ export function CheckInStation({ list }: { list: CheckInList }) {
 
   // One refresh after the last save, however many came before it.
   const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // A refresh is waiting on the timer: the list on screen predates the last
+  // save. Not part of `busy` — the buttons stay usable while it waits.
+  const [refreshDue, setRefreshDue] = useState(false);
   function refreshSoon() {
     clearTimeout(refreshTimer.current);
-    refreshTimer.current = setTimeout(
-      () => startRefresh(() => router.refresh()),
-      REFRESH_AFTER_MS,
-    );
+    setRefreshDue(true);
+    refreshTimer.current = setTimeout(() => {
+      // Batched with the transition's pending flag, so no render sees the
+      // stale list as settled in between.
+      setRefreshDue(false);
+      startRefresh(() => router.refresh());
+    }, REFRESH_AFTER_MS);
   }
   useEffect(() => () => clearTimeout(refreshTimer.current), []);
 
   // A refreshed list drops the taps it has caught up with. One read before
-  // a later tap was saved keeps that tap on screen (see reconcileTaps).
-  const settled = !busy;
+  // a later tap was saved keeps that tap on screen (see reconcileTaps). The
+  // list only counts as newer than a saved tap once the refresh that follows
+  // the save has landed: until then it is the list from before the tap, and
+  // letting it win would flip the screen back to "Check in".
+  const settled = !busy && !refreshDue;
   const [seen, setSeen] = useState({ initial, settled });
   if (seen.initial !== initial || seen.settled !== settled) {
     setSeen({ initial, settled });
