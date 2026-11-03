@@ -111,11 +111,14 @@ export function NotificationCenter({ initial }: { initial: AppNotification[] }) 
                   n.unread && "bg-neon-lime/4",
                 )}
               >
+                {/* Unread is told by shape and weight too, not only colour:
+                    a filled square and a bold title, against an outline and
+                    a regular one. */}
                 <span
                   aria-hidden="true"
                   className={cn(
-                    "mt-2 h-2.5 w-2.5 shrink-0",
-                    n.unread ? "bg-neon-lime" : "bg-line-bright",
+                    "mt-2 h-2.5 w-2.5 shrink-0 border-2",
+                    n.unread ? "border-neon-lime bg-neon-lime" : "border-line-input",
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -132,7 +135,14 @@ export function NotificationCenter({ initial }: { initial: AppNotification[] }) 
                       </span>
                     ) : null}
                   </div>
-                  <h2 className="mt-2.5 text-base font-extrabold">{n.title}</h2>
+                  <h2
+                    className={cn(
+                      "mt-2.5 text-base",
+                      n.unread ? "font-extrabold" : "font-medium text-fg-muted",
+                    )}
+                  >
+                    {n.title}
+                  </h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-fg-dim">
                     {n.body}
                   </p>

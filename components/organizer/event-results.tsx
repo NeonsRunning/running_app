@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
@@ -11,6 +11,7 @@ import { distanceLabel } from "@/lib/i18n/labels";
 import { reviewRaceResultAction } from "@/lib/results/actions";
 import { REVIEW_NOTE_MAX, formatFinishTime } from "@/lib/results/evidence";
 import type { ResultSubmissionRow } from "@/lib/results/queries";
+import { focusKey, focusSoon, neighbourOf } from "./row-focus";
 
 /**
  * The organizer's queue of finish evidence for one event: each runner's
@@ -40,6 +41,7 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const sectionRef = useRef<HTMLElement>(null);
 
   async function review(row: ResultSubmissionRow, accept: boolean) {
     setBusy(row.id);
@@ -55,9 +57,16 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
       result.error === "alreadyReviewed" ||
       result.error === "registrationMissing"
     ) {
+      // The card, and the button that had focus, are gone: land on the next
+      // runner, or the heading once the queue is empty.
+      const next = neighbourOf(rows, row.id);
       setRows((all) => all.filter((r) => r.id !== row.id));
       setRejecting(null);
       setNote("");
+      focusSoon(
+        next && focusKey(`name-${next}`),
+        sectionRef.current?.querySelector("h2"),
+      );
     }
     toast(
       result.ok
@@ -76,7 +85,7 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
   }
 
   return (
-    <section>
+    <section ref={sectionRef}>
       <SectionHeading
         title={t("resultReview.title")}
         kicker={t("resultReview.count", { count: fmt.number(rows.length) })}
@@ -98,7 +107,7 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="block h-full"
-                    aria-label={t("resultReview.openEvidence", { name: row.runnerName })}
+                    aria-label={`${t("resultReview.openEvidence", { name: row.runnerName })} ${t("common.opensInNewTab")}`}
                   >
                     {/* A signed Storage URL; next/image would need the host configured. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -122,7 +131,12 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                     {distanceLabel(t, row.distance)}
                     {row.bib ? ` · ${t("resultReview.bib", { bib: row.bib })}` : ""}
                   </Eyebrow>
-                  <p className="mt-2 text-xl font-extrabold break-words">{row.runnerName}</p>
+                  <h3
+                    data-focus={`name-${row.id}`}
+                    className="mt-2 text-xl font-extrabold break-words"
+                  >
+                    {row.runnerName}
+                  </h3>
                   <p className="mt-3 font-display text-4xl font-black text-neon-yellow tabular-nums">
                     {formatFinishTime(row.finishSeconds)}
                   </p>
@@ -142,8 +156,11 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                         optional
                       >
                         {(p) => (
+                          // Takes focus as the form opens, in place of the
+                          // Reject that opened it.
                           <Textarea
                             {...p}
+                            autoFocus
                             value={note}
                             onChange={(e) => setNote(e.target.value)}
                             maxLength={REVIEW_NOTE_MAX}
@@ -157,6 +174,11 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                           size="md"
                           disabled={busy !== null}
                           aria-busy={busy === row.id}
+                          aria-label={
+                            busy === row.id
+                              ? undefined
+                              : t("resultReview.rejectYesAria", { name: row.runnerName })
+                          }
                           onClick={() => review(row, false)}
                         >
                           {busy === row.id ? t("resultReview.working") : t("resultReview.rejectYes")}
@@ -168,6 +190,7 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                           onClick={() => {
                             setRejecting(null);
                             setNote("");
+                            focusSoon(focusKey(`reject-${row.id}`));
                           }}
                         >
                           {t("resultReview.cancel")}
@@ -181,6 +204,12 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                         size="md"
                         disabled={busy !== null}
                         aria-busy={busy === row.id}
+                        // Dropped while busy, so the name read out is the "Saving…" shown.
+                        aria-label={
+                          busy === row.id
+                            ? undefined
+                            : t("resultReview.acceptAria", { name: row.runnerName })
+                        }
                         onClick={() => review(row, true)}
                       >
                         {busy === row.id ? t("resultReview.working") : t("resultReview.accept")}
@@ -189,6 +218,8 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                         variant="outline"
                         size="md"
                         disabled={busy !== null}
+                        data-focus={`reject-${row.id}`}
+                        aria-label={t("resultReview.rejectAria", { name: row.runnerName })}
                         onClick={() => {
                           setRejecting(row.id);
                           setNote("");

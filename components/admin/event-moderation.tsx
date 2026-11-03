@@ -9,6 +9,7 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { useToast } from "@/components/ui/toast";
 import { removeEventAction, restoreEventAction } from "@/lib/events/moderation";
 import type { AdminEventRow } from "@/lib/events/moderation-queries";
+import { focusKey, focusSoon, neighbourOf } from "@/components/organizer/row-focus";
 
 /** Mirrors the check on `event_moderation_log.reason`. */
 const MAX_REASON_LENGTH = 500;
@@ -47,7 +48,13 @@ export function EventModeration({
           key={row.id}
           row={row}
           removed={removed}
-          onDone={() => setRows((all) => all.filter((r) => r.id !== row.id))}
+          onDone={() => {
+            // The card, and the button that had focus, are gone: land on the
+            // next event, or the page heading once the list is empty.
+            const next = neighbourOf(rows, row.id);
+            setRows((all) => all.filter((r) => r.id !== row.id));
+            focusSoon(next && focusKey(`name-${next}`), "#main h1");
+          }}
         />
       ))}
     </ul>
@@ -78,6 +85,12 @@ function EventRow({
   });
 
   const blocked = row.paymentsUnderReview > 0;
+
+  /** Closes the confirm or the form, handing focus back to what opened it. */
+  function cancel() {
+    setOpen(false);
+    focusSoon(focusKey(`open-${row.id}`));
+  }
 
   async function restore() {
     setBusy(true);
@@ -112,7 +125,10 @@ function EventRow({
               .filter(Boolean)
               .join(" · ")}
           </Eyebrow>
-          <p className="mt-2 text-xl font-extrabold break-words">
+          <h2
+            data-focus={`name-${row.id}`}
+            className="mt-2 text-xl font-extrabold break-words"
+          >
             {removed ? (
               row.name
             ) : (
@@ -120,14 +136,19 @@ function EventRow({
                 {row.name}
               </Link>
             )}
-          </p>
+          </h2>
           <p translate="no" className="mt-1 font-mono text-[12px] break-all text-fg-dim">
             /{row.slug}
           </p>
         </div>
         {/* A removed event is restored before anyone edits it again. */}
         {removed ? null : (
-          <Button href={`/organizer/events/${row.id}/edit`} variant="outline" size="md">
+          <Button
+            href={`/organizer/events/${row.id}/edit`}
+            variant="outline"
+            size="md"
+            aria-label={t("adminEvents.editAria", { name: row.name })}
+          >
             {t("adminEvents.edit")}
           </Button>
         )}
@@ -172,21 +193,33 @@ function EventRow({
                 <p className="mr-auto text-[14px] text-fg-muted">
                   {t("adminEvents.restoreConfirm")}
                 </p>
-                <Button variant="ghost" size="md" onClick={() => setOpen(false)}>
+                <Button variant="ghost" size="md" onClick={cancel}>
                   {t("adminEvents.cancel")}
                 </Button>
+                {/* Takes focus as it opens, in place of the Restore that
+                    opened it; Cancel is a Shift+Tab away. */}
                 <Button
                   variant="secondary"
                   size="md"
+                  autoFocus
                   disabled={busy}
                   aria-busy={busy}
+                  aria-label={
+                    busy ? undefined : t("adminEvents.restoreYesAria", { name: row.name })
+                  }
                   onClick={restore}
                 >
                   {busy ? t("adminEvents.working") : t("adminEvents.restoreYes")}
                 </Button>
               </>
             ) : (
-              <Button variant="outline" size="md" onClick={() => setOpen(true)}>
+              <Button
+                variant="outline"
+                size="md"
+                data-focus={`open-${row.id}`}
+                aria-label={t("adminEvents.restoreAria", { name: row.name })}
+                onClick={() => setOpen(true)}
+              >
                 {t("adminEvents.restore")}
               </Button>
             )}
@@ -205,12 +238,18 @@ function EventRow({
       ) : open ? (
         <RemoveForm
           row={row}
-          onCancel={() => setOpen(false)}
+          onCancel={cancel}
           onRemoved={onDone}
         />
       ) : (
         <div className="border-t-2 border-line p-5 sm:p-6">
-          <Button variant="outline" size="md" onClick={() => setOpen(true)}>
+          <Button
+            variant="outline"
+            size="md"
+            data-focus={`open-${row.id}`}
+            aria-label={t("adminEvents.removeAria", { name: row.name })}
+            onClick={() => setOpen(true)}
+          >
             {t("adminEvents.remove")}
           </Button>
         </div>
@@ -300,8 +339,11 @@ function RemoveForm({
         error={errors.reason}
       >
         {(props) => (
+          // Takes focus as the form opens, in place of the Remove that
+          // opened it.
           <Textarea
             {...props}
+            autoFocus
             name="reason"
             value={reason}
             maxLength={MAX_REASON_LENGTH}
@@ -335,6 +377,7 @@ function RemoveForm({
           size="md"
           disabled={busy}
           aria-busy={busy}
+          aria-label={busy ? undefined : t("adminEvents.removeYesAria", { name: row.name })}
         >
           {busy ? t("adminEvents.working") : t("adminEvents.removeYes")}
         </Button>

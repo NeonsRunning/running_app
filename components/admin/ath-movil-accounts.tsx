@@ -22,6 +22,7 @@ import {
 } from "@/lib/ath-movil/config";
 import type { AthMovilAccountRow, AthMovilOwner } from "@/lib/ath-movil/queries";
 import { createClient } from "@/lib/supabase/client";
+import { focusKey, focusSoon } from "@/components/organizer/row-focus";
 
 /**
  * The admin's list of ATH Móvil Business accounts: what organizers pick from
@@ -48,10 +49,18 @@ export function AthMovilAccounts({
       return [...rest, account].sort((a, b) => a.label.localeCompare(b.label));
     });
     setEditing(null);
+    // The form is gone: land on the account it saved.
+    focusSoon(focusKey(`name-${account.id}`));
     toast({
       title: t("adminAccounts.savedTitle"),
       body: t("adminAccounts.savedBody", { label: account.label }),
     });
+  }
+
+  /** Closes a form unsaved, handing focus back to the button that opened it. */
+  function cancel(key: string) {
+    setEditing(null);
+    focusSoon(focusKey(key));
   }
 
   async function toggle(account: AthMovilAccountRow) {
@@ -103,7 +112,8 @@ export function AthMovilAccounts({
               <AccountForm
                 account={account}
                 onSaved={saved}
-                onCancel={() => setEditing(null)}
+                onCancel={() => cancel(`edit-${account.id}`)}
+                focusOnOpen
               />
             </li>
           ) : (
@@ -114,9 +124,12 @@ export function AthMovilAccounts({
               <QrThumb url={account.qrUrl} path={account.path} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-3">
-                  <p className="text-xl font-extrabold break-words">
+                  <h2
+                    data-focus={`name-${account.id}`}
+                    className="text-xl font-extrabold break-words"
+                  >
                     {account.label}
-                  </p>
+                  </h2>
                   {account.active ? null : (
                     <Badge tone="neutral">{t("adminAccounts.retired")}</Badge>
                   )}
@@ -143,6 +156,8 @@ export function AthMovilAccounts({
                   variant="outline"
                   size="md"
                   disabled={busy !== null}
+                  data-focus={`edit-${account.id}`}
+                  aria-label={t("adminAccounts.editAria", { label: account.label })}
                   onClick={() => setEditing(account.id)}
                 >
                   {t("adminAccounts.edit")}
@@ -152,6 +167,17 @@ export function AthMovilAccounts({
                   size="md"
                   disabled={busy !== null}
                   aria-busy={busy === account.id}
+                  // Dropped while busy, so the name read out is the "Saving…" shown.
+                  aria-label={
+                    busy === account.id
+                      ? undefined
+                      : t(
+                          account.active
+                            ? "adminAccounts.retireAria"
+                            : "adminAccounts.restoreAria",
+                          { label: account.label },
+                        )
+                  }
                   onClick={() => toggle(account)}
                 >
                   {busy === account.id
@@ -171,7 +197,10 @@ export function AthMovilAccounts({
       {editing === "new" ? (
         <AccountForm
           onSaved={saved}
-          onCancel={accounts.length ? () => setEditing(null) : undefined}
+          onCancel={accounts.length ? () => cancel("add") : undefined}
+          // Shown from the start when there are no accounts: no stealing
+          // focus on page load then.
+          focusOnOpen={accounts.length > 0}
         />
       ) : (
         <div>
@@ -179,6 +208,7 @@ export function AthMovilAccounts({
             variant="secondary"
             size="md"
             disabled={busy !== null}
+            data-focus="add"
             onClick={() => setEditing("new")}
           >
             {t("adminAccounts.add")}
@@ -220,11 +250,14 @@ function AccountForm({
   account,
   onSaved,
   onCancel,
+  focusOnOpen = false,
 }: {
   account?: AthMovilAccountRow;
   onSaved: (account: AthMovilAccountRow) => void;
   /** Absent when there is nothing to go back to. */
   onCancel?: () => void;
+  /** Opened by a button that unmounts with it: focus the first field. */
+  focusOnOpen?: boolean;
 }) {
   const t = useT();
   const fileId = useId();
@@ -336,9 +369,9 @@ function AccountForm({
       aria-label={t(account ? "adminAccounts.editTitle" : "adminAccounts.addTitle")}
       className="border-2 border-neon-lime"
     >
-      <p className="border-b-2 border-line px-5 py-4 font-display text-lg font-black uppercase sm:px-6">
+      <h2 className="border-b-2 border-line px-5 py-4 font-display text-lg font-black uppercase sm:px-6">
         {t(account ? "adminAccounts.editTitle" : "adminAccounts.addTitle")}
-      </p>
+      </h2>
 
       <div className="grid gap-6 p-5 sm:grid-cols-2 sm:p-6">
         <Field
@@ -350,6 +383,7 @@ function AccountForm({
             <Input
               {...p}
               name="label"
+              autoFocus={focusOnOpen}
               defaultValue={account?.label}
               maxLength={MAX_LABEL_LENGTH}
               autoComplete="off"
@@ -438,8 +472,12 @@ function AccountForm({
             type="file"
             accept="image/png,image/jpeg,image/webp"
             className="sr-only"
+            // Out of the tab order and the accessibility tree: the button
+            // below opens it, and a second stop for the same thing, with no
+            // name, only gets in the way.
+            tabIndex={-1}
+            aria-hidden="true"
             disabled={uploading}
-            aria-describedby={`${fileId}-message`}
             onChange={(e) => {
               const file = e.target.files?.[0];
               // Cleared so picking the same file again still fires a change.
@@ -453,6 +491,7 @@ function AccountForm({
               size="md"
               disabled={uploading || saving}
               aria-busy={uploading}
+              aria-describedby={`${fileId}-message`}
               onClick={() => fileRef.current?.click()}
             >
               {uploading

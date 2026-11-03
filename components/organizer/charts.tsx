@@ -72,13 +72,15 @@ function ChartFrame({
           </h3>
           <p className="mt-1 text-xs text-fg-dim">{subtitle}</p>
         </div>
+        {/* One fixed label, its state in aria-pressed: a toggle that also
+            renames itself reads as the opposite of what it is. */}
         <button
           type="button"
           onClick={() => setShowTable((v) => !v)}
           aria-pressed={showTable}
-          className="border-2 border-line-strong px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-fg-dim uppercase hover:border-fg-dim hover:text-fg"
+          className="border-2 border-line-strong px-2.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-fg-dim uppercase hover:border-fg-dim hover:text-fg aria-pressed:border-neon-lime aria-pressed:text-neon-lime"
         >
-          {showTable ? t("charts.chart") : t("charts.table")}
+          {t("charts.table")}
         </button>
       </figcaption>
       <div className="p-5">{showTable ? table : children}</div>
@@ -87,15 +89,19 @@ function ChartFrame({
 }
 
 function DataTable({
+  caption,
   columns,
   rows,
 }: {
+  /** The chart's title, naming the table for a screen reader. */
+  caption: string;
   columns: string[];
   rows: (string | number)[][];
 }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-sm">
+        <caption className="sr-only">{caption}</caption>
         <thead>
           <tr>
             {columns.map((c) => (
@@ -166,6 +172,7 @@ export function RegistrationsChart({ data }: { data: Point[] }) {
       subtitle={t("charts.registrationsSubtitle")}
       table={
         <DataTable
+          caption={t("charts.registrationsTitle")}
           columns={[t("charts.week"), t("charts.registrations")]}
           rows={data.map((d) => [seriesLabel(t, d.label), fmt.number(d.value)])}
         />
@@ -262,7 +269,7 @@ export function RegistrationsChart({ data }: { data: Point[] }) {
                   x={x(i)}
                   y={H - 8}
                   textAnchor="middle"
-                  className="fill-[#6c6c6c] font-mono text-[10px]"
+                  className="fill-fg-faint font-mono text-[10px]"
                 >
                   {seriesLabel(t, d.label)}
                 </text>
@@ -271,10 +278,8 @@ export function RegistrationsChart({ data }: { data: Point[] }) {
           ))}
         </svg>
 
-        <p
-          aria-live="polite"
-          className="mt-2 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase"
-        >
+        {/* Not live: it changes on every hover, and the table says it all. */}
+        <p className="mt-2 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
           {seriesLabel(t, data[active].label)}:{" "}
           <span className="text-neon-lime">
             {fmt.number(data[active].value)}
@@ -312,6 +317,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
       subtitle={t("charts.revenueSubtitle")}
       table={
         <DataTable
+          caption={t("charts.revenueTitle")}
           columns={[t("charts.month"), t("charts.revenue")]}
           rows={data.map((d) => [
             seriesLabel(t, d.label),
@@ -393,7 +399,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
                   x={bx + barW / 2}
                   y={H - 8}
                   textAnchor="middle"
-                  className="fill-[#6c6c6c] font-mono text-[10px]"
+                  className="fill-fg-faint font-mono text-[10px]"
                 >
                   {seriesLabel(t, d.label)}
                 </text>
@@ -437,6 +443,7 @@ export function DemographicsChart({
       subtitle={t("charts.demographicsSubtitle")}
       table={
         <DataTable
+          caption={t("charts.demographicsTitle")}
           columns={[
             t("charts.ageGroup"),
             t("charts.women"),
@@ -543,7 +550,7 @@ export function DemographicsChart({
                   x={PAD.left + i * band + band / 2}
                   y={H - 8}
                   textAnchor="middle"
-                  className="fill-[#6c6c6c] font-mono text-[10px]"
+                  className="fill-fg-faint font-mono text-[10px]"
                 >
                   {seriesLabel(t, d.label)}
                 </text>
