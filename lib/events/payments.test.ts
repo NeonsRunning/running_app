@@ -39,7 +39,7 @@ vi.mock("@/lib/email/registration-confirmed", () => ({
   scheduleRegistrationEmail: scheduleConfirmationEmail,
 }));
 
-const { recordRefund, settlePayment } = await import("./payments");
+const { recordDispute, recordRefund, settlePayment } = await import("./payments");
 
 function intent(overrides: Partial<Stripe.PaymentIntent> = {}): Stripe.PaymentIntent {
   return {
@@ -282,5 +282,56 @@ describe("recordRefund", () => {
         ["in", "status", ["confirmed", "cancelled"]],
       ]),
     );
+  });
+
+  it("cancels the sign-up once the payment is refunded in full", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+    const charge = { payment_intent: "pi_1", amount_refunded: 5023, refunded: true } as Stripe.Charge;
+
+    expect(await recordRefund(charge)).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("cancel_unpaid_registration", { p_payment_intent_id: "pi_1" });
+  });
+
+  it("keeps the sign-up on a partial refund", async () => {
+    const charge = { payment_intent: "pi_1", amount_refunded: 800, refunded: false } as Stripe.Charge;
+
+    expect(await recordRefund(charge)).toBe(true);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("asks for a retry when the cancellation fails", async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: "connection lost" } });
+    const charge = { payment_intent: "pi_1", amount_refunded: 5023, refunded: true } as Stripe.Charge;
+
+    expect(await recordRefund(charge)).toBe(false);
+  });
+});
+
+describe("recordDispute", () => {
+  beforeEach(() => {
+    filters.length = 0;
+    updates.length = 0;
+  });
+
+  function dispute(status: Stripe.Dispute.Status): Stripe.Dispute {
+    return { payment_intent: "pi_1", amount: 5023, status, created: 1_800_000_000 } as Stripe.Dispute;
+  }
+
+  it("records a dispute on the sign-up that card payment confirmed, and leaves it", async () => {
+    expect(await recordDispute(dispute("needs_response"))).toBe(true);
+    expect(filters).toEqual(
+      expect.arrayContaining([
+        ["eq", "payment_intent_id", "pi_1"],
+        ["eq", "payment_method", "stripe"],
+      ]),
+    );
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("cancels the sign-up once the dispute is lost and the money gone", async () => {
+    rpc.mockResolvedValue({ data: null, error: null });
+
+    expect(await recordDispute(dispute("lost"))).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("cancel_unpaid_registration", { p_payment_intent_id: "pi_1" });
   });
 });

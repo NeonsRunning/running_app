@@ -6,3 +6,9 @@ import type es from "@/dictionaries/es.json";
  * fails the build instead of surfacing as a blank label at runtime.
  */
 export type Dictionary = typeof es;
+
+/**
+ * What the browser gets: everything but the emails, which only the server
+ * renders — a seventh of the dictionary, on every page.
+ */
+export type ClientDictionary = Omit<Dictionary, "emails">;

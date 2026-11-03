@@ -4,7 +4,7 @@ import { createContext, useContext, useMemo } from "react";
 import { LOCALE_TAGS, type Locale } from "@/lib/i18n/config";
 import { createTranslator, type Translate } from "@/lib/i18n/translate";
 import { createFormatters, type Formatters } from "@/lib/i18n/format";
-import type { Dictionary } from "@/lib/i18n/types";
+import type { ClientDictionary } from "@/lib/i18n/types";
 
 /**
  * Client-side access to the active locale and its dictionary.
@@ -16,7 +16,7 @@ import type { Dictionary } from "@/lib/i18n/types";
 type I18nValue = {
   locale: Locale;
   tag: string;
-  dict: Dictionary;
+  dict: ClientDictionary;
 };
 
 const I18nContext = createContext<I18nValue | null>(null);
@@ -27,7 +27,7 @@ export function I18nProvider({
   children,
 }: {
   locale: Locale;
-  dict: Dictionary;
+  dict: ClientDictionary;
   children: React.ReactNode;
 }) {
   const value = useMemo<I18nValue>(

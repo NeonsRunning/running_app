@@ -1,5 +1,5 @@
 import { DEFAULT_LOCALE, localizePath, type Locale } from "./config";
-import type { Dictionary } from "./types";
+import type { ClientDictionary } from "./types";
 
 export type Translate = {
   (key: string, vars?: Record<string, string | number>): string;
@@ -24,7 +24,7 @@ export type Translate = {
  * empty space or a crash — and are logged as a warning, in production too,
  * where a raw key in a page or an email is a bug someone should hear of.
  */
-function resolve(dict: Dictionary, key: string): unknown {
+function resolve(dict: ClientDictionary, key: string): unknown {
   let node: unknown = dict;
   for (const part of key.split(".")) {
     if (typeof node !== "object" || node === null) return undefined;
@@ -49,7 +49,7 @@ function interpolate(
  * client and `getT()` on the server so both resolve keys identically.
  */
 export function createTranslator(
-  dict: Dictionary,
+  dict: ClientDictionary,
   locale: Locale = DEFAULT_LOCALE,
 ): Translate {
   const t = ((key, vars) => {

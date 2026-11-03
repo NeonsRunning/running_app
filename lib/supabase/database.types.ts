@@ -766,6 +766,10 @@ export type Database = {
         };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
+      cancel_unpaid_registration: {
+        Args: { p_payment_intent_id: string };
+        Returns: Database["public"]["Tables"]["registrations"]["Row"] | null;
+      };
       is_platform_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;

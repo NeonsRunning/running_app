@@ -51,11 +51,14 @@ export async function POST(request: Request) {
   }
 
   // Refunds and chargebacks made in the Stripe dashboard, recorded on the
-  // registration they belong to. A database failure asks for a retry.
+  // registration they belong to — and, once the money is back with the
+  // runner, the sign-up cancelled, which frees its spot. A database failure
+  // asks for a retry.
   if (event.type === "charge.refunded") {
     if (!(await recordRefund(event.data.object))) {
       return new Response("Could not record the refund.", { status: 500 });
     }
+    revalidatePath("/", "layout");
   }
 
   if (
@@ -66,6 +69,7 @@ export async function POST(request: Request) {
     if (!(await recordDispute(event.data.object))) {
       return new Response("Could not record the dispute.", { status: 500 });
     }
+    revalidatePath("/", "layout");
   }
 
   return Response.json({ received: true });

@@ -12,6 +12,9 @@ import { siteOrigin } from "@/lib/site-url";
  */
 const STATIC_PATHS = ["/", "/events", "/about", "/faq", "/contact"];
 
+/** Rebuilt at most hourly: a new race shows up within the hour. */
+export const revalidate = 3600;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [origin, events] = await Promise.all([
     siteOrigin(),

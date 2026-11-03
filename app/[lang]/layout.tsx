@@ -4,6 +4,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { I18nProvider } from "@/components/i18n/provider";
 import { LOCALES, LOCALE_TAGS } from "@/lib/i18n/config";
 import { getDictionary, getLocale, getT } from "@/lib/i18n/server";
+import type { ClientDictionary } from "@/lib/i18n/types";
 import { configuredOrigin, openGraphBase } from "@/lib/seo";
 import "../globals.css";
 
@@ -55,7 +56,10 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: LayoutProps<"/[lang]">) {
   const locale = await getLocale();
-  const dict = await getDictionary();
+  // The browser never renders an email: those strings stay on the server.
+  const dict = Object.fromEntries(
+    Object.entries(await getDictionary()).filter(([namespace]) => namespace !== "emails"),
+  ) as ClientDictionary;
   const t = await getT();
 
   return (
