@@ -32,38 +32,6 @@ export const ACHIEVEMENT_EARNED_ON_ES: Record<string, string> = {
   podium: "mar 2026",
 };
 
-/** Keyed by notification id. */
-export const NOTIFICATION_ES: Record<
-  string,
-  { title: string; body: string; time: string }
-> = {
-  n1: {
-    title: "Recordatorio de carrera",
-    body: "Tu Neon Night 10K empieza en 3 días. La entrega de dorsales abre el viernes en la expo.",
-    time: "hace 2 h",
-  },
-  n2: {
-    title: "Actualización del evento",
-    body: "Neon Night 10K: la villa de salida se movió una cuadra al oeste, al portón 2 del Paseo de la Princesa.",
-    time: "Ayer",
-  },
-  n3: {
-    title: "Inscripción confirmada",
-    body: "Ya estás inscrito oficialmente en el Neon Night 10K. Dorsal n.º 1048, corral A.",
-    time: "12 ago",
-  },
-  n4: {
-    title: "Resultados disponibles",
-    body: "Ya se publicó tu resultado oficial del Condado Coastal 10K: 51:04, una nueva marca personal.",
-    time: "25 may",
-  },
-  n5: {
-    title: "Marisol Rivera te siguió",
-    body: "Ahora tienes 418 seguidores en NEONS RUNNING.",
-    time: "20 may",
-  },
-};
-
 /** Keyed by club id. */
 export const CLUB_FOCUS_ES: Record<string, string> = {
   nocturnos: "Ruta nocturna",

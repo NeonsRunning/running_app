@@ -855,7 +855,12 @@ export type Database = {
         Returns: Database["public"]["Tables"]["race_results"]["Row"];
       };
       review_race_result: {
-        Args: { p_result_id: string; p_accept: boolean; p_note?: string | null };
+        Args: {
+          p_result_id: string;
+          p_accept: boolean;
+          p_submitted_at: string;
+          p_note?: string | null;
+        };
         Returns: Database["public"]["Tables"]["race_results"]["Row"];
       };
       disqualify_race_result: {

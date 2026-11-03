@@ -4,9 +4,7 @@ import { MobileTabBar } from "@/components/layout/mobile-tab-bar";
 import { SessionProvider } from "@/components/layout/session";
 import { SavedEventsProvider } from "@/components/events/saved-events";
 import { getAccount, isPlatformAdmin, toSession } from "@/lib/auth/session";
-import { getNotifications } from "@/lib/data";
 import { getSavedSlugs } from "@/lib/events/queries";
-import { getLocale } from "@/lib/i18n/server";
 
 /**
  * Chrome shared by every browsable page. The registration, publish and
@@ -18,23 +16,14 @@ import { getLocale } from "@/lib/i18n/server";
  * paint instead of flickering from guest to signed-in after hydration.
  */
 export default async function SiteLayout({ children }: LayoutProps<"/[lang]">) {
-  const locale = await getLocale();
   const account = await getAccount();
-
-  // Notifications are still fixture data pending a table of their own; only
-  // the badge count crosses into the session.
-  const unreadNotifications = account
-    ? getNotifications(locale).filter((n) => n.unread).length
-    : 0;
 
   const [saved, isAdmin] = account
     ? await Promise.all([getSavedSlugs(account.user.id), isPlatformAdmin()])
     : [[], false];
 
   return (
-    <SessionProvider
-      value={toSession(account, { unreadNotifications, isAdmin })}
-    >
+    <SessionProvider value={toSession(account, { isAdmin })}>
       {/* Keyed by account so signing in or out starts from that account's
           saves rather than whatever the last one left in state. */}
       <SavedEventsProvider key={account?.user.id ?? "guest"} initial={saved}>

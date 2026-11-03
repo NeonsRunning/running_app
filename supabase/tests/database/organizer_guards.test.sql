@@ -186,7 +186,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.review_race_result('00000000-0000-4000-9000-0000000000f1', true) $$,
+  $$ select public.review_race_result('00000000-0000-4000-9000-0000000000f1', true, now()) $$,
   'P0001', 'notAllowed',
   'nor review a result'
 );
@@ -268,7 +268,7 @@ select tests.act_as('00000000-0000-4000-8000-000000000001');
 set local role authenticated;
 
 select throws_ok(
-  $$ select public.review_race_result('00000000-0000-4000-9000-0000000000f2', true) $$,
+  $$ select public.review_race_result('00000000-0000-4000-9000-0000000000f2', true, now()) $$,
   'P0001', 'registrationMissing',
   'a result on an unpaid sign-up cannot be accepted'
 );

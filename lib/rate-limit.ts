@@ -34,7 +34,9 @@ export const LIMITS = {
   authEmailPerEmail: { limit: 5, window: "1 hour" },
   /**
    * Password attempts — signing in, and the current password asked for
-   * before a change — by IP and by the account's address. Supabase has its
+   * before a change — by IP, and by the account's address from that IP
+   * (`signInPerEmail`), so nobody can use up an address's count for
+   * everyone. Supabase has its
    * own per-IP limit, but every call from this server reaches it from the
    * same few addresses.
    */

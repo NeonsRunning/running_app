@@ -239,7 +239,12 @@ export function PublishWizard({
     const submitter = (e.nativeEvent as SubmitEvent).submitter;
     const data = new FormData(e.currentTarget, submitter);
     startTransition(async () => {
-      const result = await saveEventAction(state, data);
+      // A save that never answers — the connection dropped, or a deploy
+      // replaced the action — is a failed save, not a crash: thrown here it
+      // would reach the error boundary and take every step's input with it.
+      const result = await saveEventAction(state, data).catch(
+        (): EventFormState => ({ error: "saveFailed" }),
+      );
       setState(result);
 
       if (result.saved) {
@@ -303,7 +308,10 @@ export function PublishWizard({
         routeImagePath !== savedRouteImagePath && routeImagePath,
         medalImagePath !== savedMedalImagePath && medalImagePath,
       ].filter((p): p is string => Boolean(p));
-      const result = await deleteEventAction(eventId, unsaved);
+      const result = await deleteEventAction(eventId, unsaved).catch(() => ({
+        ok: undefined,
+        error: "deleteFailed",
+      }));
       if (result.ok) {
         toast({
           title: t("publish.deletedTitle"),

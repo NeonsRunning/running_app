@@ -83,7 +83,10 @@ export function ContactForm() {
           return;
         }
         startTransition(async () => {
-          const result = await sendContactMessageAction({ ...values, locale });
+          // Thrown, it would reach the error boundary and lose the message.
+          const result = await sendContactMessageAction({ ...values, locale }).catch(
+            () => ({ ok: false, error: "sendFailed" }) as const,
+          );
           if (result.ok) setSent(true);
           else
             toast({

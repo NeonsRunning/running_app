@@ -47,6 +47,7 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
     setBusy(row.id);
     const result = await reviewRaceResultAction(
       row.id,
+      row.submittedAt,
       accept,
       accept ? undefined : note,
     ).catch(() => ({ ok: false, error: "reviewFailed" }) as const);

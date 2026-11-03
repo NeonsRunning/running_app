@@ -75,11 +75,18 @@ async function authEmailAllowed(action: string, email: string): Promise<boolean>
  * Whether another password may be tried against this address from this
  * caller. Sign-in and the current-password check before a change share the
  * counts, so moving between the two forms buys a guesser nothing.
+ *
+ * The address is counted together with the caller's IP, never on its own: a
+ * count per address alone is one anybody who knows it can fill, refusing its
+ * owner's right password from wherever they sign in. Spreading guesses over
+ * many IPs is Supabase Auth's to stop — its own limits apply to direct calls
+ * with the public key too, which this never sees.
  */
 async function passwordAttemptAllowed(email: string): Promise<boolean> {
+  const ip = await clientIp();
   return withinLimits([
-    { action: "auth:signin:ip", who: await clientIp(), limit: LIMITS.signInPerIp },
-    { action: "auth:signin:email", who: email, limit: LIMITS.signInPerEmail },
+    { action: "auth:signin:ip", who: ip, limit: LIMITS.signInPerIp },
+    { action: "auth:signin:email-ip", who: `${email}|${ip}`, limit: LIMITS.signInPerEmail },
   ]);
 }
 
@@ -260,9 +267,20 @@ export async function requestPasswordResetAction(
   const email = readText(formData, "email");
 
   if (!EMAIL_RE.test(email)) return { fieldErrors: { email: "emailInvalid" } };
-  // Says nothing about whether the address has an account: the limit counts
-  // the asking, whoever the address belongs to.
-  if (!(await authEmailAllowed("auth:reset", email))) return { error: "rateLimited" };
+  // Says nothing about whether the address has an account: the limits count
+  // the asking, whoever the address belongs to. The caller's own limit is
+  // theirs to hear about.
+  const ipAllowed = await withinLimits([
+    { action: "auth:reset:ip", who: await clientIp(), limit: LIMITS.authEmailPerIp },
+  ]);
+  if (!ipAllowed) return { error: "rateLimited" };
+  // The address's limit is not: anyone who knows it could fill it and leave
+  // its owner facing an error. Past it nothing more is sent, but the answer
+  // is the usual one — the latest link that did go out still works.
+  const emailAllowed = await withinLimits([
+    { action: "auth:reset:email", who: email, limit: LIMITS.authEmailPerEmail },
+  ]);
+  if (!emailAllowed) return { ok: true, email };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
