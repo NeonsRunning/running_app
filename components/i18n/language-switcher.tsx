@@ -53,8 +53,13 @@ function LanguageLinks({
               current ? "text-neon-yellow" : "text-fg-dim hover:text-fg",
             )}
           >
-            <span className="sr-only">{LOCALE_NAMES[locale]}</span>
-            <span aria-hidden="true">{locale}</span>
+            {/* The visible code leads the name so voice control can say
+                what it sees; the full name is spoken in its own language. */}
+            {locale}
+            <span className="sr-only" lang={locale}>
+              {" "}
+              — {LOCALE_NAMES[locale]}
+            </span>
           </NextLink>
         );
       })}
