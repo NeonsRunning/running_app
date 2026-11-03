@@ -140,7 +140,14 @@ el último paso del asistente para publicar eventos.
    número de dorsal.
 4. Pulsa **Enviar mensaje**.
 
-Verás *"Mensaje enviado"*. El equipo responde en un día laborable. A la
+**¿Una pregunta sobre una carrera concreta?** También se escribe aquí. En la
+pestaña **Organizador** de cada carrera, el botón **Preguntar sobre esta
+carrera** trae a este formulario: los organizadores no publican su correo, así
+que el equipo responde y, si hace falta, lo coordina con el organizador.
+
+![Pestaña Organizador con el botón Preguntar sobre esta carrera](img/visitante/organizador-contacto.png)
+
+Al enviar, verás *"Mensaje enviado"*. El equipo responde en un día laborable. A la
 derecha están los **canales directos**: Facebook, Instagram y la oficina en
 Cabo Rojo (lunes a viernes, 9:00 a. m. – 5:00 p. m.).
 
@@ -149,7 +156,12 @@ Si envías varios mensajes seguidos, el formulario pide esperar una hora.
 > **🛠 Nota técnica:** `lib/contact/actions.ts` envía el mensaje con Brevo a
 > `CONTACT_EMAIL` (o al remitente de Brevo), con *Reply-To* del visitante, y
 > tiene límite de frecuencia. Sin Brevo configurado, el formulario responde
-> *"El formulario de contacto no está disponible ahora"*.
+> *"El formulario de contacto no está disponible ahora"*. En la pestaña
+> **Organizador**, el botón muestra **Contactar al organizador** con un enlace
+> `mailto:` solo si el organizador tiene un correo público. En los eventos
+> publicados desde `/publish` ese correo no se expone (está en
+> `profile_private`), así que el botón dice **Preguntar sobre esta carrera** y
+> lleva a `/contact` (`components/events/event-detail-tabs.tsx`).
 
 ## 5.8 Idioma
 

@@ -396,15 +396,25 @@ export function EventDetailTabs({
                   </div>
                 </dl>
               ) : null}
-              <div className="mt-6 flex flex-wrap gap-3">
-                {/* Organizers publishing from /publish keep their email in
-                    `profile_private`, so runners reach them through us. */}
+              {/* Organizers publishing from /publish keep their email in
+                  `profile_private`, so runners reach them through us — and
+                  the button says so rather than promising the organizer. */}
+              {organizer.email ? null : (
+                <p className="mt-6 max-w-[60ch] text-sm text-fg-dim">
+                  {t("events.tabs.askAboutRaceHint")}
+                </p>
+              )}
+              <div className={cn("flex flex-wrap gap-3", organizer.email ? "mt-6" : "mt-4")}>
                 <Button
                   href={organizer.email ? `mailto:${organizer.email}` : "/contact"}
                   variant="outline"
                   size="md"
                 >
-                  {t("events.tabs.contactOrganizer")}
+                  {t(
+                    organizer.email
+                      ? "events.tabs.contactOrganizer"
+                      : "events.tabs.askAboutRace",
+                  )}
                 </Button>
                 {organizer.website ? (
                   <Button href="/contact" variant="ghost" size="md">
