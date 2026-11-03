@@ -774,6 +774,8 @@
       "whenBefore": "Previously",
       "whereNow": "Location (new)",
       "whereBefore": "Previously",
+      "startNow": "{distance} start (new)",
+      "startBefore": "Previously",
       "next": "Check the race page for the latest details before race day.",
       "cta": "View race details",
       "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."

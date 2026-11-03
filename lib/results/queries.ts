@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { eventImageUrl } from "@/lib/events/images";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { chunk, selectAll } from "@/lib/supabase/paginate";
@@ -245,7 +246,7 @@ export type PublicResultRow = {
  * their profile names them; see `public_event_results()`. Every one links to
  * that profile.
  */
-export async function listPublicEventResults(
+export const listPublicEventResults = cache(async function listPublicEventResults(
   eventId: string,
 ): Promise<PublicResultRow[]> {
   if (!hasSupabaseEnv()) return [];
@@ -275,7 +276,7 @@ export async function listPublicEventResults(
     distanceKm: Number(r.distance_km),
     finishSeconds: r.finish_seconds,
   }));
-}
+});
 
 export type ResultEventRow = {
   id: string;
@@ -290,7 +291,7 @@ export type ResultEventRow = {
 };
 
 /** Published events with results anyone can see, newest race first. */
-export async function listResultEvents(): Promise<ResultEventRow[]> {
+export const listResultEvents = cache(async function listResultEvents(): Promise<ResultEventRow[]> {
   if (!hasSupabaseEnv()) return [];
 
   const supabase = await createClient();
@@ -317,7 +318,7 @@ export async function listResultEvents(): Promise<ResultEventRow[]> {
     region: r.region,
     finishers: Number(r.finishers),
   }));
-}
+});
 
 /* -------------------------------------------------------------------------- */
 /* A runner's results, for their profile                                      */

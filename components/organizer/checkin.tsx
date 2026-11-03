@@ -25,9 +25,13 @@ import type { CheckInList, CheckInRunner } from "@/lib/events/organizer";
  * has never seen the app: oversized targets, very high contrast, one decision
  * per screen, and no destructive action without a visible undo.
  *
- * A tap shows at once and saves behind it; the list then refreshes from the
- * server, which also brings in runners checked in on another phone.
+ * A tap shows at once and saves behind it. The list refreshes from the
+ * server once the taps pause, which also brings in runners checked in on
+ * another phone — not after every tap: a refresh reads every runner, and on
+ * race-morning cellular it would hold up the next one.
  */
+const REFRESH_AFTER_MS = 15_000;
+
 export function CheckInStation({ list }: { list: CheckInList }) {
   const { event, runners: initial } = list;
   const router = useRouter();
@@ -43,6 +47,17 @@ export function CheckInStation({ list }: { list: CheckInList }) {
   const busy = saving || refreshing;
   // Taps the list may not show yet: registration id → the tap.
   const [pending, setPending] = useState<ReadonlyMap<string, CheckInTap>>(new Map());
+
+  // One refresh after the last save, however many came before it.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  function refreshSoon() {
+    clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(
+      () => startRefresh(() => router.refresh()),
+      REFRESH_AFTER_MS,
+    );
+  }
+  useEffect(() => () => clearTimeout(refreshTimer.current), []);
 
   // A refreshed list drops the taps it has caught up with. One read before
   // a later tap was saved keeps that tap on screen (see reconcileTaps).
@@ -145,7 +160,7 @@ export function CheckInStation({ list }: { list: CheckInList }) {
       new Map(prev).set(runner.id, { checkedInAt: result.checkedInAt, saved: true }),
     );
     setSaving(false);
-    startRefresh(() => router.refresh());
+    refreshSoon();
 
     const name = runner.name;
     const bib = runner.bib;

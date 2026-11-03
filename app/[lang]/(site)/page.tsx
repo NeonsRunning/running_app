@@ -55,9 +55,10 @@ export default async function LandingPage() {
   const account = await getAccount();
   const showOrganizerCta = isOrganizer(account?.profile ?? null);
 
-  // Only races organizers have published; no sample fixtures here.
+  // Only races organizers have published; no sample fixtures here. The five
+  // soonest are all the page shows (three as rows, five on the mobile rail).
   const [events, stats] = await Promise.all([
-    listPublishedEvents(locale),
+    listPublishedEvents(locale, { limit: 5 }),
     getPlatformStats(),
   ]);
   const clubs = getClubs(locale);

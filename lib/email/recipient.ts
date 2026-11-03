@@ -99,6 +99,8 @@ export type ConfirmedRunner = {
   firstName: string;
   name: string;
   amount: number;
+  /** The distance they signed up for. */
+  categoryId: string;
   locale: Locale;
 };
 
@@ -115,7 +117,7 @@ export async function getConfirmedRunners(
   const { data, error } = await selectAll((from, to) =>
     admin
       .from("registrations")
-      .select("id, runner_id, email, first_name, last_name, amount")
+      .select("id, runner_id, category_id, email, first_name, last_name, amount")
       .eq("event_id", eventId)
       .eq("status", "confirmed")
       .order("id")
@@ -133,6 +135,7 @@ export async function getConfirmedRunners(
       firstName: r.first_name,
       name: `${r.first_name} ${r.last_name}`,
       amount: Number(r.amount),
+      categoryId: r.category_id,
       locale: settings.get(r.runner_id)?.locale ?? DEFAULT_LOCALE,
     }));
 }

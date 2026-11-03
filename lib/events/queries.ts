@@ -245,16 +245,17 @@ function toOrganizer(row: PublishedRow): Organizer {
  */
 async function selectEvents(where: {
   slug?: string;
+  slugs?: string[];
   from?: string;
   ids?: string[];
+  /** The first this many, soonest first; otherwise every match. */
+  limit?: number;
 }): Promise<PublishedRow[]> {
   if (!hasSupabaseEnv()) return [];
+  if (where.slugs?.length === 0 || where.ids?.length === 0) return [];
 
   const supabase = await createClient();
-  // Paged: every published race, as the sitemap asks for, can pass the
-  // API's 1000-row cap. Ordered by id after the date, so pages neither
-  // repeat nor skip a race.
-  const { data, error } = await selectAll((from, to) => {
+  const page = (from: number, to: number) => {
     // Explicit, though the policy already hides other people's drafts: an
     // organizer's own drafts must not show up in the public listing either.
     let query = supabase
@@ -262,11 +263,18 @@ async function selectEvents(where: {
       .select(EVENT_COLUMNS)
       .eq("status", "published");
     if (where.slug) query = query.eq("slug", where.slug);
+    if (where.slugs) query = query.in("slug", where.slugs);
     if (where.ids) query = query.in("id", where.ids);
     // Listed until its last day has passed, not just its first.
     if (where.from) query = query.gte("last_day", where.from);
     return query.order("event_date").order("id").range(from, to);
-  });
+  };
+  // Paged otherwise: every published race, as the sitemap asks for, can pass
+  // the API's 1000-row cap. Ordered by id after the date, so pages neither
+  // repeat nor skip a race.
+  const { data, error } = where.limit
+    ? await page(0, where.limit - 1)
+    : await selectAll(page);
   return error ? [] : (data as unknown as EventRow[]).filter(isPublished);
 }
 
@@ -620,12 +628,17 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
   );
 }
 
-/** Upcoming and ongoing races organizers published, soonest first. */
+/**
+ * Upcoming and ongoing races organizers published, soonest first: the first
+ * `limit` of them, or only those with these `slugs`. One or the other —
+ * every upcoming race is a lot of rows for a page that shows a few.
+ */
 export async function listPublishedEvents(
   locale: Locale,
+  only: { limit: number } | { slugs: string[] },
 ): Promise<RunningEvent[]> {
   const [rows, t] = await Promise.all([
-    selectEvents({ from: todayIso() }),
+    selectEvents({ from: todayIso(), ...only }),
     getTranslator(locale),
   ]);
   const counts = await registrationCounts(rows.map((r) => r.id));
@@ -693,7 +706,7 @@ export async function searchEvents(
  * rather than the URL's, so route handlers — which have no root params — can
  * call it too.
  */
-export async function findEvent(
+export const findEvent = cache(async function findEvent(
   slug: string,
   locale: Locale,
 ): Promise<{ event: RunningEvent; organizer: Organizer } | null> {
@@ -709,7 +722,7 @@ export async function findEvent(
     event: toEvent(row, counts, locale, t),
     organizer: toOrganizer(row),
   };
-}
+});
 
 /** Every published race, past ones included: their pages stay up. */
 export async function listPublishedSlugs(): Promise<

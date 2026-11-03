@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { isPlatformAdmin } from "@/lib/auth/session";
 import { isIsoDate, puertoRicoToday } from "@/lib/dates";
-import { scheduleEventSavedEmails } from "@/lib/email/event-updated";
+import { scheduleEventSavedEmails, type CategoryStart } from "@/lib/email/event-updated";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
 import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
@@ -325,6 +325,15 @@ export async function saveEventAction(
     if (!data || data.status === "removed") return { error: "eventNotFound" };
     existing = data;
   }
+  // Each distance's own start, which the race-day email compares too.
+  const startsBefore: CategoryStart[] = existing
+    ? ((
+        await supabase
+          .from("event_categories")
+          .select("id, distance, start_time")
+          .eq("event_id", existing.id)
+      ).data ?? [])
+    : [];
 
   const publishing =
     readText(formData, "intent") === "publish" ||
@@ -585,13 +594,14 @@ export async function saveEventAction(
       // rows rather than replacing them. Distance is unique per event.
       const { data: rows } = await supabase
         .from("event_categories")
-        .select("id, distance")
+        .select("id, distance, start_time")
         .eq("event_id", data.id);
 
       if (existing) {
         await scheduleEventSavedEmails({
           before: existing,
           saved: data,
+          starts: { before: startsBefore, after: rows ?? [] },
           byAdmin: admin && existing.organizer_id !== userId,
         });
       }

@@ -4,7 +4,9 @@ import { clock } from "@/lib/events/queries";
 import { localizePath, type Locale } from "@/lib/i18n/config";
 import { formatClock, formatLongDate } from "@/lib/i18n/format";
 import { getTranslator } from "@/lib/i18n/server";
+import { distanceLabel } from "@/lib/i18n/labels";
 import type { Translate } from "@/lib/i18n/translate";
+import { LIMITS, withinLimits } from "@/lib/rate-limit";
 import { puertoRicoToday } from "@/lib/results/evidence";
 import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail, type Email } from "./brevo";
@@ -25,13 +27,22 @@ import { siteOrigin } from "@/lib/site-url";
  *                        the event was updated.
  *   race-day changes     confirmed runners of a published race still to come
  *                        hear when its date, start time or place changed,
- *                        with what it was and what it is now.
+ *                        or their own distance's start time, with what it
+ *                        was and what it is now.
  *
  * Saves are explicit — "Save changes" in the wizard — so each one is worth a
- * message. Runs after the response with `after()`.
+ * message, up to `LIMITS.raceDayEmailsPerEvent`: past that, runners already
+ * have several and the race page has the rest. Runs after the response with
+ * `after()`.
  */
 
 type Event = Tables<"events">;
+
+/** A distance's own start time, as `event_categories` stores it. */
+export type CategoryStart = Pick<Tables<"event_categories">, "id" | "distance" | "start_time">;
+
+/** A distance whose start moved: what it was and is, as stored. */
+type MovedStart = { distance: string; before: string | null; after: string | null };
 
 /** Wizard steps (keys under `publish.steps`) and the columns each holds. */
 const STEP_COLUMNS: [string, (keyof Event)[]][] = [
@@ -94,10 +105,13 @@ const differs = (a: Event, b: Event, column: keyof Event) =>
 export async function scheduleEventSavedEmails({
   before,
   saved,
+  starts,
   byAdmin,
 }: {
   before: Event;
   saved: Event;
+  /** Each distance's start, before and after the save. */
+  starts: { before: CategoryStart[]; after: CategoryStart[] };
   /** The save was an admin's, on someone else's event. */
   byAdmin: boolean;
 }): Promise<void> {
@@ -107,14 +121,31 @@ export async function scheduleEventSavedEmails({
     cols.some((c) => differs(before, saved, c)),
   ).map(([step]) => step);
 
-  const raceDayChanged =
+  // Same distance, new start. A distance added or dropped has no runners
+  // whose start moved: it had none, or `save_event()` kept it.
+  const was = new Map(starts.before.map((c) => [c.id, c.start_time]));
+  const moved = new Map<string, MovedStart>(
+    starts.after
+      .filter((c) => was.has(c.id) && was.get(c.id) !== c.start_time)
+      .map((c) => [c.id, { distance: c.distance, before: was.get(c.id)!, after: c.start_time }]),
+  );
+
+  let raceDayChanged =
     before.status === "published" &&
     saved.status === "published" &&
     !(saved.last_day && saved.last_day < puertoRicoToday()) &&
     (["event_date", "end_date", "start_time"].some((c) =>
       differs(before, saved, c as keyof Event),
     ) ||
-      placeLine(before) !== placeLine(saved));
+      placeLine(before) !== placeLine(saved) ||
+      moved.size > 0);
+
+  // Each one emails the whole field: a few a day, not one per save.
+  if (raceDayChanged) {
+    raceDayChanged = await withinLimits([
+      { action: "email:race-day", who: saved.id, limit: LIMITS.raceDayEmailsPerEvent },
+    ]);
+  }
 
   if (!byAdmin && !raceDayChanged) return;
 
@@ -126,7 +157,7 @@ export async function scheduleEventSavedEmails({
       });
     }
     if (raceDayChanged) {
-      await sendRaceDayChangedEmails(before, saved, origin).catch((err) => {
+      await sendRaceDayChangedEmails(before, saved, moved, origin).catch((err) => {
         console.error(`Event change emails for ${saved.id} failed:`, err);
       });
     }
@@ -181,7 +212,18 @@ function whereLine(e: Event, t: Translate): string {
   return e.anywhere ? t("events.anywhere.place", { region: e.region }) : placeLine(e);
 }
 
-async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: string) {
+/** A distance's start for the email: its own, or the race's. */
+function startLine(own: string | null, e: Event, t: Translate, locale: Locale): string {
+  const time = own ?? e.start_time;
+  return time ? formatClock(clock(time), locale) : t("labels.start.tba");
+}
+
+async function sendRaceDayChangedEmails(
+  before: Event,
+  saved: Event,
+  moved: Map<string, MovedStart>,
+  origin: string,
+) {
   // "Event updates" in settings; a runner can switch these off.
   const runners = await getConfirmedRunners(saved.id, { only: "updates" });
   const emails: Email[] = [];
@@ -205,6 +247,19 @@ async function sendRaceDayChangedEmails(before: Event, saved: Event, origin: str
     const [whereBefore, whereNow] = [whereLine(before, t), whereLine(saved, t)];
     if (whereBefore !== whereNow) {
       rows.push([t(k("whereNow")), whereNow], [t(k("whereBefore")), whereBefore]);
+    }
+    const own = moved.get(runner.categoryId);
+    if (own) {
+      const [startBefore, startNow] = [
+        startLine(own.before, before, t, locale),
+        startLine(own.after, saved, t, locale),
+      ];
+      if (startBefore !== startNow) {
+        rows.push(
+          [t(k("startNow"), { distance: distanceLabel(t, own.distance) }), startNow],
+          [t(k("startBefore")), startBefore],
+        );
+      }
     }
     if (!rows.length) continue;
 
