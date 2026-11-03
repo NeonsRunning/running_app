@@ -87,7 +87,8 @@ export function Tabs<T extends string>({
             type="button"
             id={tabId(id, item.value)}
             aria-selected={active}
-            aria-controls={panelId(id, item.value)}
+            // Inactive panels are unmounted, so only point at the one that exists.
+            aria-controls={active ? panelId(id, item.value) : undefined}
             tabIndex={active ? 0 : -1}
             onClick={() => onChange(item.value)}
             className={cn(
@@ -125,7 +126,6 @@ export function TabPanel({
       id={panelId(id, value)}
       aria-labelledby={tabId(id, value)}
       tabIndex={0}
-      className="focus-visible:outline-none"
     >
       {children}
     </div>

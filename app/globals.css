@@ -17,6 +17,8 @@
   --color-line: #1f1f1f;
   --color-line-strong: #2a2a2a;
   --color-line-bright: #3a3a3a;
+  /* form-control edges: ≥3:1 on ink/carbon (WCAG 1.4.11 non-text contrast) */
+  --color-line-input: #606060;
 
   /* --- neon accents --- */
   --color-neon-yellow: #fff200;
@@ -33,7 +35,7 @@
   --color-fg: #ffffff;
   --color-fg-muted: #c9c9c9;
   --color-fg-dim: #8a8a8a;
-  --color-fg-faint: #6c6c6c;
+  --color-fg-faint: #838383; /* ≥4.5:1 on ink → graphite (WCAG AA text) */
 
   /* --- type --- */
   --font-display: var(--font-archivo), "Archivo", system-ui, sans-serif;
@@ -57,6 +59,15 @@
     background: var(--color-ink);
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;
+    /* Keep focused fields clear of the sticky header and, on mobile, the
+       fixed tab bar and pinned CTAs (WCAG 2.4.11). */
+    scroll-padding-top: 5.5rem;
+  }
+
+  @media (max-width: 1023px) {
+    html {
+      scroll-padding-bottom: calc(7.5rem + env(safe-area-inset-bottom));
+    }
   }
 
   body {

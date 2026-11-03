@@ -23,7 +23,10 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-16 text-center">
+    <main
+      id="main"
+      className="flex min-h-dvh flex-col items-center justify-center px-4 py-16 text-center"
+    >
       <div
         aria-hidden="true"
         className="flex h-16 w-16 items-center justify-center border-2 border-danger text-3xl text-danger"
@@ -52,6 +55,6 @@ export default function GlobalError({
           {t("error.reportIt")}
         </Button>
       </div>
-    </div>
+    </main>
   );
 }

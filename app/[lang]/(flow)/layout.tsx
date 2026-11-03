@@ -12,7 +12,7 @@ export const metadata: Metadata = { robots: NOINDEX };
 export default function FlowLayout({ children }: LayoutProps<"/[lang]">) {
   return (
     <div className="min-h-dvh bg-ink">
-      <div id="main">{children}</div>
+      <main id="main">{children}</main>
     </div>
   );
 }

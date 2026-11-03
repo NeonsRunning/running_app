@@ -94,11 +94,14 @@ export function Pagination({
   page,
   pageCount,
   onChange,
+  label,
   className,
 }: {
   page: number;
   pageCount: number;
   onChange: (page: number) => void;
+  /** What is being paged, so two of these on a page are told apart. */
+  label?: string;
   className?: string;
 }) {
   const t = useT();
@@ -112,7 +115,9 @@ export function Pagination({
 
   return (
     <nav
-      aria-label={t("common.pagination")}
+      aria-label={
+        label ? `${label} — ${t("common.pagination")}` : t("common.pagination")
+      }
       className={cn("flex flex-wrap items-center gap-2", className)}
     >
       <button

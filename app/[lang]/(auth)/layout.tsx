@@ -6,8 +6,8 @@ export const metadata: Metadata = { robots: NOINDEX };
 
 export default function AuthLayout({ children }: LayoutProps<"/[lang]">) {
   return (
-    <div id="main" className="bg-ink">
+    <main id="main" className="bg-ink">
       {children}
-    </div>
+    </main>
   );
 }

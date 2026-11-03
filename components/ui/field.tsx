@@ -6,7 +6,7 @@ import { useT } from "@/components/i18n/provider";
 import { cn } from "@/lib/cn";
 
 const CONTROL =
-  "w-full border-2 border-line-strong bg-carbon px-4 py-3.5 text-base text-fg placeholder:text-fg-faint transition-colors duration-150 hover:border-line-bright focus:border-neon-lime focus:outline-none disabled:opacity-40 aria-[invalid=true]:border-danger";
+  "w-full border-2 border-line-input bg-carbon px-4 py-3.5 text-base text-fg placeholder:text-fg-faint transition-colors duration-150 hover:border-fg-faint focus:border-neon-lime disabled:opacity-40 aria-[invalid=true]:border-danger";
 
 /**
  * Label + control + help/error wrapper. Wires `htmlFor`, `aria-describedby`
@@ -121,7 +121,7 @@ export function Checkbox({
       <input type="checkbox" className="peer sr-only" {...rest} />
       <span
         aria-hidden="true"
-        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border-2 border-line-strong text-transparent transition-colors group-hover:border-neon-lime peer-checked:border-neon-lime peer-checked:bg-neon-lime peer-checked:text-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow"
+        className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border-2 border-line-input text-transparent transition-colors group-hover:border-neon-lime peer-checked:border-neon-lime peer-checked:bg-neon-lime peer-checked:text-ink peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow"
       >
         <span className="text-xs font-black">✓</span>
       </span>
@@ -145,7 +145,7 @@ export function Radio({
       <input type="radio" className="peer sr-only" {...rest} />
       <span
         aria-hidden="true"
-        className="h-4 w-4 shrink-0 border-2 border-line-strong transition-colors group-hover:border-neon-lime peer-checked:border-neon-lime peer-checked:bg-neon-lime peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow"
+        className="h-4 w-4 shrink-0 border-2 border-line-input transition-colors group-hover:border-neon-lime peer-checked:border-neon-lime peer-checked:bg-neon-lime peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow"
       />
       <span>{label}</span>
     </label>
