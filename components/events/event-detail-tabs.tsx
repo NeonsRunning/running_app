@@ -25,9 +25,10 @@ import { cn } from "@/lib/cn";
 import type { IncludedIcon, Organizer, RunningEvent } from "@/lib/types";
 
 /**
- * The five tabs on an event page. Which tab is open is component state rather
+ * The tabs on an event page. Which tab is open is component state rather
  * than a URL parameter: it is a reading position within one event, and the
- * page above it is server-rendered per event either way.
+ * page above it is server-rendered per event either way. Course and schedule
+ * are optional in the wizard, so those tabs only show when filled in.
  */
 const TAB_ITEMS = [
   { value: "overview", key: "events.tabs.overview" },
@@ -38,6 +39,17 @@ const TAB_ITEMS = [
 ] as const;
 
 type TabValue = (typeof TAB_ITEMS)[number]["value"];
+
+/** Address and terrain are always set; the rest of the course is optional. */
+function hasCourse(event: RunningEvent): boolean {
+  return Boolean(
+    event.routeImage ||
+    event.aidStations.length > 0 ||
+    event.elevationGain > 0 ||
+    event.parking.trim() ||
+    event.directions.trim(),
+  );
+}
 
 const INCLUDED_ICONS = {
   bib: BibIcon,
@@ -73,15 +85,20 @@ export function EventDetailTabs({
   const fmt = useFormat();
   const [tab, setTab] = useState<TabValue>("overview");
   const tabsId = useTabsId();
+  const hidden = new Set<TabValue>();
+  if (!hasCourse(event)) hidden.add("course");
+  if (event.schedule.length === 0) hidden.add("schedule");
 
   return (
     <div>
       <Tabs
         id={tabsId}
-        items={TAB_ITEMS.map((item) => ({
-          value: item.value,
-          label: t(item.key),
-        }))}
+        items={TAB_ITEMS.filter((item) => !hidden.has(item.value)).map(
+          (item) => ({
+            value: item.value,
+            label: t(item.key),
+          }),
+        )}
         value={tab}
         onChange={setTab}
         label={t("events.tabs.label")}
