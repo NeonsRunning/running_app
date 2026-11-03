@@ -74,7 +74,7 @@ insert into public.events (
   '00000000-0000-4000-8000-000000000001',
   'storm-run-test', 'removed', now() - interval '5 days', 'Storm Run 5K', 'Road Race',
   current_date + 20, '07:00', current_date + 15, 'Parque Central', 'San Juan',
-  null, false, false, null,
+  null, false, false, default,
   false, null
 );
 
