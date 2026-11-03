@@ -196,6 +196,19 @@ export function PublishWizard({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
+  // Image fields still converting or uploading. Saving waits for them; see
+  // `ImageStep`'s `onBusyChange`.
+  const [uploading, setUploading] = useState<ReadonlySet<string>>(new Set());
+  function markUploading(field: string, busy: boolean) {
+    setUploading((prev) => {
+      if (prev.has(field) === busy) return prev;
+      const next = new Set(prev);
+      if (busy) next.add(field);
+      else next.delete(field);
+      return next;
+    });
+  }
+  const saveBlocked = pending || uploading.size > 0;
   const formRef = useRef<HTMLFormElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const router = useLocalizedRouter();
@@ -235,6 +248,7 @@ export function PublishWizard({
    */
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (uploading.size > 0) return;
     // The submitter carries `intent`: "draft" or "publish".
     const submitter = (e.nativeEvent as SubmitEvent).submitter;
     const data = new FormData(e.currentTarget, submitter);
@@ -480,7 +494,7 @@ export function PublishWizard({
               value="draft"
               variant="outline"
               size="sm"
-              disabled={pending}
+              disabled={saveBlocked}
             >
               {t("publish.saveDraft")}
             </Button>
@@ -1377,6 +1391,7 @@ export function PublishWizard({
             <p className="text-[15px] text-fg-dim">{t("publish.image.intro")}</p>
             <ImageStep
               name="image_path"
+              onBusyChange={(busy) => markUploading("image_path", busy)}
               messages="publish.image"
               value={imagePath}
               savedPath={savedImagePath}
@@ -1398,6 +1413,7 @@ export function PublishWizard({
             <p className="text-[15px] text-fg-dim">{t("publish.routeImage.intro")}</p>
             <ImageStep
               name="route_image_path"
+              onBusyChange={(busy) => markUploading("route_image_path", busy)}
               messages="publish.routeImage"
               value={routeImagePath}
               savedPath={savedRouteImagePath}
@@ -1425,6 +1441,7 @@ export function PublishWizard({
             <p className="text-[15px] text-fg-dim">{t("publish.medalImage.intro")}</p>
             <ImageStep
               name="medal_image_path"
+              onBusyChange={(busy) => markUploading("medal_image_path", busy)}
               messages="publish.medalImage"
               value={medalImagePath}
               savedPath={savedMedalImagePath}
@@ -1558,8 +1575,8 @@ export function PublishWizard({
                   value="publish"
                   block
                   size="xl"
-                  disabled={pending}
-                  aria-busy={pending}
+                  disabled={saveBlocked}
+                  aria-busy={saveBlocked}
                 >
                   {pending
                     ? t("common.saving")
@@ -1573,7 +1590,7 @@ export function PublishWizard({
                     block
                     variant="outline"
                     size="lg"
-                    disabled={pending}
+                    disabled={saveBlocked}
                   >
                     {t("publish.saveDraft")}
                   </Button>

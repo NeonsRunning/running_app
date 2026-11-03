@@ -119,6 +119,9 @@ function identityLine(
   return null;
 }
 
+/** Recommendations are picked from this many of the soonest races. */
+const RECOMMEND_FROM = 60;
+
 /**
  * Up to three races worth a look: still ahead, still taking sign-ups, and not
  * already on the runner's calendar or saved list. Races in the runner's city
@@ -186,20 +189,27 @@ export default async function RunnerProfilePage(
 
   const isSelf = viewerId !== null && viewerId === runner.id;
 
-  // The runner's own sign-ups are private to them, so only their own view of
-  // the page reads them. A race leaves the list once its last day has passed.
-  const [events, ownUpcoming] = await Promise.all([
-    // The calendar, saved and recommended panels all read the published
-    // races; a stranger's view of a profile with nothing on its calendar
-    // skips them.
-    isSelf || runner.upcoming.length > 0
-      ? listPublishedEvents(locale)
+  // The runner's own sign-ups and saves are private to them, so only their
+  // own view of the page reads them.
+  const [ownUpcoming, savedSlugs] = isSelf
+    ? await Promise.all([getUpcomingRegistrations(runner.id), getSavedSlugs(runner.id)])
+    : [[], []];
+  const upcoming = [...runner.upcoming, ...ownUpcoming];
+
+  // Only the races the page shows: the calendar's and the saved ones, and the
+  // soonest few for the runner's own recommendations — never every upcoming
+  // race, which the saved panel would otherwise carry to the browser. A race
+  // leaves the list once its last day has passed.
+  const wanted = [...new Set([...upcoming.map((u) => u.eventSlug), ...savedSlugs])];
+  const [events, candidates] = await Promise.all([
+    wanted.length ? listPublishedEvents(locale, { slugs: wanted }) : Promise.resolve([]),
+    isSelf
+      ? listPublishedEvents(locale, { limit: RECOMMEND_FROM })
       : Promise.resolve([]),
-    isSelf ? getUpcomingRegistrations(runner.id) : Promise.resolve([]),
   ]);
   const bySlug = new Map(events.map((e) => [e.slug, e]));
 
-  const calendar = [...runner.upcoming, ...ownUpcoming]
+  const calendar = upcoming
     .map((u) => ({ ...u, event: bySlug.get(u.eventSlug) }))
     .filter((u): u is typeof u & { event: NonNullable<typeof u.event> } =>
       Boolean(u.event),
@@ -211,14 +221,13 @@ export default async function RunnerProfilePage(
 
   // The saved, recommended and pending panels belong to the runner alone,
   // so nobody else pays for the lookups behind them.
-  const [savedSlugs, registeredIds, ownResults, mail] = isSelf
+  const [registeredIds, ownResults, mail] = isSelf
     ? await Promise.all([
-        getSavedSlugs(runner.id),
         getRegisteredEventIds(runner.id),
         listRunnerResults(runner.id, { includeUnreviewed: true }),
         getMailItems(runner.id),
       ])
-    : [[], [], [], []];
+    : [[], [], []];
   // A medal with no address yet — picked up, or mailed but missing one — opens
   // the form on the one saved in settings; nobody else needs the lookup.
   const details = mail.some(
@@ -232,7 +241,7 @@ export default async function RunnerProfilePage(
   // Accepted ones are already in the race history.
   const pendingResults = ownResults.filter((r) => r.status !== "accepted");
   const recommended = isSelf
-    ? recommendedFor(runner, events, {
+    ? recommendedFor(runner, candidates, {
         slugs: new Set([
           ...savedSlugs,
           ...calendar.map((u) => u.eventSlug),

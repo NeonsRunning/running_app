@@ -50,6 +50,8 @@ export const LIMITS = {
   deletionPerUser: { limit: 5, window: "1 day" },
   /** Data exports; each reads the whole account. */
   exportPerUser: { limit: 10, window: "1 hour" },
+  /** Race-day change notices, by event; each emails every confirmed runner. */
+  raceDayEmailsPerEvent: { limit: 3, window: "1 day" },
 } satisfies Record<string, Limit>;
 
 export type Check = {

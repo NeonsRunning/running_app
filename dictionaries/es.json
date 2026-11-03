@@ -774,6 +774,8 @@
       "whenBefore": "Antes",
       "whereNow": "Lugar (nuevo)",
       "whereBefore": "Antes",
+      "startNow": "Salida de {distance} (nueva)",
+      "startBefore": "Antes",
       "next": "Revisa la página de la carrera para ver los detalles más recientes antes del día de la carrera.",
       "cta": "Ver detalles de la carrera",
       "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING."

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, type DragEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { useT } from "@/components/i18n/provider";
 import { Button } from "@/components/ui/button";
 import { PhotoIcon } from "@/components/ui/icons";
@@ -34,6 +34,7 @@ export function ImageStep({
   preview,
   error,
   disabled = false,
+  onBusyChange,
 }: {
   /** Form field that carries the path. */
   name: "image_path" | "route_image_path" | "medal_image_path";
@@ -54,6 +55,12 @@ export function ImageStep({
    * at nothing.
    */
   disabled?: boolean;
+  /**
+   * Converting or uploading. The wizard holds its save until this is done: a
+   * save mid-upload stores the old image, and the upload, finishing after it,
+   * would delete that one as unclaimed.
+   */
+  onBusyChange?: (busy: boolean) => void;
 }) {
   const t = useT();
   const inputId = useId();
@@ -66,6 +73,16 @@ export function ImageStep({
   const [dragging, setDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string>();
 
+  // An upload finishes renders after it started; it must see the field and
+  // the saved path as they are then, not as they were when the file was
+  // picked.
+  const current = useRef({ value, savedPath });
+  useEffect(() => {
+    current.current = { value, savedPath };
+  });
+
+  useEffect(() => onBusyChange?.(uploading), [uploading, onBusyChange]);
+
   const phaseLabel =
     phase === "converting"
       ? t(`${messages}.converting`)
@@ -75,7 +92,7 @@ export function ImageStep({
 
   /** Drop an upload no save has claimed. Best effort. */
   function discard(path: string) {
-    if (path && path !== savedPath) {
+    if (path && path !== current.current.savedPath) {
       void createClient().storage.from(EVENT_IMAGE_BUCKET).remove([path]);
     }
   }
@@ -99,7 +116,7 @@ export function ImageStep({
         .upload(path, webp, { contentType: EVENT_IMAGE_TYPE, cacheControl: "31536000" });
       if (storageError) return setUploadError("imageUploadFailed");
 
-      discard(value);
+      discard(current.current.value);
       onChange(path);
     } catch (e) {
       setUploadError(e instanceof ImageConversionError ? e.code : "imageUploadFailed");

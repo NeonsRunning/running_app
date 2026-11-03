@@ -120,20 +120,34 @@ async function remind(
   origin: string,
 ): Promise<"sent" | "failed" | "unconfirmed" | "skipped"> {
   const admin = createAdminClient();
+  // Still confirmed: the batch was read a while ago, and sends take time.
   const { data: claimed, error: claimError } = await admin
     .from("registrations")
     .update({ reminder_email_sent_at: new Date().toISOString() })
     .eq("id", row.id)
+    .eq("status", "confirmed")
     .is("reminder_email_sent_at", null)
-    .select("id")
+    .select("id, events!inner(status, event_date)")
     .maybeSingle();
   // Not claimed, so nothing to give back: the next run tries again.
   if (claimError) {
     console.error(`Claiming the race reminder for ${row.id} failed:`, claimError.message);
     return "failed";
   }
-  // Sent by a run that overlapped this one.
+  // Sent by a run that overlapped this one, or the runner was taken off.
   if (!claimed) return "skipped";
+  // The race was taken down or moved since the batch was read. Give the
+  // claim back: a race restored, or run on its new date, still needs one.
+  if (
+    claimed.events.status !== "published" ||
+    claimed.events.event_date !== row.events.event_date
+  ) {
+    await admin
+      .from("registrations")
+      .update({ reminder_email_sent_at: null })
+      .eq("id", row.id);
+    return "skipped";
+  }
   // Switched off in settings. The claim stays, so later runs skip the row.
   if (settings?.reminders === false) return "skipped";
 

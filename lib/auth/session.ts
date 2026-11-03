@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -56,13 +57,17 @@ export const GUEST_SESSION: Session = {
  * access token with Supabase, while the latter trusts a cookie the browser
  * could have rewritten. Every authorization decision on the server hangs off
  * this function.
+ *
+ * Asked once per request: the layout, the page and its metadata all want it,
+ * and each ask is a round trip to Supabase Auth. So are `getAccount` and
+ * `isPlatformAdmin`.
  */
-export async function getUser(): Promise<User | null> {
+export const getUser = cache(async function getUser(): Promise<User | null> {
   if (!hasSupabaseEnv()) return null;
   const supabase = await createClient();
   const { data, error } = await supabase.auth.getUser();
   return error ? null : data.user;
-}
+});
 
 /**
  * Whether the current session was opened by a password-recovery link within
@@ -92,11 +97,11 @@ export async function requireUser(path?: string): Promise<User> {
 }
 
 /** The user together with their profile row, or null when signed out. */
-export async function getAccount(): Promise<Account | null> {
+export const getAccount = cache(async function getAccount(): Promise<Account | null> {
   const user = await getUser();
   if (!user) return null;
   return { user, profile: await getProfile(user.id) };
-}
+});
 
 /** As `requireUser`, for the pages that render profile data. */
 export async function requireAccount(path?: string): Promise<Account> {
@@ -133,12 +138,12 @@ export async function requireOrganizer(path?: string): Promise<Account | null> {
  * `platform_admins`, which only the team can write to. False when signed out
  * or on any failure.
  */
-export async function isPlatformAdmin(): Promise<boolean> {
+export const isPlatformAdmin = cache(async function isPlatformAdmin(): Promise<boolean> {
   if (!hasSupabaseEnv()) return false;
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("is_platform_admin");
   return !error && data === true;
-}
+});
 
 /**
  * The signed-in account if it is a platform admin's, null otherwise, and a

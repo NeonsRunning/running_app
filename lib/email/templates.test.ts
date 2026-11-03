@@ -145,6 +145,11 @@ vi.mock("next/server", async (importOriginal) => ({
     pending.push(Promise.resolve().then(task));
   },
 }));
+// Within the per-event limit on race-day notices.
+vi.mock("@/lib/rate-limit", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/rate-limit")>()),
+  withinLimits: () => Promise.resolve(true),
+}));
 vi.mock("@/lib/site-url", () => ({ siteOrigin: () => Promise.resolve("https://neons.test") }));
 // A compiler placeholder outside a Next build; email picks its locale itself.
 vi.mock("next/root-params", () => ({ lang: () => Promise.resolve(undefined) }));
@@ -204,6 +209,9 @@ const intent = {
 } as unknown as Stripe.PaymentIntent;
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+/** Distances whose starts did not move. */
+const NO_STARTS = { before: [], after: [] };
+
 /** Each email and how to make it send. Locale comes from `locale`. */
 const TEMPLATES: [string, () => Promise<unknown>][] = [
   ["account deletion request", () => notifyTeamOfDeletionRequest("user-1")],
@@ -218,7 +226,21 @@ const TEMPLATES: [string, () => Promise<unknown>][] = [
       scheduleEventSavedEmails({
         before: event(),
         saved: event({ event_date: "2099-11-14", last_day: "2099-11-14", venue: "Otro parque" }),
+        starts: NO_STARTS,
         byAdmin: true,
+      }),
+  ],
+  [
+    "race day changed: the runner's distance starts later",
+    () =>
+      scheduleEventSavedEmails({
+        before: event(),
+        saved: event(),
+        starts: {
+          before: [{ id: "cat-1", distance: "10K", start_time: "07:00:00" }],
+          after: [{ id: "cat-1", distance: "10K", start_time: "07:30:00" }],
+        },
+        byAdmin: false,
       }),
   ],
   ["kit shipped", () => scheduleKitShippedEmail(reg())],
@@ -299,6 +321,7 @@ describe("optional emails", () => {
         scheduleEventSavedEmails({
           before: event(),
           saved: event({ venue: "Otro parque" }),
+          starts: NO_STARTS,
           byAdmin: false,
         }),
       "updates",
@@ -342,5 +365,21 @@ describe("race reminders", () => {
       unconfirmed: 1,
     });
     expect(released()).toBe(false);
+  });
+
+  // BUG-005: a race taken down after the batch was read is not "tomorrow"
+  // any more, and one restored later still needs its reminder.
+  it("skip a race taken down since the batch was read, and give the claim back", async () => {
+    EVENT.status = "removed";
+    try {
+      expect(await sendRaceReminders("https://neons.test")).toMatchObject({
+        sent: 0,
+        skipped: 1,
+      });
+    } finally {
+      EVENT.status = "published";
+    }
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(released()).toBe(true);
   });
 });
