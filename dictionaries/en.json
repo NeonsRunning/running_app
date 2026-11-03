@@ -334,6 +334,8 @@
       "finishers": "Finishers",
       "runnerRating": "Runner rating",
       "contactOrganizer": "Contact organizer",
+      "askAboutRace": "Ask about this race",
+      "askAboutRaceHint": "Write to us with the race name: we will answer and, if needed, sort it out with the organizer.",
       "start": "START",
       "finish": "FINISH",
       "aid": "AID {n} · {km}K",
@@ -1235,7 +1237,7 @@
     "metaDescription": "Reach the NEONS RUNNING team, or the organizer of a specific race.",
     "eyebrow": "Get in touch",
     "title": "Contact",
-    "body": "For anything about a specific race — start times, course changes, bib collection — the organizer answers fastest from that event’s page. Everything else comes to us.",
+    "body": "Write to us about anything. If it is about a specific race — start times, course changes, bib collection — include the race name and your bib number: we will answer and, if needed, sort it out with its organizer.",
     "directChannels": "Direct channels",
     "channels": [
       {
@@ -1332,7 +1334,7 @@
           },
           {
             "q": "My result was rejected or is wrong. What now?",
-            "a": "If the organizer rejects your evidence, you will see their note and can send new evidence from the race page. An accepted result can no longer be resubmitted, so if something is wrong with it, contact the organizer from the event page."
+            "a": "If the organizer rejects your evidence, you will see their note and can send new evidence from the race page. An accepted result can no longer be resubmitted, so if something is wrong with it, write to us from Contact with the race name and your bib number and we will check it with the organizer."
           }
         ]
       },

@@ -334,6 +334,8 @@
       "finishers": "Finalistas",
       "runnerRating": "Valoración",
       "contactOrganizer": "Contactar al organizador",
+      "askAboutRace": "Preguntar sobre esta carrera",
+      "askAboutRaceHint": "Escríbenos con el nombre de la carrera: te respondemos y, si hace falta, lo coordinamos con el organizador.",
       "start": "SALIDA",
       "finish": "META",
       "aid": "AVIT. {n} · {km}K",
@@ -1235,7 +1237,7 @@
     "metaDescription": "Comunícate con el equipo de NEONS RUNNING o con el organizador de una carrera concreta.",
     "eyebrow": "Hablemos",
     "title": "Contacto",
-    "body": "Para cualquier cosa sobre una carrera en particular — horas de salida, cambios de ruta, entrega de dorsales — el organizador responde más rápido desde la página de ese evento. Todo lo demás nos llega a nosotros.",
+    "body": "Escríbenos sobre lo que sea. Si es sobre una carrera en particular — horas de salida, cambios de ruta, entrega de dorsales — incluye el nombre de la carrera y tu número de dorsal: te respondemos y, si hace falta, lo coordinamos con su organizador.",
     "directChannels": "Canales directos",
     "channels": [
       {
@@ -1332,7 +1334,7 @@
           },
           {
             "q": "Mi resultado fue rechazado o está mal. ¿Y ahora?",
-            "a": "Si el organizador rechaza tu evidencia, verás su nota y podrás enviar nueva evidencia desde la página de la carrera. Un resultado aceptado ya no se puede volver a enviar, así que si tiene algún error, contacta al organizador desde la página del evento."
+            "a": "Si el organizador rechaza tu evidencia, verás su nota y podrás enviar nueva evidencia desde la página de la carrera. Un resultado aceptado ya no se puede volver a enviar, así que si tiene algún error, escríbenos desde Contacto con el nombre de la carrera y tu número de dorsal y lo revisamos con el organizador."
           }
         ]
       },
