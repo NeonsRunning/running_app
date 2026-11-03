@@ -87,6 +87,7 @@ export function LoginForm({
           <Input
             {...p}
             name="email"
+            defaultValue={state?.values?.email}
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -146,6 +147,7 @@ export function SignUpForm() {
           <Input
             {...p}
             name="name"
+            defaultValue={state?.values?.name}
             autoComplete="name"
             placeholder="Alex Rivera"
           />
@@ -157,6 +159,7 @@ export function SignUpForm() {
           <Input
             {...p}
             name="email"
+            defaultValue={state?.values?.email}
             type="email"
             inputMode="email"
             autoComplete="email"
@@ -231,6 +234,7 @@ export function ForgotPasswordForm() {
           <Input
             {...p}
             name="email"
+            defaultValue={state?.values?.email}
             type="email"
             inputMode="email"
             autoComplete="email"

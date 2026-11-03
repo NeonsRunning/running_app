@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { createClient as createBareClient } from "@supabase/supabase-js";
 import { paymentCode, toAthMovilAccount } from "@/lib/ath-movil/config";
 import { addDays, puertoRicoToday } from "@/lib/dates";
 import { eventImageUrl } from "@/lib/events/images";
@@ -9,10 +10,10 @@ import type { Translate } from "@/lib/i18n/translate";
 import { initialsOf } from "@/lib/profile/queries";
 import { registrationStatus } from "./availability";
 import { EVENTS_PAGE_SIZE, type EventPage, type EventSearch } from "./search";
-import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { hasSupabaseEnv, supabaseEnv } from "@/lib/supabase/env";
 import { selectAll } from "@/lib/supabase/paginate";
 import { createClient } from "@/lib/supabase/server";
-import type { Tables } from "@/lib/supabase/database.types";
+import type { Database, Tables } from "@/lib/supabase/database.types";
 import type {
   AidStation,
   Organizer,
@@ -724,10 +725,27 @@ export const findEvent = cache(async function findEvent(
   };
 });
 
-/** Every published race, past ones included: their pages stay up. */
+/**
+ * Every published race, past ones included: their pages stay up. Two
+ * columns, read as a visitor would — no session, so the sitemap that asks
+ * can be cached rather than rebuilt on every crawl.
+ */
 export async function listPublishedSlugs(): Promise<
   { slug: string; updatedAt: string }[]
 > {
-  const rows = await selectEvents({});
-  return rows.map((r) => ({ slug: r.slug, updatedAt: r.updated_at }));
+  if (!hasSupabaseEnv()) return [];
+  const { url, anonKey } = supabaseEnv();
+  const supabase = createBareClient<Database>(url, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  });
+  const { data, error } = await selectAll((from, to) =>
+    supabase
+      .from("events")
+      .select("slug, updated_at")
+      .eq("status", "published")
+      .order("id")
+      .range(from, to),
+  );
+  if (error) return [];
+  return data.map((r) => ({ slug: r.slug, updatedAt: r.updated_at }));
 }

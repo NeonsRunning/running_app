@@ -205,6 +205,26 @@ signs them in to the sender's account).
 Turn on **Authentication → Providers → Email → Secure password change** in
 the dashboard as well. `updatePasswordAction` already asks for the current
 password unless the session came from a recovery link in the last hour.
+Leave **Require current password when updating** off: the app asks for it
+itself, and a runner arriving from a reset link has none to give.
+
+Then, in the same part of the dashboard — `supabase/config.toml` sets the
+same for local development, but the hosted project keeps its own:
+
+3. **Authentication → Emails → SMTP Settings.** Turn on custom SMTP. The
+   built-in sender only delivers to the project's team, a few an hour, so
+   without it nobody else gets a confirmation or reset email. With Brevo:
+   `smtp-relay.brevo.com`, port 587, the SMTP login and an SMTP key (not the
+   API key), and a sender on a domain authenticated in Brevo — a free-mail
+   sender such as Gmail fails the inbox providers' checks and lands in spam.
+4. **Authentication → Rate Limits → emails.** Each sign-up and reset sends one;
+   raise it to cover the busiest hour, such as a popular race opening.
+5. **Authentication → Sign In / Providers → Confirm email: on.** `signUpAction`
+   relies on it to answer a taken address the same as a new one, and an
+   unconfirmed address proves nobody owns it.
+6. **Authentication → Providers → Email → Minimum password length: 8**, the
+   same as `MIN_PASSWORD` in `lib/auth/actions.ts`. Auth must refuse what the
+   form refuses: anyone can call it directly with the public key.
 
 ### Flows
 
@@ -228,7 +248,8 @@ the sender, not the account.
 
 ## Database
 
-One table so far, in two halves.
+Profiles, events and their distances, registrations and their payments,
+results, moderation, and the email outbox. Profiles come in two halves:
 
 ```
 supabase/migrations/  the schema, in order
@@ -271,9 +292,14 @@ npm run db:push     # supabase db push
 npm run db:types    # regenerate database.types.ts from the live schema
 ```
 
-Or paste `supabase/migrations/20260824120000_profiles.sql` into the SQL editor
-in the dashboard. It is idempotent in the part that matters: accounts that
-existed before it ran are backfilled at the end.
+Always through `db push`, never by pasting a migration into the SQL editor.
+The push records each migration in `supabase_migrations.schema_migrations`;
+the editor records nothing, so the next push tries to run it again, and a
+migration that fails halfway in the editor is easy to miss. Production was
+caught out by exactly that once: an empty history over a half-applied
+schema. If it happens again, compare the schema with the migrations, mark
+what is really there with `supabase migration repair --status applied
+<version>…`, and push the rest with `--include-all`.
 
 ### Changing a SQL function
 
@@ -437,12 +463,12 @@ CRITICAL {"code":"REFUND_FAILED","message":"A refund failed; the runner is still
 | Code | What to do |
 |---|---|
 | `REFUND_FAILED` | Stripe is retrying through the webhook; if it keeps failing, refund the PaymentIntent by hand. |
-| `PAYMENT_DISPUTED` | Answer the dispute in the Stripe dashboard before its deadline. |
+| `PAYMENT_DISPUTED` | Answer the dispute in the Stripe dashboard before its deadline. A dispute that is lost cancels the sign-up by itself, as a full refund does. |
 | `EMAIL_GAVE_UP` | An outbox email failed 8 times; its row in `email_outbox` has the error. |
 | `EMAIL_UNCONFIRMED` | Brevo did not answer an outbox send in time. Look the address up in Brevo's logs; resend only if it is not there. |
 | `EMAIL_NOT_MARKED_SENT` | An outbox email went but its row was not marked; set its `sent_at` by hand, or it goes again in 15 minutes. |
 | `DELETION_REQUEST_NOT_EMAILED` / `DELETION_CANCELLATION_NOT_EMAILED` | Check `account_deletion_requests` and tell the team by hand. |
-| `RATE_LIMIT_UNAVAILABLE` | The database could not count rate limits; calls are being let through. |
+| `RATE_LIMIT_UNAVAILABLE` | The database could not count rate limits; production is refusing those calls (sign-in, sign-up, contact, checkout) until it can. |
 | `SITE_URL_MISSING` | Set `NEXT_PUBLIC_SITE_URL` in production. |
 
 Log lines carry ids, never names, email addresses or phone numbers.
@@ -477,15 +503,17 @@ persistent bottom tab bar.
 
 ## Notes
 
-- Data is in-memory; nothing persists across a reload, and no payment is taken.
+- Accounts, events, registrations, payments (Stripe and ATH Móvil), results
+  and email are real. What is still fixture data, in `lib/data.ts`: the
+  `/community` page and the home page's community strip (switched off), and
+  `/runners/[id]` for an id that is not a uuid, so the old demo links keep
+  working. Notifications have no table yet; `/notifications` shows its empty
+  state.
+- A card payment refunded in full, or lost to a chargeback, cancels the
+  sign-up it paid for (`cancel_unpaid_registration()`, from the webhook). A
+  partial refund leaves it confirmed.
 - Every screen ships in both languages; `npm run check:i18n` keeps them level.
 - Policy pages in `lib/legal.ts` are realistic drafts for a demo, not legal advice.
-- Accounts and profiles are real (Supabase); event, result and registration data
-  is still the in-memory fixture set in `lib/data.ts`.
-- `/runners/[id]` resolves both: a uuid reads `public.profiles`, anything else
-  falls back to a fixture, so the demo links keep working. A real account has no
-  races behind it yet, so its stats read zero and the achievement, history and
-  sidebar panels show empty states rather than borrowing fixture numbers.
 - `/runners/me` is the same page under the one address that can be linked to
   before an id is known — the nav, the login redirect and the confirmation
   emails all need it. It resolves against the session and renders in place, so

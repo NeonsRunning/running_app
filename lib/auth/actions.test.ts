@@ -71,9 +71,24 @@ describe("signInAction", () => {
 
     expect(
       await signInAction(undefined, form({ email: "ana@example.com", password: "x" })),
-    ).toEqual({ error: "rateLimited" });
+    ).toEqual({ error: "rateLimited", values: { email: "ana@example.com" } });
     expect(signInWithPassword).not.toHaveBeenCalled();
   });
+});
+
+// FE-004: React resets a form after its action. What was typed comes back so
+// a wrong password does not clear the email too — and the password never does.
+it("hands back the email, never the password, when signing in fails", async () => {
+  signInWithPassword.mockResolvedValue({
+    error: { code: "invalid_credentials", message: "Invalid login credentials" },
+  });
+
+  const state = await signInAction(
+    undefined,
+    form({ email: "ana@example.com", password: "hunter22" }),
+  );
+  expect(state.values).toEqual({ email: "ana@example.com" });
+  expect(JSON.stringify(state)).not.toContain("hunter22");
 });
 
 describe("requestPasswordResetAction", () => {
@@ -82,7 +97,7 @@ describe("requestPasswordResetAction", () => {
 
     expect(
       await requestPasswordResetAction(undefined, form({ email: "ana@example.com" })),
-    ).toEqual({ error: "rateLimited" });
+    ).toEqual({ error: "rateLimited", values: { email: "ana@example.com" } });
     expect(resetPasswordForEmail).not.toHaveBeenCalled();
   });
 

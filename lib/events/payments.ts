@@ -218,6 +218,10 @@ function intentId(ref: string | Stripe.PaymentIntent | null): string | null {
  * belong to no registration (the duplicates and late payments refunded in
  * `settlePayment`) match nothing and are left alone.
  *
+ * Refunded in full, the sign-up is cancelled as well: the runner has their
+ * money back, so they hold no bib and no spot. A partial refund — an extra
+ * taken back — leaves it confirmed.
+ *
  * Only a row this payment actually paid for counts: confirmed (or since
  * cancelled) by card. A pending row can still carry a PaymentIntent that
  * `settlePayment` refunded because it could not confirm it — sold out,
@@ -245,13 +249,14 @@ export async function recordRefund(charge: Stripe.Charge): Promise<boolean> {
     console.error(`Recording the refund on ${paymentIntent} failed:`, error.message);
     return false;
   }
-  return true;
+  return charge.refunded ? cancelUnpaid(paymentIntent) : true;
 }
 
 /**
  * Record a dispute (chargeback) on a registration's payment, and its status
  * as Stripe moves it along. Logged loudly as well: a dispute has a response
- * deadline, and someone has to answer it in the Stripe dashboard.
+ * deadline, and someone has to answer it in the Stripe dashboard. A dispute
+ * we lost took the money back, and cancels the sign-up as a full refund does.
  *
  * Resolves false on a database failure, so the webhook asks Stripe to retry.
  */
@@ -271,9 +276,29 @@ export async function recordDispute(dispute: Stripe.Dispute): Promise<boolean> {
       disputed_at: new Date(dispute.created * 1000).toISOString(),
       dispute_status: dispute.status,
     })
-    .eq("payment_intent_id", paymentIntent);
+    .eq("payment_intent_id", paymentIntent)
+    // As with refunds: a pending row may still carry a card payment that was
+    // refunded, then be paid by ATH Móvil. That money is not disputed.
+    .eq("payment_method", "stripe")
+    .in("status", ["confirmed", "cancelled"]);
   if (error) {
     console.error(`Recording the dispute on ${paymentIntent} failed:`, error.message);
+    return false;
+  }
+  return dispute.status === "lost" ? cancelUnpaid(paymentIntent) : true;
+}
+
+/**
+ * Cancel the sign-up a card payment confirmed, now that the money went back:
+ * see `cancel_unpaid_registration()`. Resolves false on a database failure,
+ * so the webhook asks Stripe to retry; cancelling twice is a no-op.
+ */
+async function cancelUnpaid(paymentIntent: string): Promise<boolean> {
+  const { error } = await createAdminClient().rpc("cancel_unpaid_registration", {
+    p_payment_intent_id: paymentIntent,
+  });
+  if (error) {
+    console.error(`Cancelling the sign-up paid by ${paymentIntent} failed:`, error.message);
     return false;
   }
   return true;

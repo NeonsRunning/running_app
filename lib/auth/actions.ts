@@ -44,6 +44,12 @@ export type AuthState = {
   ok?: boolean;
   /** Echoed back so that confirmation panel can name the address. */
   email?: string;
+  /**
+   * What was typed, on a failure, so the form can show it again: React
+   * resets a form after its action, and a wrong password would otherwise
+   * clear the email too. Never a password.
+   */
+  values?: { email?: string; name?: string };
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -117,12 +123,12 @@ export async function signInAction(
   if (!email) fieldErrors.email = "emailRequired";
   else if (!EMAIL_RE.test(email)) fieldErrors.email = "emailInvalid";
   if (!password) fieldErrors.password = "passwordRequired";
-  if (Object.keys(fieldErrors).length) return { fieldErrors };
-  if (!(await passwordAttemptAllowed(email))) return { error: "rateLimited" };
+  if (Object.keys(fieldErrors).length) return { fieldErrors, values: { email } };
+  if (!(await passwordAttemptAllowed(email))) return { error: "rateLimited", values: { email } };
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: authErrorKey(error) };
+  if (error) return { error: authErrorKey(error), values: { email } };
 
   revalidatePath("/", "layout");
   const next = safeNextPath(readText(formData, "next")) ?? SELF_PROFILE_PATH;
@@ -147,10 +153,10 @@ export async function signUpAction(
   if (!email) fieldErrors.email = "emailRequired";
   else if (!EMAIL_RE.test(email)) fieldErrors.email = "emailInvalid";
   if (password.length < MIN_PASSWORD) fieldErrors.password = "passwordShort";
-  if (Object.keys(fieldErrors).length) return { fieldErrors };
+  if (Object.keys(fieldErrors).length) return { fieldErrors, values: { name, email } };
   // Every sign-up — a decoy one for a registered address included — has
   // Supabase send a confirmation email, so it is counted like a resend.
-  if (!(await authEmailAllowed("auth:signup", email))) return { error: "rateLimited" };
+  if (!(await authEmailAllowed("auth:signup", email))) return { error: "rateLimited", values: { name, email } };
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -171,7 +177,7 @@ export async function signUpAction(
     },
   });
 
-  if (error) return { error: authErrorKey(error) };
+  if (error) return { error: authErrorKey(error), values: { name, email } };
 
   // With email confirmation switched on, signing up with an address that is
   // already registered returns a decoy user instead of an error — deliberate,
@@ -266,14 +272,14 @@ export async function requestPasswordResetAction(
   const locale = readLocale(formData);
   const email = readText(formData, "email");
 
-  if (!EMAIL_RE.test(email)) return { fieldErrors: { email: "emailInvalid" } };
+  if (!EMAIL_RE.test(email)) return { fieldErrors: { email: "emailInvalid" }, values: { email } };
   // Says nothing about whether the address has an account: the limits count
   // the asking, whoever the address belongs to. The caller's own limit is
   // theirs to hear about.
   const ipAllowed = await withinLimits([
     { action: "auth:reset:ip", who: await clientIp(), limit: LIMITS.authEmailPerIp },
   ]);
-  if (!ipAllowed) return { error: "rateLimited" };
+  if (!ipAllowed) return { error: "rateLimited", values: { email } };
   // The address's limit is not: anyone who knows it could fill it and leave
   // its owner facing an error. Past it nothing more is sent, but the answer
   // is the usual one — the latest link that did go out still works.
@@ -290,7 +296,7 @@ export async function requestPasswordResetAction(
   // Rate limiting is worth surfacing: it describes the sender, not the
   // account. Every other failure still reports success, because "no such
   // account" would tell a stranger which addresses are registered.
-  if (error?.code?.includes("rate_limit")) return { error: authErrorKey(error) };
+  if (error?.code?.includes("rate_limit")) return { error: authErrorKey(error), values: { email } };
 
   return { ok: true, email };
 }
