@@ -320,7 +320,7 @@ grant execute on function public.save_event(uuid, text, jsonb, jsonb) to authent
 
 -- 2 ---------------------------------------------------------------------------
 
-drop function public.review_race_result(uuid, boolean, text);
+drop function if exists public.review_race_result(uuid, boolean, text);
 
 create or replace function public.review_race_result(
   p_result_id uuid,
@@ -576,6 +576,7 @@ $$;
 
 revoke execute on function public.keep_payment_records() from public, anon, authenticated;
 
+drop trigger if exists keep_payment_records on public.registrations;
 create trigger keep_payment_records
   before delete on public.registrations
   for each row execute function public.keep_payment_records();
