@@ -53,7 +53,7 @@ export default async function ResultsIndexPage() {
                 className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 px-5 py-5 transition-colors hover:bg-carbon sm:px-7"
               >
                 <span className="min-w-0">
-                  <span className="block font-display text-xl font-black break-words uppercase sm:text-2xl">
+                  <span className="block font-display text-xl font-black wrap-break-word uppercase sm:text-2xl">
                     {e.name}
                   </span>
                   <span className="mt-1 block font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">

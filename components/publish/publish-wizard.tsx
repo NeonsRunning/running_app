@@ -539,7 +539,7 @@ export function PublishWizard({
           </ol>
         </nav>
 
-        <div className="px-4 py-8 sm:px-8 lg:min-h-[46rem] lg:px-12 lg:py-12">
+        <div className="px-4 py-8 sm:px-8 lg:min-h-184 lg:px-12 lg:py-12">
           <p className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
             {t("publish.stepOf", {
               current: step + 1,

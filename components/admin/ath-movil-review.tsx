@@ -100,7 +100,7 @@ export function AthMovilReview({
               </Eyebrow>
               <h2
                 data-focus={`name-${row.id}`}
-                className="mt-2 text-xl font-extrabold break-words"
+                className="mt-2 text-xl font-extrabold wrap-break-word"
               >
                 {row.runnerName}
               </h2>

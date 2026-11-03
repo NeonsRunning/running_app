@@ -126,7 +126,7 @@ export function AthMovilAccounts({
                 <div className="flex flex-wrap items-center gap-3">
                   <h2
                     data-focus={`name-${account.id}`}
-                    className="text-xl font-extrabold break-words"
+                    className="text-xl font-extrabold wrap-break-word"
                   >
                     {account.label}
                   </h2>

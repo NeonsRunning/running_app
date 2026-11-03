@@ -103,7 +103,7 @@ export default async function EventResultsPage(
                 >
                   <table
                     aria-labelledby={`results-${group[0].categoryId}`}
-                    className="w-full min-w-[36rem] border-collapse"
+                    className="w-full min-w-144 border-collapse"
                   >
                     <thead>
                       <tr className="border-b-2 border-line">
@@ -130,7 +130,7 @@ export default async function EventResultsPage(
                           <td className="px-4 py-3">
                             <Link
                               href={`/runners/${r.runnerId}`}
-                              className="text-sm font-bold break-words hover:text-neon-lime"
+                              className="text-sm font-bold wrap-break-word hover:text-neon-lime"
                             >
                               {r.runnerName}
                             </Link>

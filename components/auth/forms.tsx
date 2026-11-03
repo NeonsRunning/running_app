@@ -374,7 +374,7 @@ export function ConfirmLinkForm({
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
       {signedInAs ? (
-        <p className="border-2 border-neon-yellow bg-neon-yellow/8 px-4 py-3 text-[13px] leading-relaxed font-semibold wrap-break-words text-fg">
+        <p className="border-2 border-neon-yellow bg-neon-yellow/8 px-4 py-3 text-[13px] leading-relaxed font-semibold wrap-break-word text-fg">
           {t("auth.confirmLink.signedInAs", { email: signedInAs })}
         </p>
       ) : null}
@@ -443,7 +443,7 @@ export function VerifyEmailPanel({ email }: { email?: string }) {
         <p className="font-display text-2xl font-black text-neon-lime uppercase">
           {t("auth.verify.sentTitle")}
         </p>
-        <p className="mt-3 text-sm leading-relaxed wrap-break-words text-fg-muted">
+        <p className="mt-3 text-sm leading-relaxed wrap-break-word text-fg-muted">
           {t("auth.verify.sentBody", { email })}
         </p>
       </div>

@@ -87,7 +87,7 @@ export function CancelledRegistrations({
                     {row.bib ?? "—"}
                   </td>
                   <td className="px-3 py-3">
-                    <p className="text-sm font-bold break-words">{row.runnerName}</p>
+                    <p className="text-sm font-bold wrap-break-word">{row.runnerName}</p>
                     <p translate="no" className="text-[11px] break-all text-fg-faint">
                       {row.email}
                     </p>

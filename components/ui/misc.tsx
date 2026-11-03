@@ -183,7 +183,7 @@ export function AvatarStack({
             dim,
             i > 0 && "-ml-2",
             p.accent === "lime"
-              ? "bg-gradient-to-br from-neon-lime to-neon-green text-ink"
+              ? "bg-linear-to-br from-neon-lime to-neon-green text-ink"
               : p.accent === "yellow"
                 ? "bg-graphite text-neon-yellow"
                 : p.accent === "green"
