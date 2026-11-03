@@ -249,7 +249,7 @@ export function EventPayments({
                     <td className="px-4 py-3.5">
                       <p
                         data-focus={`name-${row.id}`}
-                        className="text-sm font-bold break-words"
+                        className="text-sm font-bold wrap-break-word"
                       >
                         {row.runnerName}
                       </p>
@@ -301,7 +301,7 @@ export function EventPayments({
                   <div className="min-w-0">
                     <p
                       data-focus={`name-${row.id}`}
-                      className="text-base font-bold break-words"
+                      className="text-base font-bold wrap-break-word"
                     >
                       {row.runnerName}
                     </p>

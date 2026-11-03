@@ -352,7 +352,7 @@ export function EventDetailTabs({
       <TabPanel id={tabsId} value="organizer" active={tab === "organizer"}>
         <div className="px-5 py-9 sm:px-8 lg:px-10">
           <div className="flex flex-col gap-6 border-2 border-line bg-carbon p-6 sm:flex-row sm:p-8">
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-gradient-to-br from-neon-yellow to-neon-lime text-2xl font-black text-ink">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center bg-linear-to-br from-neon-yellow to-neon-lime text-2xl font-black text-ink">
               {organizer.initials}
             </div>
             <div className="flex-1">
@@ -486,7 +486,7 @@ function RouteImage({ event, src }: { event: RunningEvent; src: string }) {
           alt={t("events.tabs.routeImageAlt", { name: event.name })}
           loading="lazy"
           decoding="async"
-          className="mx-auto max-h-[36rem] w-full object-contain"
+          className="mx-auto max-h-144 w-full object-contain"
         />
       </a>
       <figcaption className="flex flex-wrap justify-between gap-2 border-t-2 border-line px-5 py-3 font-mono text-[11px] tracking-[0.16em] text-fg-faint uppercase">
@@ -507,15 +507,15 @@ function CourseMap({ event }: { event: RunningEvent }) {
   return (
     <div className="bg-grid-map relative h-72 overflow-hidden border-b-2 border-line bg-carbon sm:h-88">
       {/* The loop. */}
-      <div className="absolute top-[62%] left-[6%] h-[3px] w-[88%] bg-neon-lime" />
-      <div className="absolute top-[30%] left-[24%] h-[3px] w-[52%] bg-neon-lime" />
-      <div className="absolute top-[30%] left-[24%] h-[32%] w-[3px] bg-neon-lime" />
-      <div className="absolute top-[30%] left-[76%] h-[32%] w-[3px] bg-neon-lime" />
+      <div className="absolute top-[62%] left-[6%] h-0.75 w-[88%] bg-neon-lime" />
+      <div className="absolute top-[30%] left-[24%] h-0.75 w-[52%] bg-neon-lime" />
+      <div className="absolute top-[30%] left-[24%] h-[32%] w-0.75 bg-neon-lime" />
+      <div className="absolute top-[30%] left-[76%] h-[32%] w-0.75 bg-neon-lime" />
 
-      <span className="absolute top-[62%] left-[6%] -translate-x-1/2 -translate-y-[140%] bg-neon-green px-2.5 py-1.5 text-[11px] font-black tracking-wider text-ink">
+      <span className="absolute top-[62%] left-[6%] -translate-x-1/2 translate-y-[-140%] bg-neon-green px-2.5 py-1.5 text-[11px] font-black tracking-wider text-ink">
         {t("events.tabs.start")}
       </span>
-      <span className="absolute top-[62%] left-[94%] -translate-x-1/2 -translate-y-[140%] bg-neon-yellow px-2.5 py-1.5 text-[11px] font-black tracking-wider text-ink">
+      <span className="absolute top-[62%] left-[94%] -translate-x-1/2 translate-y-[-140%] bg-neon-yellow px-2.5 py-1.5 text-[11px] font-black tracking-wider text-ink">
         {t("events.tabs.finish")}
       </span>
 
@@ -523,7 +523,7 @@ function CourseMap({ event }: { event: RunningEvent }) {
         <span
           key={a.label}
           style={{ left: `${32 + i * 20}%` }}
-          className="absolute top-[30%] -translate-x-1/2 -translate-y-[150%] border-2 border-fg bg-ink px-2 py-1 font-mono text-[10px] whitespace-nowrap"
+          className="absolute top-[30%] -translate-x-1/2 translate-y-[-150%] border-2 border-fg bg-ink px-2 py-1 font-mono text-[10px] whitespace-nowrap"
         >
           {t("events.tabs.aid", { n: i + 1, km: fmt.number(a.km) })}
         </span>

@@ -619,7 +619,7 @@ function MapView({ events }: { events: RunningEvent[] }) {
 
   return (
     <div className="grid lg:grid-cols-[1fr_400px]">
-      <div className="bg-grid-map relative flex items-center overflow-hidden bg-carbon px-4 pt-10 pb-16 sm:px-8 lg:min-h-[46rem]">
+      <div className="bg-grid-map relative flex items-center overflow-hidden bg-carbon px-4 pt-10 pb-16 sm:px-8 lg:min-h-184">
         <div
           className="relative w-full"
           style={{ aspectRatio: `${PR_MAP.width} / ${PR_MAP.height}` }}

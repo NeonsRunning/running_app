@@ -214,7 +214,7 @@ export function RegistrationsChart({ data }: { data: Point[] }) {
                 x={PAD.left - 8}
                 y={y(t) + 4}
                 textAnchor="end"
-                className="fill-[#8a8a8a] font-mono text-[10px] tabular-nums"
+                className="fill-fg-dim font-mono text-[10px] tabular-nums"
               >
                 {t}
               </text>
@@ -354,7 +354,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
                 x={PAD.left - 8}
                 y={PAD.top + plotH - (t / yMax) * plotH + 4}
                 textAnchor="end"
-                className="fill-[#8a8a8a] font-mono text-[10px] tabular-nums"
+                className="fill-fg-dim font-mono text-[10px] tabular-nums"
               >
                 ${(t / 1000).toFixed(0)}k
               </text>
@@ -390,7 +390,7 @@ export function RevenueChart({ data }: { data: Point[] }) {
                     x={bx + barW / 2}
                     y={by - 7}
                     textAnchor="middle"
-                    className="fill-[#ffffff] font-mono text-[11px] tabular-nums"
+                    className="fill-fg font-mono text-[11px] tabular-nums"
                   >
                     ${(d.value / 1000).toFixed(1)}k
                   </text>
@@ -499,7 +499,7 @@ export function DemographicsChart({
                 x={PAD.left - 8}
                 y={PAD.top + plotH - (t / yMax) * plotH + 4}
                 textAnchor="end"
-                className="fill-[#8a8a8a] font-mono text-[10px] tabular-nums"
+                className="fill-fg-dim font-mono text-[10px] tabular-nums"
               >
                 {t}
               </text>
@@ -538,7 +538,7 @@ export function DemographicsChart({
                           x={bx + barW / 2}
                           y={by - 6}
                           textAnchor="middle"
-                          className="fill-[#ffffff] font-mono text-[10px] tabular-nums"
+                          className="fill-fg font-mono text-[10px] tabular-nums"
                         >
                           {s.v}
                         </text>

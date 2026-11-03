@@ -192,7 +192,7 @@ export function EventFinishers({
                   </Eyebrow>
                   <h3
                     data-focus={`name-${row.id}`}
-                    className="mt-2 text-lg font-extrabold break-words"
+                    className="mt-2 text-lg font-extrabold wrap-break-word"
                   >
                     {row.runnerName}
                   </h3>

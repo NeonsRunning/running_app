@@ -127,7 +127,7 @@ function EventRow({
           </Eyebrow>
           <h2
             data-focus={`name-${row.id}`}
-            className="mt-2 text-xl font-extrabold break-words"
+            className="mt-2 text-xl font-extrabold wrap-break-word"
           >
             {removed ? (
               row.name
