@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { reviewAthMovilPaymentAction } from "@/lib/ath-movil/review";
 import type { AthMovilSubmissionRow } from "@/lib/ath-movil/queries";
+import { focusKey, focusSoon, neighbourOf } from "@/components/organizer/row-focus";
 
 /**
  * The admin's queue of ATH Móvil payments to find in the ATH Móvil Business
@@ -48,7 +49,14 @@ export function AthMovilReview({
     setBusy(null);
 
     if (result.ok || result.error === "alreadyReviewed") {
+      // The card, and the button that had focus, are gone: land on the next
+      // runner, or the page heading once the queue is empty.
+      const next = neighbourOf(rows, row.id);
       setRows((all) => all.filter((r) => r.id !== row.id));
+      focusSoon(next && focusKey(`name-${next}`), "#main h1");
+    } else if (!approve) {
+      // Still here: back to the Reject the closed confirm stood in for.
+      focusSoon(focusKey(`reject-${row.id}`));
     }
     toast(
       result.ok
@@ -90,9 +98,12 @@ export function AthMovilReview({
               <Eyebrow>
                 {row.eventName} · {fmt.mediumDate(row.eventDate)}
               </Eyebrow>
-              <p className="mt-2 text-xl font-extrabold break-words">
+              <h2
+                data-focus={`name-${row.id}`}
+                className="mt-2 text-xl font-extrabold break-words"
+              >
                 {row.runnerName}
-              </p>
+              </h2>
               <p className="mt-1 text-[13px] break-all text-fg-dim">
                 {row.email} · {row.phone}
               </p>
@@ -142,14 +153,23 @@ export function AthMovilReview({
                 <Button
                   variant="ghost"
                   size="md"
-                  onClick={() => setConfirmingReject(null)}
+                  onClick={() => {
+                    setConfirmingReject(null);
+                    focusSoon(focusKey(`reject-${row.id}`));
+                  }}
                 >
                   {t("adminPayments.cancel")}
                 </Button>
+                {/* Takes focus as it opens, in place of the Reject that
+                    opened it; Cancel is a Shift+Tab away. */}
                 <Button
                   variant="danger"
                   size="md"
+                  autoFocus
                   disabled={busy !== null}
+                  aria-label={t("adminPayments.rejectYesAria", {
+                    name: row.runnerName,
+                  })}
                   onClick={() => review(row, false)}
                 >
                   {t("adminPayments.rejectYes")}
@@ -162,6 +182,12 @@ export function AthMovilReview({
                   size="md"
                   disabled={busy !== null}
                   aria-busy={busy === row.id}
+                  // Dropped while busy, so the name read out is the "Saving…" shown.
+                  aria-label={
+                    busy === row.id
+                      ? undefined
+                      : t("adminPayments.approveAria", { name: row.runnerName })
+                  }
                   onClick={() => review(row, true)}
                 >
                   {busy === row.id
@@ -172,6 +198,10 @@ export function AthMovilReview({
                   variant="outline"
                   size="md"
                   disabled={busy !== null}
+                  data-focus={`reject-${row.id}`}
+                  aria-label={t("adminPayments.rejectAria", {
+                    name: row.runnerName,
+                  })}
                   onClick={() => setConfirmingReject(row.id)}
                 >
                   {t("adminPayments.reject")}

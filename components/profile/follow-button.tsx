@@ -21,7 +21,6 @@ export function FollowButton({
       variant={following ? "outline" : "secondary"}
       size="lg"
       block={block}
-      aria-pressed={following}
       onClick={() => {
         const next = !following;
         setFollowing(next);

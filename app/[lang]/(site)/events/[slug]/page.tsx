@@ -312,9 +312,9 @@ export default async function EventDetailPage(
       {/* minmax(0, …) columns and min-w-0 keep the scrolling tab strip from
           stretching the page past a phone's width. */}
       <div className="mx-auto grid max-w-[1600px] grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <main className="min-w-0 border-line lg:border-r-2">
+        <div className="min-w-0 border-line lg:border-r-2">
           <EventDetailTabs event={event} organizer={organizer} />
-        </main>
+        </div>
 
         <aside className="border-t-2 border-line lg:border-t-0">
           {/* On desktop the booking card follows the reader down the page. */}

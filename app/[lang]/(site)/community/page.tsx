@@ -37,7 +37,9 @@ export default async function CommunityPage() {
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
       <header className="border-b-2 border-line pb-8">
-        <Eyebrow>Corremos · Superamos · Inspiramos</Eyebrow>
+        <Eyebrow>
+          <span lang="es">Corremos · Superamos · Inspiramos</span>
+        </Eyebrow>
         <h1 className="mt-3 font-display text-4xl leading-[0.9] font-black uppercase sm:text-5xl lg:text-6xl">
           {t("community.title")}
         </h1>

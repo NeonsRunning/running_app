@@ -66,6 +66,7 @@ export function CancelledRegistrations({
 
         <div className="mt-4 overflow-x-auto">
           <table className="w-full min-w-[44rem] border-collapse">
+            <caption className="sr-only">{t(k("title"))}</caption>
             <thead>
               <tr className="border-b-2 border-line">
                 {["bib", "runner", "distance", "paid", "removed", "refund"].map((col) => (

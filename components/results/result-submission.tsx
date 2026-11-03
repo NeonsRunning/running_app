@@ -4,6 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/field";
+import { focusFirstInvalid } from "@/components/ui/focus";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useT } from "@/components/i18n/provider";
 import { ImageConversionError, toWebp } from "@/lib/events/convert-image";
@@ -49,6 +50,7 @@ export function ResultSubmission({
   const [preview, setPreview] = useState<string | null>(null);
   const [time, setTime] = useState("");
   const [timeError, setTimeError] = useState<string>();
+  const [fileError, setFileError] = useState(false);
   const [phase, setPhase] = useState<"converting" | "uploading" | "saving" | null>(null);
   const [replacing, setReplacing] = useState(false);
   const busy = phase !== null;
@@ -97,6 +99,7 @@ export function ResultSubmission({
     if (preview) URL.revokeObjectURL(preview);
     setFile(next ?? null);
     setPreview(next ? URL.createObjectURL(next) : null);
+    if (next) setFileError(false);
   }
 
   function fail(key: string) {
@@ -108,9 +111,14 @@ export function ResultSubmission({
   }
 
   async function submit() {
-    if (!file) return fail("evidenceRequired");
+    if (!file) {
+      setFileError(true);
+      focusFirstInvalid();
+      return;
+    }
     if (parseFinishTime(time) === null) {
       setTimeError(t("raceResult.errors.timeInvalid"));
+      focusFirstInvalid();
       return;
     }
     setTimeError(undefined);
@@ -242,7 +250,7 @@ export function ResultSubmission({
               {preview ? (
                 // A local object URL of the picked file.
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="" className="max-h-48 object-contain" />
+                <img src={preview} alt={file?.name ?? ""} className="max-h-48 object-contain" />
               ) : (
                 <span>{t("raceResult.choose")}</span>
               )}
@@ -253,9 +261,21 @@ export function ResultSubmission({
                 accept="image/*,.heic,.heif"
                 className="sr-only"
                 disabled={busy}
+                aria-invalid={fileError || undefined}
+                aria-describedby={fileError ? `${fileId}-error` : undefined}
                 onChange={(e) => pick(e.target.files?.[0])}
               />
             </label>
+            {fileError ? (
+              <p
+                id={`${fileId}-error`}
+                role="alert"
+                className="mt-2 flex items-center gap-2 text-[13px] font-semibold text-danger"
+              >
+                <span aria-hidden="true">▲</span>
+                {t("raceResult.errors.evidenceRequired")}
+              </p>
+            ) : null}
             <p className="mt-2 text-[12px] text-fg-dim">{t("raceResult.evidenceHint")}</p>
           </div>
 

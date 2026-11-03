@@ -190,7 +190,7 @@ export function ConfirmDialog({
   onConfirm,
   title,
   description,
-  confirmLabel = "Confirm",
+  confirmLabel,
   destructive = false,
 }: {
   open: boolean;
@@ -198,7 +198,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   title: string;
   description: string;
-  confirmLabel?: string;
+  /** Name the action — "Delete event", not "Confirm". */
+  confirmLabel: string;
   destructive?: boolean;
 }) {
   const t = useT();

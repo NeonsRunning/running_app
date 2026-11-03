@@ -21,6 +21,7 @@ import {
   Select,
   Textarea,
 } from "@/components/ui/field";
+import { focusElement, useFocusHeadingOnChange } from "@/components/ui/focus";
 import { ArrowLeftIcon } from "@/components/ui/icons";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
@@ -196,6 +197,7 @@ export function PublishWizard({
   const [pending, startTransition] = useTransition();
   const [deleting, startDelete] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const router = useLocalizedRouter();
   const locale = useLocale();
   const { toast } = useToast();
@@ -220,6 +222,10 @@ export function PublishWizard({
   function goTo(next: number) {
     setStep(next);
     setVisited((v) => Math.max(v, next));
+    // Announce the new step and keep focus off a Back or Continue that may
+    // now be disabled. Done here rather than in an effect on `step`, which
+    // would pull focus away from the first error after a failed save.
+    requestAnimationFrame(() => focusElement(headingRef.current, "start"));
   }
 
   /**
@@ -369,10 +375,15 @@ export function PublishWizard({
     .map((c) => Number(c.price.replace(",", ".")))
     .filter((p) => Number.isFinite(p) && p >= 0);
 
+  useFocusHeadingOnChange(justPublished);
+
   if (justPublished && slug) {
     return (
       <div className="mx-auto flex min-h-dvh max-w-2xl flex-col items-center justify-center px-4 py-16 text-center">
-        <div className="animate-pop-in flex h-24 w-24 items-center justify-center bg-neon-lime text-5xl">
+        <div
+          aria-hidden="true"
+          className="animate-pop-in flex h-24 w-24 items-center justify-center bg-neon-lime text-5xl"
+        >
           🏁
         </div>
         <h1 className="animate-rise-in mt-8 font-display text-5xl leading-[0.9] font-black uppercase sm:text-6xl">
@@ -518,7 +529,7 @@ export function PublishWizard({
                           i === step ? "text-ink" : "text-danger",
                         )}
                       >
-                        ▲<span className="sr-only">{t("publish.stepHasErrors")}</span>
+                        <span aria-hidden="true">▲</span><span className="sr-only">{t("publish.stepHasErrors")}</span>
                       </span>
                     ) : null}
                   </button>
@@ -528,14 +539,17 @@ export function PublishWizard({
           </ol>
         </nav>
 
-        <main className="px-4 py-8 sm:px-8 lg:min-h-[46rem] lg:px-12 lg:py-12">
+        <div className="px-4 py-8 sm:px-8 lg:min-h-[46rem] lg:px-12 lg:py-12">
           <p className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
             {t("publish.stepOf", {
               current: step + 1,
               total: STEPS.length,
             })}
           </p>
-          <h1 className="mt-3 font-display text-3xl font-black uppercase sm:text-4xl">
+          <h1
+            ref={headingRef}
+            className="mt-3 font-display text-3xl font-black uppercase sm:text-4xl"
+          >
             {t(STEPS[step])}
           </h1>
 
@@ -1567,7 +1581,7 @@ export function PublishWizard({
               </p>
             </div>
           </div>
-        </main>
+        </div>
       </div>
 
       {/* Step controls --------------------------------------------------- */}

@@ -13,6 +13,7 @@ import type {
   DashboardStatus,
 } from "@/lib/events/organizer";
 import { domainLabel } from "@/lib/i18n/labels";
+import { focusKey, focusSoon, neighbourOf } from "./row-focus";
 
 /**
  * The organizer's event cards. The first 24 come with the server render; the
@@ -65,12 +66,30 @@ export function OrganizerEventList({
       .finally(() => setLoading(false));
   }
 
+  const listRef = useRef<HTMLUListElement>(null);
+  // Where focus goes once a deleted card has left; see the effect below.
+  const refocus = useRef<string | null | undefined>(undefined);
+
   function removed(id: string) {
+    refocus.current = neighbourOf(events, id) ?? null;
     setPage((p) => ({
       events: p.events.filter((e) => e.id !== id),
       total: p.total - 1,
     }));
   }
+
+  // A deleted card takes its focused Delete button with it: once it is gone,
+  // land on the next card, or the section heading when none is left. Done
+  // after the commit, since the delete settles inside a transition.
+  useEffect(() => {
+    if (refocus.current === undefined) return;
+    const next = refocus.current;
+    refocus.current = undefined;
+    focusSoon(
+      next && focusKey(`name-${next}`),
+      listRef.current?.closest("section")?.querySelector("h2"),
+    );
+  }, [events]);
 
   // Load the next page while the end of the list is still a screen away.
   // Re-observed after each page, so a short page that leaves the sentinel in
@@ -92,7 +111,7 @@ export function OrganizerEventList({
 
   return (
     <>
-      <ul className="mt-8 grid gap-5 lg:grid-cols-2" aria-busy={loading}>
+      <ul ref={listRef} className="mt-8 grid gap-5 lg:grid-cols-2" aria-busy={loading}>
         {events.map((event) => (
           <EventCard key={event.id} event={event} onDeleted={() => removed(event.id)} />
         ))}
@@ -132,7 +151,10 @@ function EventCard({
     <li className="border-2 border-line bg-carbon">
       <div className="flex items-start justify-between gap-4 border-b-2 border-line px-5 py-5">
         <div className="min-w-0">
-          <h3 className="font-display text-2xl font-black wrap-break-word uppercase">
+          <h3
+            data-focus={`name-${event.id}`}
+            className="font-display text-2xl font-black wrap-break-word uppercase"
+          >
             {removedByAdmin ? (
               event.name
             ) : (
@@ -190,11 +212,20 @@ function EventCard({
         </p>
       ) : (
         <div className="flex flex-wrap gap-2 border-t-2 border-line px-5 py-4">
-          <Link href={`/organizer/events/${event.id}/edit`} className={ACTION_CLASS}>
+          {/* Named for the event: every card has the same four actions. */}
+          <Link
+            href={`/organizer/events/${event.id}/edit`}
+            className={ACTION_CLASS}
+            aria-label={t("organizer.actions.editAria", { name: event.name })}
+          >
             {t("organizer.actions.edit")}
           </Link>
           {event.status !== "Draft" ? (
-            <Link href={`/events/${event.slug}`} className={ACTION_CLASS}>
+            <Link
+              href={`/events/${event.slug}`}
+              className={ACTION_CLASS}
+              aria-label={t("organizer.actions.viewAria", { name: event.name })}
+            >
               {t("organizer.actions.view")}
             </Link>
           ) : null}
@@ -202,6 +233,10 @@ function EventCard({
             <Link
               href={`/events/${event.slug}#registrations`}
               className={ACTION_CLASS}
+              aria-label={t("organizer.actions.registrationsAria", {
+                count: fmt.number(event.registered),
+                name: event.name,
+              })}
             >
               {t("organizer.actions.registrations", {
                 count: fmt.number(event.registered),

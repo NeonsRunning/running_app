@@ -2,10 +2,11 @@
 
 import { Link } from "@/components/i18n/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
+import { focusElement } from "@/components/ui/focus";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useT } from "@/components/i18n/provider";
 import { cn } from "@/lib/cn";
@@ -63,13 +64,46 @@ export function CheckInStation({ list }: { list: CheckInList }) {
 
   const active = people.find((p) => p.id === activeId) ?? null;
 
-  const matches = useMemo(() => {
+  const found = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return people
-      .filter((p) => `${p.name} ${p.bib ?? ""}`.toLowerCase().includes(q))
-      .slice(0, 6);
+    return people.filter((p) => `${p.name} ${p.bib ?? ""}`.toLowerCase().includes(q));
   }, [people, query]);
+  const matches = found.slice(0, MAX_MATCHES);
+
+  // What the search found, read out as the list changes under the field.
+  const searchStatus = !query.trim()
+    ? ""
+    : found.length === 0
+      ? t("checkin.noRunner", { query })
+      : found.length > MAX_MATCHES
+        ? t("checkin.matchesCapped", {
+            shown: fmt.number(MAX_MATCHES),
+            count: fmt.number(found.length),
+          })
+        : t(found.length === 1 ? "checkin.matchOne" : "checkin.matchMany", {
+            count: fmt.number(found.length),
+          });
+
+  // Picking a runner swaps the whole screen, and the button picked goes with
+  // it: move to the runner's name, so the new screen is read from the top.
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (activeId) focusElement(headingRef.current, "start");
+  }, [activeId]);
+
+  // Check in and Undo each replace themselves — with the checked-in panel,
+  // or the Check in button again. Focus follows to what took their place.
+  const checkInRef = useRef<HTMLButtonElement>(null);
+  const nextRunnerRef = useRef<HTMLButtonElement>(null);
+  function focusAfterTap(checkedIn: boolean) {
+    requestAnimationFrame(() => {
+      const el = checkedIn ? nextRunnerRef.current : checkInRef.current;
+      // Check in stays disabled while an undo saves: the name, then.
+      if (el && !el.disabled) focusElement(el);
+      else focusElement(headingRef.current, "start");
+    });
+  }
 
   // Runners whose payment is still under review are listed, not counted.
   const confirmed = people.filter((p) => !p.paymentUnderReview);
@@ -83,6 +117,7 @@ export function CheckInStation({ list }: { list: CheckInList }) {
         saved: false,
       }),
     );
+    focusAfterTap(checkIn);
     const result = await setCheckedInAction(runner.id, checkIn).catch(
       () => ({ ok: false, error: "checkInFailed" }) as const,
     );
@@ -94,6 +129,7 @@ export function CheckInStation({ list }: { list: CheckInList }) {
         next.delete(runner.id);
         return next;
       });
+      focusAfterTap(!checkIn);
       toast({
         title: t("checkin.errors.title"),
         body: t(`checkin.errors.${result.error}`),
@@ -159,7 +195,10 @@ export function CheckInStation({ list }: { list: CheckInList }) {
             <p className="mt-2 font-display text-8xl leading-none font-black tracking-[-0.04em]">
               {active.bib ?? "—"}
             </p>
-            <h1 className="mt-5 font-display text-4xl font-black wrap-break-word uppercase">
+            <h1
+              ref={headingRef}
+              className="mt-5 font-display text-4xl font-black wrap-break-word uppercase"
+            >
               {active.name}
             </h1>
             <p className="mt-2 font-mono text-sm tracking-[0.14em] text-fg-dim uppercase">
@@ -236,7 +275,11 @@ export function CheckInStation({ list }: { list: CheckInList }) {
                 {t("checkin.clearedForStart", { name: active.name })}
               </p>
               <div className="mt-6 flex flex-col gap-3">
-                <Button size="lg" onClick={() => setActiveId(null)}>
+                <Button
+                  ref={nextRunnerRef}
+                  size="lg"
+                  onClick={() => setActiveId(null)}
+                >
                   {t("checkin.nextRunner")}
                 </Button>
                 <Button
@@ -252,6 +295,7 @@ export function CheckInStation({ list }: { list: CheckInList }) {
           ) : (
             <div className="mt-9">
               <button
+                ref={checkInRef}
                 type="button"
                 disabled={busy}
                 aria-busy={busy}
@@ -280,9 +324,9 @@ export function CheckInStation({ list }: { list: CheckInList }) {
         </Link>
         <div className="min-w-0">
           <Eyebrow>{t("checkin.title")}</Eyebrow>
-          <p className="mt-0.5 truncate text-[15px] font-extrabold uppercase">
+          <h1 className="mt-0.5 truncate text-[15px] font-extrabold uppercase">
             {event.name}
-          </p>
+          </h1>
         </div>
         <div className="flex-1" />
         <div className="text-right">
@@ -312,6 +356,12 @@ export function CheckInStation({ list }: { list: CheckInList }) {
               aria-label={t("checkin.searchAria")}
               className="min-h-14 text-lg"
             />
+
+            {/* Always mounted, so each change is announced: a live region
+                that appears with its text can go unread. */}
+            <p role="status" className="sr-only">
+              {searchStatus}
+            </p>
 
             {query.trim() && matches.length === 0 ? (
               <p className="mt-5 border-2 border-dashed border-line px-4 py-8 text-center text-sm text-fg-dim">
@@ -356,6 +406,9 @@ export function CheckInStation({ list }: { list: CheckInList }) {
     </div>
   );
 }
+
+/** The search lists this many runners at most; more means type more. */
+const MAX_MATCHES = 6;
 
 /** One line of the runner's checklist: done, or something for the volunteer to act on. */
 function CheckRow({

@@ -85,14 +85,26 @@ export default async function EventResultsPage(
             </p>
             {[...byCategory.values()].map((group) => (
               <section key={group[0].categoryId} className="mt-10">
-                <h2 className="flex flex-wrap items-baseline gap-x-4 font-display text-2xl font-black uppercase">
+                <h2
+                  id={`results-${group[0].categoryId}`}
+                  className="flex flex-wrap items-baseline gap-x-4 font-display text-2xl font-black uppercase"
+                >
                   {distanceLabel(t, group[0].distance)}
                   <span className="font-mono text-[11px] tracking-[0.14em] text-fg-dim">
                     {t("results.finishers", { count: fmt.number(group.length) })}
                   </span>
                 </h2>
-                <div className="mt-4 overflow-x-auto border-2 border-line">
-                  <table className="w-full min-w-[36rem] border-collapse">
+                {/* Focusable so the table can be scrolled sideways by keyboard. */}
+                <div
+                  role="region"
+                  tabIndex={0}
+                  aria-labelledby={`results-${group[0].categoryId}`}
+                  className="mt-4 overflow-x-auto border-2 border-line"
+                >
+                  <table
+                    aria-labelledby={`results-${group[0].categoryId}`}
+                    className="w-full min-w-[36rem] border-collapse"
+                  >
                     <thead>
                       <tr className="border-b-2 border-line">
                         {COLUMNS.map((col) => (

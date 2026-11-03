@@ -6,6 +6,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -47,15 +48,20 @@ const TONE_ICON: Record<ToastTone, string> = {
 };
 
 /**
- * How long a toast stays before dismissing itself. A danger toast says
- * something went wrong and what to do about it, so it stays until dismissed:
- * gone after a few seconds, it could vanish before it was read.
+ * The least time a toast stays before dismissing itself; longer messages get
+ * longer (see `ToastCard`), and the clock stops while it is hovered or holds
+ * focus. A danger toast says something went wrong and what to do about it, so
+ * it stays until dismissed: gone after a few seconds, it could vanish before
+ * it was read.
  */
 const AUTO_DISMISS_MS: Record<ToastTone, number | null> = {
-  success: 4800,
-  info: 4800,
+  success: 5000,
+  info: 5000,
   danger: null,
 };
+
+/** Reading time added per character of title and body. */
+const MS_PER_CHAR = 60;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   // Named `translate` because `t` is already the toast being rendered below.
@@ -71,10 +77,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ({ title, body, tone = "success" }) => {
       const id = nextId.current++;
       setToasts((list) => [...list, { id, title, body, tone }]);
-      const after = AUTO_DISMISS_MS[tone];
-      if (after !== null) window.setTimeout(() => dismiss(id), after);
     },
-    [dismiss],
+    [],
   );
 
   const api = useMemo(() => ({ toast }), [toast]);
@@ -127,8 +131,34 @@ function ToastCard({
   dismissLabel: string;
   onDismiss: () => void;
 }) {
+  const [paused, setPaused] = useState(false);
+  // A fresh closure each render; the timer below shouldn't restart for that.
+  const dismissRef = useRef(onDismiss);
+  useEffect(() => {
+    dismissRef.current = onDismiss;
+  });
+
+  const base = AUTO_DISMISS_MS[t.tone];
+  const after =
+    base === null
+      ? null
+      : Math.max(base, (t.title.length + (t.body?.length ?? 0)) * MS_PER_CHAR);
+
+  // Restarts in full on resume (WCAG 2.2.1: the user can extend the time).
+  useEffect(() => {
+    if (after === null || paused) return;
+    const id = window.setTimeout(() => dismissRef.current(), after);
+    return () => window.clearTimeout(id);
+  }, [after, paused]);
+
   return (
     <div
+      onPointerEnter={() => setPaused(true)}
+      onPointerLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setPaused(false);
+      }}
       className={cn(
         "animate-toast-in pointer-events-auto flex w-full max-w-sm items-start gap-3 border-2 bg-charcoal px-4 py-3.5 shadow-[0_12px_40px_rgba(0,0,0,0.6)]",
         TONE_STYLES[t.tone],

@@ -140,8 +140,11 @@ export function SiteHeader() {
     return () => document.removeEventListener("keydown", onKey);
   }, [menuOpen]);
 
+  // A section and the pages under it — `/events` but not `/eventsX`.
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    href === "/"
+      ? pathname === "/"
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <header className="sticky top-0 z-70 border-b-2 border-line bg-ink/95 backdrop-blur-sm">
@@ -199,7 +202,15 @@ export function SiteHeader() {
               </Link>
             ) : null}
 
-            <div ref={accountRef} className="relative hidden md:block">
+            <div
+              ref={accountRef}
+              // Tabbing out of the open menu closes it, as a click outside does.
+              onBlur={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget))
+                  setAccountOpenAt(null);
+              }}
+              className="relative hidden md:block"
+            >
               <button
                 ref={accountButtonRef}
                 type="button"
@@ -280,7 +291,7 @@ export function SiteHeader() {
           aria-expanded={menuOpen}
           aria-controls="mobile-menu"
           aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
-          className="flex h-10 w-10 flex-col items-center justify-center gap-1.5 lg:hidden"
+          className="flex h-11 w-11 flex-col items-center justify-center gap-1.5 lg:hidden"
         >
           <span
             className={cn(
@@ -313,6 +324,7 @@ export function SiteHeader() {
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive(item.href) ? "page" : undefined}
                 className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
               >
                 {t(item.key)}

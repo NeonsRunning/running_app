@@ -22,6 +22,7 @@ import {
 } from "@/lib/events/ship-medal";
 import { cn } from "@/lib/cn";
 import { MAX_TRACKING_LENGTH } from "@/lib/events/vocabulary";
+import { focusKey, focusSoon, neighbourOf } from "./row-focus";
 
 /** One list drives the table header and the CSV export, so they cannot drift. */
 const COLUMN_KEYS = [
@@ -45,6 +46,7 @@ const SHIP_COPY = {
   kit: {
     markShipped: "eventRegistrations.markShipped",
     markShippedAria: "eventRegistrations.markShippedAria",
+    addTrackingAria: "eventRegistrations.addTrackingAria",
     editTrackingAria: "eventRegistrations.editTrackingAria",
     shippedOn: "eventRegistrations.shippedOn",
     shipTitle: "eventRegistrations.shipTitle",
@@ -59,6 +61,7 @@ const SHIP_COPY = {
   medal: {
     markShipped: "eventRegistrations.medal.markShipped",
     markShippedAria: "eventRegistrations.medal.markShippedAria",
+    addTrackingAria: "eventRegistrations.medal.addTrackingAria",
     editTrackingAria: "eventRegistrations.medal.editTrackingAria",
     shippedOn: "eventRegistrations.medal.shippedOn",
     shipTitle: "eventRegistrations.medal.shipTitle",
@@ -161,6 +164,7 @@ export function EventRegistrations({
   );
   const tableRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   // Revalidated rows already leave out what was dropped here, so `removed`
   // starts over with them — a sign-up put back to pending and approved again
@@ -242,6 +246,20 @@ export function EventRegistrations({
     return "—";
   }
 
+  /**
+   * Drops a row that was removed or put back to pending. The dialog handed
+   * focus back to the row's button as it closed, and the button goes with
+   * the row: land on the next runner, or the heading when none is left.
+   */
+  function drop(row: EventRegistrationRow) {
+    const next = neighbourOf(shown, row.id);
+    setRemoved((ids) => new Set(ids).add(row.id));
+    focusSoon(
+      next && focusKey(`name-${next}`),
+      sectionRef.current?.querySelector("h2"),
+    );
+  }
+
   async function remove(row: EventRegistrationRow) {
     setBusy(row.id);
     const result = await removeRegistrationAction(row.id).catch(
@@ -250,7 +268,7 @@ export function EventRegistrations({
     setBusy(null);
 
     if (result.ok || result.error === "alreadyRemoved") {
-      setRemoved((ids) => new Set(ids).add(row.id));
+      drop(row);
     }
     toast(
       result.ok
@@ -274,7 +292,7 @@ export function EventRegistrations({
     setBusy(null);
 
     if (result.ok || result.error === "alreadyChanged") {
-      setRemoved((ids) => new Set(ids).add(row.id));
+      drop(row);
     }
     toast(
       result.ok
@@ -379,7 +397,11 @@ export function EventRegistrations({
           size="sm"
           disabled={busy !== null}
           aria-label={t(
-            parcel.shippedAt ? copy.editTrackingAria : copy.markShippedAria,
+            parcel.shippedAt
+              ? parcel.tracking
+                ? copy.editTrackingAria
+                : copy.addTrackingAria
+              : copy.markShippedAria,
             { name: row.runnerName },
           )}
           onClick={() => openShipping(row, kind)}
@@ -446,6 +468,8 @@ export function EventRegistrations({
 
     if (result.ok) {
       setPickedUp((m) => new Map(m).set(row.id, result.pickedUpAt));
+      // A note takes the button's place: land on the runner instead.
+      focusSoon(focusKey(`name-${row.id}`));
     }
     toast(
       result.ok
@@ -526,9 +550,12 @@ export function EventRegistrations({
         size="sm"
         disabled={busy !== null}
         aria-busy={busy === row.id}
-        aria-label={t("eventRegistrations.removeAria", {
-          name: row.runnerName,
-        })}
+        // Dropped while busy, so the name read out is the "Working…" shown.
+        aria-label={
+          busy === row.id
+            ? undefined
+            : t("eventRegistrations.removeAria", { name: row.runnerName })
+        }
         onClick={() => setConfirming(row)}
         className="hover:border-danger hover:text-danger"
       >
@@ -609,7 +636,11 @@ export function EventRegistrations({
   }
 
   return (
-    <section id="registrations" aria-label={t("eventRegistrations.title")}>
+    <section
+      ref={sectionRef}
+      id="registrations"
+      aria-label={t("eventRegistrations.title")}
+    >
       <SectionHeading
         title={t("eventRegistrations.title")}
         kicker={t("eventRegistrations.count", {
@@ -673,6 +704,9 @@ export function EventRegistrations({
                 className="hidden max-h-136 overflow-auto md:block"
               >
                 <table className="w-full border-collapse">
+                  <caption className="sr-only">
+                    {t("eventRegistrations.title")}
+                  </caption>
                   <thead>
                     <tr className="sticky top-0 z-10 bg-ink shadow-[0_2px_0_var(--color-line)]">
                       {COLUMN_KEYS.map((key) => (
@@ -701,7 +735,10 @@ export function EventRegistrations({
                           {row.bib ?? "—"}
                         </td>
                         <td className="px-4 py-3.5">
-                          <p className="text-sm font-bold wrap-break-word">
+                          <p
+                            data-focus={`name-${row.id}`}
+                            className="text-sm font-bold wrap-break-word"
+                          >
                             {row.runnerName}
                           </p>
                           <p className="text-[11px] break-all text-fg-faint">
@@ -757,7 +794,10 @@ export function EventRegistrations({
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-base font-bold wrap-break-word">
+                        <p
+                          data-focus={`name-${row.id}`}
+                          className="text-base font-bold wrap-break-word"
+                        >
                           {row.runnerName}
                         </p>
                         <p className="mt-0.5 text-[12px] break-all text-fg-dim">
@@ -810,6 +850,7 @@ export function EventRegistrations({
                     page={current}
                     pageCount={pageCount}
                     onChange={goTo}
+                    label={t("eventRegistrations.title")}
                   />
                 </div>
               ) : null}

@@ -14,6 +14,8 @@ import {
 } from "@/lib/results/actions";
 import { REVIEW_NOTE_MAX, formatFinishTime } from "@/lib/results/evidence";
 import type { EventFinisherRow } from "@/lib/results/queries";
+import { focusFirstInvalid } from "@/components/ui/focus";
+import { focusKey, focusSoon } from "./row-focus";
 
 /**
  * The event's reviewed results, for the organizer and admins: accepted,
@@ -67,6 +69,12 @@ export function EventFinishers({
     setReasonError(undefined);
   }
 
+  /** Cancelled: back to the Disqualify that opened the form. */
+  function cancelForm(row: EventFinisherRow) {
+    closeForm();
+    focusSoon(focusKey(`disqualify-${row.id}`));
+  }
+
   function fail(key: string) {
     toast({
       title: t("resultFinishers.errors.title"),
@@ -79,6 +87,7 @@ export function EventFinishers({
     const trimmed = reason.trim();
     if (!trimmed) {
       setReasonError(t("resultFinishers.errors.reasonRequired"));
+      focusFirstInvalid();
       return;
     }
     setBusy(row.id);
@@ -90,6 +99,7 @@ export function EventFinishers({
     if (!result.ok) {
       if (result.error === "reasonRequired") {
         setReasonError(t("resultFinishers.errors.reasonRequired"));
+        focusFirstInvalid();
         return;
       }
       return fail(result.error);
@@ -107,6 +117,8 @@ export function EventFinishers({
       ),
     );
     closeForm();
+    // The form and the Disqualify button are both gone: land on the runner.
+    focusSoon(focusKey(`name-${row.id}`));
     toast({
       title: t("resultFinishers.disqualifiedTitle"),
       body: t("resultFinishers.disqualifiedBody", { name: row.runnerName }),
@@ -128,6 +140,8 @@ export function EventFinishers({
           : r,
       ),
     );
+    // Reinstate gives way to Disqualify: land on the runner rather than lose focus.
+    focusSoon(focusKey(`name-${row.id}`));
     toast({
       title: t("resultFinishers.reinstatedTitle"),
       body: t("resultFinishers.reinstatedBody", { name: row.runnerName }),
@@ -176,7 +190,12 @@ export function EventFinishers({
                     {distanceLabel(t, row.distance)}
                     {row.bib ? ` · ${t("resultReview.bib", { bib: row.bib })}` : ""}
                   </Eyebrow>
-                  <p className="mt-2 text-lg font-extrabold break-words">{row.runnerName}</p>
+                  <h3
+                    data-focus={`name-${row.id}`}
+                    className="mt-2 text-lg font-extrabold break-words"
+                  >
+                    {row.runnerName}
+                  </h3>
                   {row.status === "disqualified" ? (
                     <p className="mt-2 max-w-[60ch] text-[14px] text-fg-muted">
                       {t("resultFinishers.reasonShown", {
@@ -232,7 +251,7 @@ export function EventFinishers({
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[12px] font-extrabold tracking-[0.12em] text-neon-lime uppercase hover:text-neon-yellow"
-                    aria-label={t("resultReview.openEvidence", { name: row.runnerName })}
+                    aria-label={`${t("resultFinishers.evidenceAria", { name: row.runnerName })} ${t("common.opensInNewTab")}`}
                   >
                     {t("resultFinishers.evidence")} ↗
                   </a>
@@ -247,6 +266,7 @@ export function EventFinishers({
                     variant="outline"
                     size="sm"
                     disabled={busy !== null}
+                    data-focus={`disqualify-${row.id}`}
                     aria-label={t("resultFinishers.disqualifyAria", { name: row.runnerName })}
                     onClick={() => {
                       setDisqualifying(row.id);
@@ -264,7 +284,12 @@ export function EventFinishers({
                     size="sm"
                     disabled={busy !== null}
                     aria-busy={busy === row.id}
-                    aria-label={t("resultFinishers.reinstateAria", { name: row.runnerName })}
+                    // Dropped while busy, so the name read out is the "Saving…" shown.
+                    aria-label={
+                      busy === row.id
+                        ? undefined
+                        : t("resultFinishers.reinstateAria", { name: row.runnerName })
+                    }
                     onClick={() => reinstate(row)}
                   >
                     {busy === row.id ? t("resultFinishers.working") : t("resultFinishers.reinstate")}
@@ -283,8 +308,11 @@ export function EventFinishers({
                     error={reasonError}
                   >
                     {(p) => (
+                      // Takes focus as the form opens, in place of the
+                      // Disqualify that opened it.
                       <Textarea
                         {...p}
+                        autoFocus
                         value={reason}
                         onChange={(e) => {
                           setReason(e.target.value);
@@ -301,6 +329,11 @@ export function EventFinishers({
                       size="md"
                       disabled={busy !== null}
                       aria-busy={busy === row.id}
+                      aria-label={
+                        busy === row.id
+                          ? undefined
+                          : t("resultFinishers.disqualifyYesAria", { name: row.runnerName })
+                      }
                       onClick={() => disqualify(row)}
                     >
                       {busy === row.id
@@ -311,7 +344,7 @@ export function EventFinishers({
                       variant="ghost"
                       size="md"
                       disabled={busy !== null}
-                      onClick={closeForm}
+                      onClick={() => cancelForm(row)}
                     >
                       {t("resultFinishers.cancel")}
                     </Button>

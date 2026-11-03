@@ -5,6 +5,8 @@ import { useMemo, useRef, useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
+import { focusFirstInvalid, useFocusHeadingOnChange } from "@/components/ui/focus";
+import { RadioGroup } from "@/components/ui/radio-group";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocale, useT } from "@/components/i18n/provider";
 import {
@@ -361,6 +363,7 @@ export function RegistrationFlow({
       }
       if (!waiver) {
         setWaiverError(true);
+        focusFirstInvalid();
         return;
       }
       setWaiverError(false);
@@ -374,15 +377,18 @@ export function RegistrationFlow({
           body: t("register.errors.toastBody"),
           tone: "danger",
         });
+        focusFirstInvalid();
         return;
       }
     }
     if (step === 3 && typedDonation === null) {
       setDonationError(true);
+      focusFirstInvalid();
       return;
     }
     if (step === 3 && needsAddress && !mailingAddress.trim()) {
       setAddressError(true);
+      focusFirstInvalid();
       return;
     }
     if (step === 3 && event.bookable) {
@@ -477,6 +483,10 @@ export function RegistrationFlow({
     }
     setStep((s) => Math.min(5, s + 1));
   }
+
+  // Each step, and the screens that replace the flow, lead with their own
+  // heading: take focus there so it isn't left on a button that's gone.
+  useFocusHeadingOnChange(review && !done ? "review" : step);
 
   if (review && !done) {
     return <AthMovilUnderReview event={event} submission={review} />;
@@ -589,7 +599,7 @@ export function RegistrationFlow({
       </nav>
 
       <div className="mx-auto grid max-w-[1600px] lg:grid-cols-[1fr_400px]">
-        <main className="border-line px-4 py-8 sm:px-8 lg:min-h-168 lg:border-r-2 lg:px-10 lg:py-12">
+        <div className="border-line px-4 py-8 sm:px-8 lg:min-h-168 lg:border-r-2 lg:px-10 lg:py-12">
           {step === 1 ? (
             <section>
               <h1 className="font-display text-3xl font-black uppercase sm:text-4xl">
@@ -607,8 +617,7 @@ export function RegistrationFlow({
                 </p>
               ) : null}
 
-              <div
-                role="radiogroup"
+              <RadioGroup
                 aria-label={t("register.step1.categoryGroup")}
                 className="mt-8 flex flex-col gap-0.5 border-2 border-line bg-line"
               >
@@ -639,7 +648,7 @@ export function RegistrationFlow({
                             "h-5 w-5 shrink-0 border-2",
                             on
                               ? "border-neon-lime bg-neon-lime"
-                              : "border-line-bright",
+                              : "border-line-input",
                           )}
                         />
                         <span>
@@ -666,7 +675,7 @@ export function RegistrationFlow({
                     </button>
                   );
                 })}
-              </div>
+              </RadioGroup>
 
               <div
                 className={cn(
@@ -676,6 +685,8 @@ export function RegistrationFlow({
               >
                 <Checkbox
                   checked={waiver}
+                  aria-invalid={waiverError || undefined}
+                  aria-describedby={waiverError ? "waiver-error" : undefined}
                   onChange={(e) => {
                     setWaiver(e.target.checked);
                     if (e.target.checked) setWaiverError(false);
@@ -697,6 +708,7 @@ export function RegistrationFlow({
                 />
                 {waiverError ? (
                   <p
+                    id="waiver-error"
                     role="alert"
                     className="mt-3 text-[13px] font-semibold text-danger"
                   >
@@ -894,8 +906,7 @@ export function RegistrationFlow({
                       </div>
                     </div>
                     {wantsShirt ? (
-                      <div
-                        role="radiogroup"
+                      <RadioGroup
                         aria-label={t("register.step3.shirtSize")}
                         className="mt-5 flex flex-wrap gap-2"
                       >
@@ -916,7 +927,7 @@ export function RegistrationFlow({
                             {s}
                           </button>
                         ))}
-                      </div>
+                      </RadioGroup>
                     ) : null}
                   </div>
                 ) : null}
@@ -958,8 +969,7 @@ export function RegistrationFlow({
                     <p className="mt-1.5 text-sm text-fg-dim">
                       {t("register.step3.donateDetail")}
                     </p>
-                    <div
-                      role="radiogroup"
+                    <RadioGroup
                       aria-label={t("register.step3.donationAmount")}
                       className="mt-5 flex flex-wrap gap-2"
                     >
@@ -986,7 +996,7 @@ export function RegistrationFlow({
                           {fmt.moneyWhole(d)}
                         </button>
                       ))}
-                    </div>
+                    </RadioGroup>
                     <Field
                       label={t("register.step3.customDonation")}
                       error={
@@ -1085,8 +1095,7 @@ export function RegistrationFlow({
                         {t("register.step3.included")}
                       </span>
                     </div>
-                    <div
-                      role="radiogroup"
+                    <RadioGroup
                       aria-label={t("register.step3.medalDelivery")}
                       className="mt-5 flex flex-wrap gap-2"
                     >
@@ -1114,7 +1123,7 @@ export function RegistrationFlow({
                           )}
                         </button>
                       ))}
-                    </div>
+                    </RadioGroup>
                     {medalByMail ? addressField : null}
                   </div>
                 ) : null}
@@ -1145,8 +1154,7 @@ export function RegistrationFlow({
               ) : null}
 
               {payment && stripeAvailable && athAvailable ? (
-                <div
-                  role="radiogroup"
+                <RadioGroup
                   aria-label={t("register.paymentMethod.group")}
                   className="mt-8 grid gap-0.5 border-2 border-line bg-line sm:grid-cols-2"
                 >
@@ -1185,7 +1193,7 @@ export function RegistrationFlow({
                             "mt-1 h-5 w-5 shrink-0 border-2",
                             on
                               ? "border-neon-lime bg-neon-lime"
-                              : "border-line-bright",
+                              : "border-line-input",
                           )}
                         />
                         <span>
@@ -1199,7 +1207,7 @@ export function RegistrationFlow({
                       </button>
                     );
                   })}
-                </div>
+                </RadioGroup>
               ) : null}
 
               {payingByAth && payment && athAccount ? (
@@ -1251,7 +1259,7 @@ export function RegistrationFlow({
               )}
             </section>
           ) : null}
-        </main>
+        </div>
 
         {/* Order summary --------------------------------------------------- */}
         <aside className="border-t-2 border-line lg:border-t-0">
@@ -1469,7 +1477,10 @@ function Confirmation({
           className="absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.05)_0_12px,transparent_12px_24px)]"
         />
         <div className="relative">
-          <div className="animate-pop-in flex h-20 w-20 items-center justify-center bg-neon-yellow text-4xl">
+          <div
+            aria-hidden="true"
+            className="animate-pop-in flex h-20 w-20 items-center justify-center bg-neon-yellow text-4xl"
+          >
             🏁
           </div>
           <h1 className="animate-rise-in mt-7 font-display text-6xl leading-[0.85] font-black tracking-[-0.04em] uppercase sm:text-7xl lg:text-8xl">
@@ -1586,7 +1597,10 @@ function Finished({
           className="absolute inset-0 bg-[repeating-linear-gradient(45deg,rgba(255,255,255,0.05)_0_12px,transparent_12px_24px)]"
         />
         <div className="relative">
-          <div className="animate-pop-in flex h-20 w-20 items-center justify-center bg-neon-lime text-4xl">
+          <div
+            aria-hidden="true"
+            className="animate-pop-in flex h-20 w-20 items-center justify-center bg-neon-lime text-4xl"
+          >
             🏅
           </div>
           <h1 className="animate-rise-in mt-7 font-display text-6xl leading-[0.85] font-black tracking-[-0.04em] uppercase sm:text-7xl lg:text-8xl">

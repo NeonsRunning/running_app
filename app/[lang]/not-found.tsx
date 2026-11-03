@@ -7,7 +7,10 @@ export default async function NotFound() {
   const t = await getT();
 
   return (
-    <div className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-16 text-center">
+    <main
+      id="main"
+      className="relative flex min-h-dvh flex-col items-center justify-center overflow-hidden px-4 py-16 text-center"
+    >
       <div
         aria-hidden="true"
         className="absolute inset-0 bg-[linear-gradient(150deg,#050505_0%,#050505_58%,#0d2207_84%,#2c6600_122%)]"
@@ -40,6 +43,6 @@ export default async function NotFound() {
           </Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

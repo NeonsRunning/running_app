@@ -9,6 +9,7 @@ import { distanceLabel } from "@/lib/i18n/labels";
 import { reviewAthMovilPaymentAction } from "@/lib/ath-movil/review";
 import type { EventPaymentRow } from "@/lib/ath-movil/queries";
 import { PAYMENT_REVIEW_ANCHOR } from "@/lib/events/check-in-station";
+import { focusKey, focusSoon, neighbourOf } from "./row-focus";
 
 const COLUMN_KEYS = [
   "eventPayments.columns.runner",
@@ -58,6 +59,7 @@ export function EventPayments({
   const [page, setPage] = useState(1);
   const tableRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   // Clamped, so reviewing the last row on the last page steps back a page.
   const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -81,7 +83,17 @@ export function EventPayments({
     setBusy(null);
 
     if (result.ok || result.error === "alreadyReviewed") {
+      // The row, and the button that had focus, are gone: land on the next
+      // runner, or the heading once the queue is empty.
+      const next = neighbourOf(rows, row.id);
       setRows((all) => all.filter((r) => r.id !== row.id));
+      focusSoon(
+        next && focusKey(`name-${next}`),
+        sectionRef.current?.querySelector("h2"),
+      );
+    } else if (!approve) {
+      // Still here: back to the Reject the closed confirm stood in for.
+      focusSoon(focusKey(`reject-${row.id}`));
     }
     toast(
       result.ok
@@ -127,10 +139,15 @@ export function EventPayments({
           <span className="text-[13px] text-fg-muted">
             {t("eventPayments.rejectConfirm")}
           </span>
+          {/* Takes focus as it opens, in place of the Reject that opened it. */}
           <Button
             variant="danger"
             size="sm"
+            autoFocus
             disabled={busy !== null}
+            aria-label={t("eventPayments.rejectYesAria", {
+              name: row.runnerName,
+            })}
             onClick={() => review(row, false)}
           >
             {t("eventPayments.rejectYes")}
@@ -138,7 +155,10 @@ export function EventPayments({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setConfirmingReject(null)}
+            onClick={() => {
+              setConfirmingReject(null);
+              focusSoon(focusKey(`reject-${row.id}`));
+            }}
           >
             {t("eventPayments.cancel")}
           </Button>
@@ -152,6 +172,12 @@ export function EventPayments({
           size="sm"
           disabled={busy !== null}
           aria-busy={busy === row.id}
+          // Dropped while busy, so the name read out is the "Saving…" shown.
+          aria-label={
+            busy === row.id
+              ? undefined
+              : t("eventPayments.confirmAria", { name: row.runnerName })
+          }
           onClick={() => review(row, true)}
         >
           {busy === row.id
@@ -162,6 +188,8 @@ export function EventPayments({
           variant="outline"
           size="sm"
           disabled={busy !== null}
+          data-focus={`reject-${row.id}`}
+          aria-label={t("eventPayments.rejectAria", { name: row.runnerName })}
           onClick={() => setConfirmingReject(row.id)}
         >
           {t("eventPayments.reject")}
@@ -173,6 +201,7 @@ export function EventPayments({
   return (
     // The check-in station links here for a runner whose payment is waiting.
     <section
+      ref={sectionRef}
       id={PAYMENT_REVIEW_ANCHOR}
       aria-label={t("eventPayments.title")}
       className="scroll-mt-24"
@@ -197,6 +226,7 @@ export function EventPayments({
             className="hidden max-h-[34rem] overflow-auto md:block"
           >
             <table className="w-full border-collapse">
+              <caption className="sr-only">{t("eventPayments.title")}</caption>
               <thead>
                 <tr className="sticky top-0 z-10 bg-ink shadow-[0_2px_0_var(--color-line)]">
                   {COLUMN_KEYS.map((key) => (
@@ -217,7 +247,10 @@ export function EventPayments({
                     className="border-b-2 border-line align-top last:border-b-0"
                   >
                     <td className="px-4 py-3.5">
-                      <p className="text-sm font-bold break-words">
+                      <p
+                        data-focus={`name-${row.id}`}
+                        className="text-sm font-bold break-words"
+                      >
                         {row.runnerName}
                       </p>
                       <p className="text-[11px] break-all text-fg-faint">
@@ -266,7 +299,10 @@ export function EventPayments({
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-base font-bold break-words">
+                    <p
+                      data-focus={`name-${row.id}`}
+                      className="text-base font-bold break-words"
+                    >
                       {row.runnerName}
                     </p>
                     <p className="mt-0.5 text-[12px] break-all text-fg-dim">
@@ -314,7 +350,12 @@ export function EventPayments({
                   total: fmt.number(rows.length),
                 })}
               </p>
-              <Pagination page={current} pageCount={pageCount} onChange={goTo} />
+              <Pagination
+                page={current}
+                pageCount={pageCount}
+                onChange={goTo}
+                label={t("eventPayments.title")}
+              />
             </div>
           ) : null}
         </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { focusElement } from "@/components/ui/focus";
 import { ConfirmDialog } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { useT } from "@/components/i18n/provider";
@@ -29,6 +30,19 @@ export function DeleteEventButton({
   const { toast } = useToast();
   const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // The dialog hands focus back to this button as it closes, just as the
+  // delete disables it, so the focus drops to the page. A failed delete
+  // leaves the button here: give it the focus back. (A deleted card's list
+  // moves it on; see OrganizerEventList.)
+  const wasPending = useRef(false);
+  useEffect(() => {
+    if (wasPending.current && !pending && document.activeElement === document.body) {
+      focusElement(buttonRef.current);
+    }
+    wasPending.current = pending;
+  }, [pending]);
 
   function remove() {
     startTransition(async () => {
@@ -52,10 +66,13 @@ export function DeleteEventButton({
   return (
     <>
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setConfirming(true)}
         disabled={pending}
         aria-busy={pending}
+        // Dropped while deleting, so the name read out is the "Deleting…" shown.
+        aria-label={pending ? undefined : t("publish.deleteAria", { name })}
         className={cn(className, "hover:border-danger hover:text-danger disabled:opacity-40")}
       >
         {pending ? t("publish.deleting") : t("publish.delete")}
