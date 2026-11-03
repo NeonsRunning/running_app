@@ -246,7 +246,9 @@ function EmailPrefSwitch({ pref, initial }: { pref: EmailPref; initial: boolean 
           const next = !on;
           setOn(next);
           startTransition(async () => {
-            const result = await setEmailPreferenceAction(pref, next);
+            const result = await setEmailPreferenceAction(pref, next).catch(
+              (): ProfileState => ({ error: "saveFailed" }),
+            );
             if (!result.error) return;
             setOn(!next);
             toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
@@ -287,7 +289,9 @@ function ExportData() {
         aria-busy={pending}
         onClick={() =>
           startTransition(async () => {
-            const result = await exportMyDataAction();
+            const result = await exportMyDataAction().catch(
+              () => ({ ok: false, error: "saveFailed" }) as const,
+            );
             if (!result.ok) {
               toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
               return;
@@ -355,7 +359,9 @@ function DeleteAccount({
           aria-busy={pending}
           onClick={() =>
             startTransition(async () => {
-              const result = await cancelAccountDeletionAction();
+              const result = await cancelAccountDeletionAction().catch(
+                () => ({ ok: false, error: "saveFailed" }) as const,
+              );
               if (!result.ok) {
                 toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
                 return;
@@ -395,7 +401,9 @@ function DeleteAccount({
         onClose={() => setConfirming(false)}
         onConfirm={() =>
           startTransition(async () => {
-            const result = await requestAccountDeletionAction();
+            const result = await requestAccountDeletionAction().catch(
+              () => ({ ok: false, error: "saveFailed" }) as const,
+            );
             if (!result.ok) {
               toast({ title: t(`settings.errors.${result.error}`), tone: "danger" });
               return;
@@ -865,7 +873,9 @@ function PublicProfileToggle({ isPublic }: { isPublic: boolean }) {
         setChecked(next);
 
         startTransition(async () => {
-          const result: ProfileState = await setProfileVisibilityAction(next);
+          const result: ProfileState = await setProfileVisibilityAction(next).catch(
+            (): ProfileState => ({ error: "saveFailed" }),
+          );
           if (!result.error) return;
 
           setChecked(previous);

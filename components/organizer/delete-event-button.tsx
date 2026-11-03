@@ -46,7 +46,10 @@ export function DeleteEventButton({
 
   function remove() {
     startTransition(async () => {
-      const result = await deleteEventAction(id);
+      const result = await deleteEventAction(id).catch(() => ({
+        ok: undefined,
+        error: "deleteFailed",
+      }));
       if (result.ok) onDeleted?.();
       toast(
         result.ok

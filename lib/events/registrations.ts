@@ -300,9 +300,14 @@ export async function startRegistrationPaymentAction(
       .catch(() => null);
     if (intent?.status === "succeeded") {
       const settled = await settlePayment(intent);
-      if (!settled.ok) return settled;
-      revalidatePath("/", "layout");
-      return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+      if (settled.ok) {
+        revalidatePath("/", "layout");
+        return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+      }
+      // Refunded — now, or when it could not confirm earlier — so it pays
+      // for nothing: fall through and open a new one, which the sign-up
+      // checks below price and hold a spot for afresh.
+      if (settled.error !== "paymentRefunded") return settled;
     }
     if (intent?.status === "processing") {
       return { ok: false, error: "paymentProcessing" };

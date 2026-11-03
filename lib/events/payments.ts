@@ -126,6 +126,20 @@ export async function settlePayment(
     return { ok: false, error: "registrationFailed" };
   }
 
+  // A PaymentIntent stays `succeeded` after a refund, with `amount_received`
+  // unchanged, and the sign-up it was refunded off keeps it on file: one this
+  // function refused (sold out, closed) and refunded must not confirm the
+  // sign-up later, once a spot frees up or the window reopens, with the money
+  // already back with the runner.
+  let refunded: boolean;
+  try {
+    refunded = await wasRefunded(intent);
+  } catch (err) {
+    console.error(`Reading the charge of ${intent.id} failed:`, err);
+    return { ok: false, error: "registrationFailed" };
+  }
+  if (refunded) return { ok: false, error: "paymentRefunded" };
+
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("confirm_registration_payment", {
     p_registration_id: registrationId,
@@ -178,6 +192,17 @@ export async function settlePayment(
 
   await scheduleRegistrationEmail(data);
   return { ok: true, registration: data };
+}
+
+/**
+ * Whether any of the payment has been refunded. Webhook payloads carry the
+ * charge as an id, so it is read from Stripe; an expanded one is used as is.
+ */
+async function wasRefunded(intent: Stripe.PaymentIntent): Promise<boolean> {
+  const ref = intent.latest_charge;
+  if (!ref) return false;
+  const charge = typeof ref === "string" ? await getStripe().charges.retrieve(ref) : ref;
+  return charge.amount_refunded > 0;
 }
 
 /** A PaymentIntent reference as Stripe embeds it: an id, the object, or nothing. */

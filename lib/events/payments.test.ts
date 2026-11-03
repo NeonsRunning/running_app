@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const rpc = vi.fn();
 const refundsCreate = vi.fn();
+const chargesRetrieve = vi.fn();
 const scheduleRefundEmail = vi.fn();
 const scheduleConfirmationEmail = vi.fn();
 
@@ -25,7 +26,10 @@ vi.mock("@/lib/supabase/admin", () => ({
 }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/stripe/server", () => ({
-  getStripe: () => ({ refunds: { create: refundsCreate } }),
+  getStripe: () => ({
+    refunds: { create: refundsCreate },
+    charges: { retrieve: chargesRetrieve },
+  }),
   hasStripeEnv: () => true,
 }));
 vi.mock("@/lib/email/payment-refunded", () => ({
@@ -188,6 +192,54 @@ describe("settlePayment", () => {
 
     expect(await settlePayment(intent())).toEqual({ ok: false, error: shown });
     expect(scheduleRefundEmail).toHaveBeenCalledWith(expect.anything(), "registrationClosed");
+  });
+
+  // PAY-001: Stripe keeps a refunded PaymentIntent `succeeded`. One refunded
+  // because it could not confirm (sold out, closed) stays on the pending
+  // sign-up, and must not confirm it once a spot frees up.
+  it("never confirms with a payment that was refunded", async () => {
+    chargesRetrieve.mockResolvedValue({ id: "ch_1", amount_refunded: 5023 });
+
+    expect(await settlePayment(intent({ latest_charge: "ch_1" }))).toEqual({
+      ok: false,
+      error: "paymentRefunded",
+    });
+    expect(chargesRetrieve).toHaveBeenCalledWith("ch_1");
+    expect(rpc).not.toHaveBeenCalled();
+    expect(refundsCreate).not.toHaveBeenCalled();
+    expect(scheduleConfirmationEmail).not.toHaveBeenCalled();
+  });
+
+  it("reads the refund off an expanded charge without asking Stripe again", async () => {
+    const charge = { id: "ch_1", amount_refunded: 100 } as Stripe.Charge;
+
+    expect(await settlePayment(intent({ latest_charge: charge }))).toEqual({
+      ok: false,
+      error: "paymentRefunded",
+    });
+    expect(chargesRetrieve).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("confirms with a charge that has no refund on it", async () => {
+    const row = { id: "reg-1", status: "confirmed", payment_intent_id: "pi_1" };
+    chargesRetrieve.mockResolvedValue({ id: "ch_1", amount_refunded: 0 });
+    rpc.mockResolvedValue({ data: row, error: null });
+
+    expect(await settlePayment(intent({ latest_charge: "ch_1" }))).toEqual({
+      ok: true,
+      registration: row,
+    });
+  });
+
+  it("asks for a retry when the charge cannot be read", async () => {
+    chargesRetrieve.mockRejectedValue(new Error("Stripe is down"));
+
+    expect(await settlePayment(intent({ latest_charge: "ch_1" }))).toEqual({
+      ok: false,
+      error: "registrationFailed",
+    });
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("leaves the payment alone on a database failure, for a retry to confirm", async () => {

@@ -1,16 +1,11 @@
-import type {
-  AppNotification,
-  Runner,
-} from "./types";
+import type { Runner } from "./types";
 import type { Locale } from "./i18n/config";
-import { SELF_PROFILE_PATH } from "./auth/routes";
 import { daysBetween, puertoRicoToday } from "./dates";
 import {
   ACHIEVEMENT_EARNED_ON_ES,
   ACHIEVEMENT_ES,
   CLUB_FOCUS_ES,
   COMMUNITY_FEED_ES,
-  NOTIFICATION_ES,
   RUNNER_BIO_ES,
   localizeDateStamp,
 } from "./content/fixtures.es";
@@ -127,54 +122,6 @@ export const RUNNERS: Runner[] = [
   },
 ];
 
-export const NOTIFICATIONS: AppNotification[] = [
-  {
-    id: "n1",
-    kind: "reminder",
-    title: "Race reminder",
-    body: "Your Neon Night 10K starts in 3 days. Bib pickup opens Friday at the expo.",
-    time: "2h ago",
-    unread: true,
-    href: "/events/neon-night-10k",
-  },
-  {
-    id: "n2",
-    kind: "update",
-    title: "Event update",
-    body: "Neon Night 10K: the start village moved one block west, to Paseo de la Princesa gate 2.",
-    time: "Yesterday",
-    unread: true,
-    href: "/events/neon-night-10k",
-  },
-  {
-    id: "n3",
-    kind: "confirmed",
-    title: "Registration confirmed",
-    body: "You are officially registered for Neon Night 10K. Bib #1048, Wave A.",
-    time: "12 Aug",
-    unread: true,
-    href: SELF_PROFILE_PATH,
-  },
-  {
-    id: "n4",
-    kind: "results",
-    title: "Race results available",
-    body: "Your official Condado Coastal 10K result has been posted: 51:04, a new personal best.",
-    time: "25 May",
-    unread: false,
-    href: "/events/condado-coastal-10k/results",
-  },
-  {
-    id: "n5",
-    kind: "social",
-    title: "Marisol Rivera followed you",
-    body: "You now have 418 followers on NEONS RUNNING.",
-    time: "20 May",
-    unread: false,
-    href: "/runners/alex-rivera",
-  },
-];
-
 export const CLUBS = [
   { id: "nocturnos", name: "Neons Nocturnos", city: "San Juan", members: 184, focus: "Night road running", initials: "NN" },
   { id: "costa", name: "Costa Norte RC", city: "Dorado", members: 96, focus: "Beach and seawall", initials: "CN" },
@@ -222,11 +169,6 @@ export function getRunnerById(id: string, locale: Locale): Runner | undefined {
 
 export function currentRunner(locale: Locale): Runner {
   return localizeRunner(RUNNERS[0], locale);
-}
-
-export function getNotifications(locale: Locale): AppNotification[] {
-  if (locale !== "es") return NOTIFICATIONS;
-  return NOTIFICATIONS.map((n) => ({ ...n, ...(NOTIFICATION_ES[n.id] ?? {}) }));
 }
 
 export function getClubs(locale: Locale) {

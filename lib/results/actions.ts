@@ -120,15 +120,21 @@ export type ReviewResult =
  * Accept: the result goes on the runner's profile, with the event's medal.
  * Reject: the runner sees `note` and can send new evidence. Either way the
  * runner is emailed.
+ *
+ * `submittedAt` is the version the reviewer was shown: a runner who re-sent
+ * it since must not have the new time accepted unseen.
  */
 export async function reviewRaceResultAction(
   resultId: string,
+  submittedAt: string,
   accept: boolean,
   note?: string,
 ): Promise<ReviewResult> {
   if (
     typeof resultId !== "string" ||
     !UUID.test(resultId) ||
+    typeof submittedAt !== "string" ||
+    Number.isNaN(Date.parse(submittedAt)) ||
     typeof accept !== "boolean"
   ) {
     return { ok: false, error: "reviewFailed" };
@@ -140,14 +146,19 @@ export async function reviewRaceResultAction(
   const { data, error } = await supabase.rpc("review_race_result", {
     p_result_id: resultId,
     p_accept: accept,
+    p_submitted_at: submittedAt,
     p_note: trimmed || null,
   });
 
   if (error || !data) {
     const key = error?.code === RAISED ? error.message : "";
     if (key === "notAllowed") return { ok: false, error: "notAllowed" };
-    // Someone else reviewed it first, or the runner re-sent it meanwhile.
-    if (key === "resultMissing") return { ok: false, error: "alreadyReviewed" };
+    // Someone else reviewed it first, or the runner re-sent it meanwhile:
+    // the refreshed queue shows whichever it was.
+    if (key === "resultMissing" || key === "resultChanged") {
+      revalidatePath("/", "layout");
+      return { ok: false, error: "alreadyReviewed" };
+    }
     // The sign-up was removed, or put back to pending, meanwhile.
     if (key === "registrationMissing") {
       return { ok: false, error: "registrationMissing" };
