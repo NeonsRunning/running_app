@@ -180,12 +180,16 @@ export async function signUpAction(
   if (error) return { error: authErrorKey(error), values: { name, email } };
 
   // With email confirmation switched on, signing up with an address that is
-  // already registered returns a decoy user instead of an error — deliberate,
-  // so the form cannot be used to enumerate accounts. An empty `identities`
-  // array is the tell. Either way the runner sees the same inbox screen, so
-  // there is nothing to branch on beyond skipping the revalidate.
-  const alreadyRegistered = data.user?.identities?.length === 0;
-  if (!alreadyRegistered) revalidatePath("/", "layout");
+  // already registered returns a decoy user instead of an error; an empty
+  // `identities` array is the tell. Refuse it here, as Supabase itself does
+  // with confirmation off, rather than send the runner to wait on an inbox
+  // screen for an account that was never made. This does tell the caller the
+  // address has an account: a choice, traded for a runner knowing to sign in.
+  if (data.user?.identities?.length === 0) {
+    return { error: "userAlreadyExists", values: { name, email } };
+  }
+
+  revalidatePath("/", "layout");
 
   // A project with email confirmation switched off hands back a session right
   // away. Sending that runner to the inbox screen would strand them there
@@ -366,7 +370,7 @@ export async function updatePasswordAction(
   if (error) return { error: authErrorKey(error) };
 
   revalidatePath("/", "layout");
-  redirect(localizePath(SELF_PROFILE_PATH, locale));
+  redirect(localizePath("/", locale));
 }
 
 /* -------------------------------------------------------------------------- */

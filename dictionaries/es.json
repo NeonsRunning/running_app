@@ -253,7 +253,7 @@
       "raceCount_other": "carreras",
       "showResults": "Ver {count} carreras",
       "emptyTitle": "Ninguna carrera coincide con esos filtros",
-      "emptyBody": "Prueba a ampliar la distancia o el rango de fechas — hay 184 carreras publicadas en la región y se añaden nuevas cada semana.",
+      "emptyBody": "Prueba a ampliar la distancia o el rango de fechas — se añaden carreras nuevas cada semana.",
       "clearFilters": "Limpiar filtros",
       "markers": "Marcadores de carrera · {count} en el mapa",
       "markersAnywhere": "Marcadores de carrera · {count} en el mapa · {anywhere} en cualquier lugar",

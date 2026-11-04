@@ -24,7 +24,6 @@ export default async function ResetPasswordPage() {
     <AuthShell
       title={t("auth.reset.title")}
       intro={t("auth.reset.intro")}
-      stats={false}
       footer={
         <>
           {t("auth.reset.footerPre")}{" "}

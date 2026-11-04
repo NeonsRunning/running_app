@@ -7,27 +7,33 @@ import type { ReactNode } from "react";
 import { BrandLock, BrandTagline } from "@/components/brand/logo";
 import { Eyebrow } from "@/components/ui/badge";
 import { signInWithGoogleAction } from "@/lib/auth/actions";
+import type { PlatformStats } from "@/lib/events/queries";
 
 /**
  * Split auth layout: brand panel on the left at desktop widths, form on the
  * right. On phones the panel collapses to a compact header so the form is
  * above the fold.
+ *
+ * `stats` are the live platform totals; the panel leaves the row out without
+ * them, or when all three are zero, which is what a failed lookup returns.
  */
 export function AuthShell({
   title,
   intro,
   children,
   footer,
-  stats = true,
+  stats,
 }: {
   title: string;
   intro: string;
   children: ReactNode;
   footer?: ReactNode;
-  stats?: boolean;
+  stats?: PlatformStats;
 }) {
   const t = useT();
   const fmt = useFormat();
+  const showStats =
+    stats && (stats.races > 0 || stats.runners > 0 || stats.organizers > 0);
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[1fr_1fr] xl:grid-cols-[1.1fr_1fr]">
@@ -59,12 +65,12 @@ export function AuthShell({
             </p>
           </div>
 
-          {stats ? (
+          {showStats ? (
             <dl className="mt-8 hidden gap-8 lg:flex">
               {[
-                { v: fmt.number(184), l: t("auth.shell.statsRaces") },
-                { v: fmt.number(26410), l: t("auth.shell.statsRunners") },
-                { v: fmt.number(62), l: t("auth.shell.statsOrganizers") },
+                { v: fmt.number(stats.races), l: t("auth.shell.statsRaces") },
+                { v: fmt.number(stats.runners), l: t("auth.shell.statsRunners") },
+                { v: fmt.number(stats.organizers), l: t("auth.shell.statsOrganizers") },
               ].map((s) => (
                 <div key={s.l}>
                   <dt className="sr-only">{s.l}</dt>

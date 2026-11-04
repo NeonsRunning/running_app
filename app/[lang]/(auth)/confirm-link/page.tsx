@@ -51,7 +51,6 @@ export default async function ConfirmLinkPage(
           ? "auth.confirmLink.introRecovery"
           : "auth.confirmLink.intro",
       )}
-      stats={false}
       footer={
         <>
           {t("auth.confirmLink.footerPre")}{" "}

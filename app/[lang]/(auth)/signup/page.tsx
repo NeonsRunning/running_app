@@ -3,6 +3,7 @@ import { Link } from "@/components/i18n/link";
 import { getT } from "@/lib/i18n/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignUpForm } from "@/components/auth/forms";
+import { getPlatformStats } from "@/lib/events/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -10,12 +11,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function SignUpPage() {
-  const t = await getT();
+  const [t, stats] = await Promise.all([getT(), getPlatformStats()]);
 
   return (
     <AuthShell
       title={t("auth.signup.title")}
       intro={t("auth.signup.intro")}
+      stats={stats}
       footer={
         <>
           {t("auth.signup.footerPre")}{" "}

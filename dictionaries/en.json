@@ -253,7 +253,7 @@
       "raceCount_other": "races",
       "showResults": "Show {count} races",
       "emptyTitle": "No races match those filters",
-      "emptyBody": "Try widening the distance or date range — there are 184 races listed across the region, and new ones are published every week.",
+      "emptyBody": "Try widening the distance or date range — new races are published every week.",
       "clearFilters": "Clear filters",
       "markers": "Race markers · {count} shown",
       "markersAnywhere": "Race markers · {count} shown · {anywhere} anywhere",

@@ -24,7 +24,6 @@ export default async function VerifyEmailPage(
     <AuthShell
       title={t("auth.verify.title")}
       intro={t("auth.verify.intro")}
-      stats={false}
       footer={
         <>
           {t("auth.verify.footerPre")}{" "}
