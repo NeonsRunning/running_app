@@ -64,6 +64,7 @@
     "blurb": "Race discovery, registration and results for the Caribbean running community. Built by runners who are at the start line too.",
     "copyright": "© 2026 Neons Running · Cabo Rojo, Puerto Rico",
     "motto": "Corremos · Superamos · Inspiramos",
+    "social": "Neons Running on {network}",
     "runners": {
       "title": "Runners",
       "findRaces": "Find Races",
