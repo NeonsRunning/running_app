@@ -40,7 +40,7 @@ que su cuenta ya tenía.
 3. [Guía del organizador](03-organizador.md) — publicar eventos, confirmar
    pagos, gestionar inscripciones, envíos, check-in y resultados.
 4. [Guía del administrador](04-administrador.md) — revisión de pagos, cuentas
-   de ATH Móvil, moderación de eventos y tareas del equipo técnico.
+   de ATH Móvil, moderación de eventos, usuarios y tareas del equipo técnico.
 5. [Guía del visitante](05-visitante.md) — qué se puede hacer sin cuenta:
    explorar carreras, resultados, perfiles públicos, ayuda y contacto.
 6. [Correos y notificaciones](06-correos.md) — todos los correos, quién los

@@ -4,7 +4,8 @@
 
 Un **administrador** es un miembro del equipo de NEONS RUNNING que modera la
 plataforma: revisa los pagos de ATH Móvil de todos los eventos, gestiona las
-cuentas de ATH Móvil y puede editar, retirar o restaurar cualquier evento.
+cuentas de ATH Móvil, puede editar, retirar o restaurar cualquier evento y
+consulta las cuentas de los usuarios.
 
 El rol de administrador es independiente del de organizador y se suma a lo que
 la cuenta ya tenía: un administrador sigue siendo corredor y puede ser también
@@ -23,6 +24,7 @@ pedirlo desde la app.
 | [Editar, retirar o restaurar eventos](#44-moderación-de-eventos) | **Moderación de Eventos** (`/admin/events`) |
 | [Gestionar cualquier evento como su organizador](#45-gestionar-cualquier-evento) | Página del evento |
 | [Restablecer un resultado descalificado](#46-restablecer-un-resultado-descalificado) | Página del evento → **Resultados revisados** |
+| [Consultar los usuarios y sus perfiles](#usuarios) | **Usuarios** (`/admin/users`) |
 | [Tareas fuera de la app](#47-tareas-fuera-de-la-app-equipo-técnico) | Base de datos, Stripe, correo del equipo |
 
 > **🛠 Nota técnica:** ser administrador es tener una fila en
@@ -35,14 +37,34 @@ pedirlo desde la app.
 
 ## 4.1 Menú de administración
 
-Con una cuenta de administrador, el menú de la cuenta tiene dos opciones
-más: **Revisión de Pagos** y **Moderación de Eventos**.
+Con una cuenta de administrador, el menú de la cuenta tiene tres opciones
+más: **Revisión de Pagos**, **Moderación de Eventos** y **Usuarios**.
 
 ![Menú de la cuenta de un administrador](img/administrador/menu-admin.png)
 
 En **Ajustes** → **Tipo de cuenta** aparece además la tarjeta **Admin**.
 
 ![Tipo de cuenta con el rol de administrador](img/administrador/tipo-de-cuenta-admin.png)
+
+### Usuarios
+
+**Para qué sirve:** ver quién tiene cuenta y abrir su perfil.
+
+**Dónde:** menú → **Usuarios** (`/admin/users`).
+
+La tabla muestra, de la cuenta más nueva a la más antigua, el nombre y usuario,
+el correo, el rol, la ciudad y el club, si el perfil es público o privado, la
+fecha de registro y el último acceso. El buscador encuentra por nombre, correo,
+usuario, ciudad o club, y la lista muestra 50 cuentas por página.
+
+Pulsa un nombre para abrir el perfil. Un administrador puede ver también los
+perfiles **privados**, que avisan de ello en la parte superior. Los teléfonos,
+fechas de nacimiento, contactos de emergencia y direcciones de `profile_private`
+siguen siendo visibles solo para su dueño.
+
+> **🛠 Nota técnica:** la lista viene de `admin_list_users()`, que comprueba el
+> rol y lee el correo de `auth.users`. Los perfiles privados se abren por la
+> política *Platform admins read every profile* de `public.profiles`.
 
 ## 4.2 Revisión de pagos
 

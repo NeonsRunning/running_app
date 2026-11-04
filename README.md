@@ -374,6 +374,14 @@ select id from auth.users where email = 'someone@example.com';
 A card payment that lands for a sign-up whose ATH Móvil payment is already
 under review is refunded automatically.
 
+## Admin user list
+
+Platform admins see every account at `/admin/users` (**Users** in the account
+menu): a searchable table, 50 per page, whose names link to `/runners/[id]`.
+The list comes from `admin_list_users()`, which checks the role and reads the
+email from `auth.users`. A select policy on `profiles` lets admins open private
+profiles too. `profile_private` stays owner-only.
+
 ## Email
 
 Transactional email goes through Brevo's API. Set `BREVO_API_KEY` and

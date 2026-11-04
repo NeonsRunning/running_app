@@ -901,6 +901,24 @@ export type Database = {
           removal_reason: string | null;
         }[];
       };
+      admin_list_users: {
+        Args: { p_query?: string; p_limit?: number; p_offset?: number };
+        Returns: {
+          id: string;
+          handle: string;
+          full_name: string;
+          email: string;
+          account_type: Database["public"]["Enums"]["account_type"];
+          is_admin: boolean;
+          city: string | null;
+          club: string | null;
+          is_public: boolean;
+          avatar_path: string | null;
+          created_at: string;
+          last_sign_in_at: string | null;
+          total_count: number;
+        }[];
+      };
       removed_event_visible: {
         Args: { p_event_id: string };
         Returns: boolean;

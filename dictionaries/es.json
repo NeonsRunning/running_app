@@ -49,7 +49,8 @@
     "settings": "Ajustes",
     "organizerDashboard": "Panel de organizador",
     "paymentReview": "Revisión de Pagos",
-    "eventModeration": "Moderación de Eventos"
+    "eventModeration": "Moderación de Eventos",
+    "users": "Usuarios"
   },
   "tabs": {
     "home": "Inicio",
@@ -927,6 +928,8 @@
     "removedContact": "Contáctanos"
   },
   "runner": {
+    "adminPrivateNotice": "Este perfil es privado. Solo lo ven su dueño y los administradores.",
+    "adminBackToUsers": "Volver a Usuarios",
     "notFound": "Corredor no encontrado",
     "metaDescription": "Perfil de {name} en NEONS RUNNING: carreras, resultados y marcas personales.",
     "clubLine": "{city} · Club {club}",
@@ -1865,7 +1868,8 @@
     },
     "account": "Enviado a",
     "manageAccounts": "Administrar cuentas de ATH Móvil",
-    "manageEvents": "Gestionar Eventos"
+    "manageEvents": "Gestionar Eventos",
+    "viewUsers": "Ver Usuarios"
   },
   "eventPayments": {
     "title": "Pagos pendientes",
@@ -2236,6 +2240,36 @@
     "ownerLooking": "Buscando…",
     "ownerFound": "Se asignará a {name} (@{handle}).",
     "ownerCurrent": "Asignada a {name} (@{handle})."
+  },
+  "adminUsers": {
+    "metaTitle": "Usuarios",
+    "eyebrow": "Admin · Usuarios",
+    "title": "Usuarios",
+    "body": "Todas las personas con cuenta, de la más nueva a la más antigua. Abre un nombre para ver su perfil, incluso si es privado. Los teléfonos, fechas de nacimiento, contactos de emergencia y direcciones solo los ve su dueño.",
+    "backToPayments": "Volver a Pagos",
+    "searchLabel": "Buscar usuarios",
+    "searchPlaceholder": "Nombre, correo, usuario, ciudad o club…",
+    "search": "Buscar",
+    "showing": "{first}–{last} de {total}",
+    "empty": "Ningún usuario coincide.",
+    "pastTheEnd": "Esta página no tiene usuarios.",
+    "firstPage": "Ir a la Primera Página",
+    "pagesLabel": "Páginas",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "columnUser": "Usuario",
+    "columnEmail": "Correo",
+    "columnRole": "Rol",
+    "columnLocation": "Ciudad · Club",
+    "columnProfile": "Perfil",
+    "columnJoined": "Registro",
+    "columnLastSignIn": "Último acceso",
+    "roleRunner": "Corredor",
+    "roleOrganizer": "Organizador",
+    "roleAdmin": "Admin",
+    "profilePublic": "Público",
+    "profilePrivate": "Privado",
+    "neverSignedIn": "Nunca"
   },
   "adminEvents": {
     "metaTitle": "Eventos",

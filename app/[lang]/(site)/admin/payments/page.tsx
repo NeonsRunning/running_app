@@ -42,6 +42,9 @@ export default async function AdminPaymentsPage() {
           <Button href="/admin/events" variant="outline" size="sm">
             {t("adminPayments.manageEvents")}
           </Button>
+          <Button href="/admin/users" variant="outline" size="sm">
+            {t("adminPayments.viewUsers")}
+          </Button>
         </div>
       </header>
 

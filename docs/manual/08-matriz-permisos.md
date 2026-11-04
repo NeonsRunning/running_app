@@ -67,6 +67,7 @@ propios eventos**; el administrador las puede hacer en **cualquier** evento.
 | --- | :---: | :---: | :---: | :---: |
 | Cola de pagos de ATH Móvil de todos los eventos | — | — | — | ✅ |
 | Gestionar las cuentas de ATH Móvil | — | — | — | ✅ |
+| Ver la lista de usuarios y los perfiles privados | — | — | — | ✅ |
 | Activar organizadores o administradores | — | — | — | — ³ |
 | Atender solicitudes de borrado de cuenta | — | — | — | — ³ |
 | Reembolsos | — | — | — ⁴ | — ⁴ |

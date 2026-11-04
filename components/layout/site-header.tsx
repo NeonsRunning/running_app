@@ -60,7 +60,8 @@ function accountMenu(session: {
           },
         ]
       : []),
-    // Platform admins review ATH Móvil payments and moderate events.
+    // Platform admins review ATH Móvil payments, moderate events and look up
+    // accounts.
     ...(session.isAdmin
       ? [
           {
@@ -71,6 +72,11 @@ function accountMenu(session: {
           {
             href: "/admin/events",
             key: "account.eventModeration",
+            Icon: DashboardIcon,
+          },
+          {
+            href: "/admin/users",
+            key: "account.users",
             Icon: DashboardIcon,
           },
         ]
@@ -379,6 +385,14 @@ export function SiteHeader() {
                     className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
                   >
                     {t("account.eventModeration")}
+                  </Link>
+                ) : null}
+                {session.isAdmin ? (
+                  <Link
+                    href="/admin/users"
+                    className="border-b-2 border-line px-5 py-4 text-base font-extrabold tracking-widest uppercase hover:bg-graphite"
+                  >
+                    {t("account.users")}
                   </Link>
                 ) : null}
                 <SignOutButton className="border-b-2 border-line px-5 py-4 text-left text-base font-extrabold tracking-widest text-danger uppercase hover:bg-graphite">
