@@ -42,6 +42,17 @@ describe("registrationStatus", () => {
     ).toBe("opening-soon");
   });
 
+  it("is full when marked sold out, whatever the dates and counts say", () => {
+    const marked = { ...dates, sold_out: true };
+    expect(registrationStatus(marked, 0, 100, [cat(0, 100)], TODAY)).toBe("full");
+    expect(
+      registrationStatus({ ...marked, registration_closes: "2025-03-01" }, 0, 100, [], TODAY),
+    ).toBe("full");
+    expect(
+      registrationStatus({ ...marked, registration_opens: "2026-11-25" }, 0, 100, [], TODAY),
+    ).toBe("full");
+  });
+
   it("is still open on registration's last day", () => {
     expect(
       registrationStatus({ ...dates, registration_closes: TODAY }, 0, 10, [cat(0, 10)], TODAY),

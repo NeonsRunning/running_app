@@ -175,9 +175,14 @@ function EventCard({
               .join(" · ")}
           </p>
         </div>
-        <Badge tone={STATUS_TONE[event.status]}>
-          {domainLabel(t, "eventStatus", event.status)}
-        </Badge>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <Badge tone={STATUS_TONE[event.status]}>
+            {domainLabel(t, "eventStatus", event.status)}
+          </Badge>
+          {event.soldOut ? (
+            <Badge tone="yellow">{t("events.detail.soldOut")}</Badge>
+          ) : null}
+        </div>
       </div>
 
       <div className="px-5 py-5">

@@ -78,7 +78,7 @@ El botón principal cambia según el estado:
 | **Inscribirme ahora** | La inscripción está abierta. |
 | **Inscripciones abren el …** / **abren pronto** | Todavía no se puede inscribir nadie. |
 | **Inscripciones cerradas** | Pasó la fecha de cierre. |
-| **Agotado** | No quedan cupos en ninguna categoría. |
+| **Agotado** | No quedan cupos en ninguna categoría, o el organizador marcó la carrera como agotada. |
 
 ![Página de detalle de una carrera](img/corredor/detalle-carrera.png)
 

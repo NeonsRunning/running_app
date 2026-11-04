@@ -364,11 +364,18 @@ export async function saveEventAction(
   // Compared as ISO strings, which sort as dates; "today" is the island's.
   // A published race that already happened can still be edited, as long as
   // its date is left alone. A draft gets no such pass: publishing one dated
-  // in the past would list a race nobody can run.
+  // in the past would list a race nobody can run. Unless it is marked sold
+  // out: then it is listed as a reference, and nobody is offered a spot.
   const today = puertoRicoToday();
   const live = existing?.status === "published";
+  const soldOut = formData.get("sold_out") === "on";
   if (eventDate && !isDate(eventDate)) fieldErrors.event_date = "dateInvalid";
-  else if (eventDate && eventDate < today && !(live && eventDate === existing?.event_date))
+  else if (
+    eventDate &&
+    eventDate < today &&
+    !soldOut &&
+    !(live && eventDate === existing?.event_date)
+  )
     fieldErrors.event_date = "dateInPast";
   else requireFor("event_date", Boolean(eventDate), "dateRequired");
 
@@ -377,7 +384,12 @@ export async function saveEventAction(
   if (endDate && !isDate(endDate)) fieldErrors.end_date = "dateInvalid";
   else if (endDate && isDate(eventDate) && endDate < eventDate)
     fieldErrors.end_date = "endBeforeStart";
-  else if (endDate && endDate < today && !(live && endDate === existing?.end_date))
+  else if (
+    endDate &&
+    endDate < today &&
+    !soldOut &&
+    !(live && endDate === existing?.end_date)
+  )
     fieldErrors.end_date = "dateInPast";
 
   // Optional: a race runners start any time across its dates has none, and
@@ -392,7 +404,7 @@ export async function saveEventAction(
     fieldErrors.registration_closes = "closesAfterEvent";
   // Going live with registration already closed would list a race nobody can
   // sign up for. Once live, an organizer may still close it early.
-  else if (publishing && !live && closes && closes < today)
+  else if (publishing && !live && !soldOut && closes && closes < today)
     fieldErrors.registration_closes = "closesInPast";
   else requireFor("registration_closes", Boolean(closes), "dateRequired");
 
@@ -562,6 +574,7 @@ export async function saveEventAction(
     ath_movil_account_id: athMovilAccountId || null,
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
+    sold_out: soldOut,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a

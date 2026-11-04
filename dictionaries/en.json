@@ -192,6 +192,7 @@
     "statsOrganizers": "Organizers",
     "statsClubs": "Running clubs",
     "upcomingTitle": "Upcoming Races",
+    "racesTitle": "Races",
     "upcomingEmpty": "No upcoming races yet. New races appear here as soon as organizers publish them.",
     "upcomingHrefLabel": "View all events",
     "swipeForMore": "Swipe for more →",
@@ -1751,7 +1752,7 @@
       "typeRequired": "Choose an event type.",
       "dateRequired": "Pick a date.",
       "dateInvalid": "Enter a valid date.",
-      "dateInPast": "The event date can’t be in the past.",
+      "dateInPast": "The event date can’t be in the past, unless you mark the event sold out.",
       "endBeforeStart": "The end date can’t be before the event date.",
       "timeInvalid": "Enter a valid start time.",
       "closesAfterEvent": "Registration has to close by the last day of the race.",
@@ -1817,6 +1818,10 @@
     "athMovilAccountNone": "No ATH Móvil accounts are set up yet, so runners pay by card. Contact the team to add one.",
     "athMovilAccountOff": "Don’t accept ATH Móvil",
     "athMovilAccountRetired": "retired",
+    "soldOut": {
+      "title": "Sold out",
+      "detail": "Closes sign-ups and shows the event as sold out, whatever the count says. Turn this on to list a race you already ran: past dates are only accepted on a sold-out event."
+    },
     "results": {
       "title": "Finish evidence",
       "detail": "From race day, registered runners can send a screenshot of their run (Strava, Nike Run Club, a watch app) with their finish time. You accept or reject each one from the event page; accepted runners get the result and this medal on their profile."

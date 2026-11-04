@@ -150,14 +150,24 @@ export function EventDetailTabs({
           {/* Only the count: who registered is private to runner and
               organizer, so there are no faces to show here. */}
           <div className="mt-6">
-            <p className="font-display text-4xl font-black text-neon-lime">
-              {fmt.number(event.registered)}
-            </p>
-            <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
-              {event.registered > 0
-                ? t("events.tabs.runnersRegistered")
-                : t("events.tabs.noRunnersYet")}
-            </p>
+            {/* Marked sold out with nobody signed up here: a race run before
+                the platform, whose field this count knows nothing about. */}
+            {event.soldOut && event.registered === 0 ? (
+              <p className="font-display text-4xl font-black text-neon-lime uppercase">
+                {t("events.detail.soldOut")}
+              </p>
+            ) : (
+              <>
+                <p className="font-display text-4xl font-black text-neon-lime">
+                  {fmt.number(event.registered)}
+                </p>
+                <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
+                  {event.registered > 0
+                    ? t("events.tabs.runnersRegistered")
+                    : t("events.tabs.noRunnersYet")}
+                </p>
+              </>
+            )}
           </div>
         </section>
       </TabPanel>
@@ -241,7 +251,9 @@ export function EventDetailTabs({
                   </p>
                   <p className="mt-1 font-mono text-[11px] text-fg-dim">
                     {t("events.tabs.spotsLeft", {
-                      count: fmt.number(Math.max(0, c.capacity - c.registered)),
+                      count: fmt.number(
+                        event.soldOut ? 0 : Math.max(0, c.capacity - c.registered),
+                      ),
                     })}
                   </p>
                 </div>

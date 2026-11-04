@@ -5,7 +5,8 @@ import type { RegistrationStatus } from "@/lib/types";
  * Where a published race's sign-ups stand, from its dates and the paid
  * runners `registration_counts()` reports.
  *
- * "full" once they reach the event's cap, or every category's: then
+ * "full" when the organizer marked it sold out, whatever the rest says, or
+ * once they reach the event's cap, or every category's: then
  * `register_for_event()` refuses anyone. It also counts live checkout holds,
  * which only it can see, so a race can still turn a runner away as sold out
  * while this says "almost-full". `search_events()` mirrors these rules.
@@ -13,7 +14,11 @@ import type { RegistrationStatus } from "@/lib/types";
  * Plain function, no server imports: tested on its own.
  */
 export function registrationStatus(
-  dates: { registration_closes: string; registration_opens: string | null },
+  dates: {
+    registration_closes: string;
+    registration_opens: string | null;
+    sold_out?: boolean;
+  },
   /** Paid runners across the event. */
   registered: number,
   /** The event's cap, else the sum of its categories'. */
@@ -21,6 +26,7 @@ export function registrationStatus(
   categories: { registered: number; capacity: number }[],
   today: string = puertoRicoToday(),
 ): RegistrationStatus {
+  if (dates.sold_out) return "full";
   if (today > dates.registration_closes) return "closed";
   if (dates.registration_opens && today < dates.registration_opens)
     return "opening-soon";

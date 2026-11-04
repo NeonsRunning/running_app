@@ -13,6 +13,11 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "./saved-events";
 
+/** Marked sold out with nobody signed up here: "0 runners" would contradict it. */
+function hideRunnerCount(event: RunningEvent): boolean {
+  return Boolean(event.soldOut) && event.registered === 0;
+}
+
 /**
  * An event's cover: the organizer's image when there is one, otherwise the
  * gradient placeholder. The wash stays underneath either way, so an image
@@ -187,9 +192,11 @@ export function EventRow({ event }: { event: RunningEvent }) {
             </b>{" "}
             · {event.terrain}
           </span>
-          <span>
-            {t("events.card.runners", { count: fmt.number(event.registered) })}
-          </span>
+          {hideRunnerCount(event) ? null : (
+            <span>
+              {t("events.card.runners", { count: fmt.number(event.registered) })}
+            </span>
+          )}
           <span>
             {event.startTime
               ? t("events.card.start", { time: fmt.clock(event.startTime) })
@@ -268,8 +275,10 @@ export function EventCardCompact({
           </Link>
         </h3>
         <div className="mt-1.5 text-xs text-fg-dim">
-          {event.city} ·{" "}
-          {t("events.card.runners", { count: fmt.number(event.registered) })}
+          {event.city}
+          {hideRunnerCount(event)
+            ? null
+            : ` · ${t("events.card.runners", { count: fmt.number(event.registered) })}`}
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 border-t-2 border-line pt-4">
           <span className="font-display text-lg font-black text-neon-yellow">

@@ -100,11 +100,23 @@ borrador** en cualquier momento: un borrador solo lo ves tú.
 | Nombre del evento | Sí | Entre 3 y 120 caracteres. Es el titular en los resultados de búsqueda. |
 | Descripción | No | Hasta 4,000 caracteres. |
 | Tipo de evento | Sí | Ruta, Trail, Pista, Virtual, Benéfica, Recreativa, Relevo o Infantil. |
-| Fecha del evento | Sí | No puede estar en el pasado. |
+| Fecha del evento | Sí | No puede estar en el pasado, a menos que marques el evento como **Agotado**. |
 | Fecha de fin | No | Solo para eventos de varios días. El evento sigue publicado hasta ese día. |
 | Hora de salida | No | Déjala vacía si aún no está fijada (o si se puede salir a cualquier hora en un evento de varios días). |
 | Apertura de inscripciones | No | Antes de esa fecha la carrera se ve como **Abre pronto**. |
-| Cierre de inscripciones | Sí | A más tardar el último día de la carrera, y de hoy en adelante. |
+| Cierre de inscripciones | Sí | A más tardar el último día de la carrera, y de hoy en adelante (salvo en un evento **Agotado**). |
+| Agotado | No | Cierra las inscripciones y muestra el evento como **Agotado**, sin importar cuántos cupos queden. |
+
+**Publicar una carrera que ya celebraste.** Marca **Agotado** y podrás usar
+fechas pasadas. El evento se queda en la lista de carreras, después de todas
+las próximas, y aparece en la portada mientras haya menos de cinco carreras
+próximas. No acepta inscripciones y no muestra un conteo de corredores. Si
+quitas la marca a una carrera que ya pasó, sale de la lista; su página sigue
+disponible por su enlace.
+
+Puedes marcar **Agotado** en cualquier momento desde **Editar**. Quien ya
+estaba pagando puede terminar su pago; solo se rechazan las inscripciones
+nuevas. Al quitar la marca, la inscripción vuelve a su estado normal.
 
 ### Paso 2 · Ubicación
 
