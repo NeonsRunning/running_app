@@ -188,6 +188,9 @@ export default async function RunnerProfilePage(
   if (!runner) notFound();
 
   const isSelf = viewerId !== null && viewerId === runner.id;
+  // Row-level security shows a private profile only to its owner and to
+  // platform admins, so anyone else reaching this line with one is an admin.
+  const adminView = !runner.isPublic && !isSelf;
 
   // The runner's own sign-ups and saves are private to them, so only their
   // own view of the page reads them.
@@ -262,6 +265,15 @@ export default async function RunnerProfilePage(
 
   return (
     <div>
+      {adminView ? (
+        <p className="border-b-2 border-line bg-charcoal px-4 py-3 text-sm text-fg-dim sm:px-6 lg:px-10">
+          {t("runner.adminPrivateNotice")}{" "}
+          <Link href="/admin/users" className="font-bold text-fg underline hover:text-neon-lime">
+            {t("runner.adminBackToUsers")}
+          </Link>
+        </p>
+      ) : null}
+
       {/* Profile header -------------------------------------------------- */}
       <header className="relative overflow-hidden border-b-2 border-line">
         <div
@@ -318,10 +330,13 @@ export default async function RunnerProfilePage(
             ) : (
               <FollowButton name={runner.name} block />
             )}
-            <ShareRow
-              title={`${runner.name} on NEONS RUNNING`}
-              path={`/runners/${runner.id}`}
-            />
+            {/* The link would 404 for whoever it was shared with. */}
+            {adminView ? null : (
+              <ShareRow
+                title={`${runner.name} on NEONS RUNNING`}
+                path={`/runners/${runner.id}`}
+              />
+            )}
             {runner.social ? (
               <p className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
                 {t("runner.followers", {

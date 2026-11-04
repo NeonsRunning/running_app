@@ -35,6 +35,8 @@ export type RunnerView = {
   city: string | null;
   club: string | null;
   bio: string | null;
+  /** False only reaches the owner and platform admins; see `getRunnerView`. */
+  isPublic: boolean;
   /** Date-only, for the "member since" line. Null for fixture runners. */
   joinedAt: string | null;
   /** Null where there is no social graph to count, rather than a zero. */
@@ -61,7 +63,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  * Null covers "no such account" and "private profile" alike — `getProfile`
  * already collapses those two through row-level security, and the caller turns
  * both into the same 404. A visitor cannot tell a hidden profile from an
- * absent one, which is the point.
+ * absent one, which is the point. The exception is a platform admin, whom
+ * row-level security lets read every profile.
  *
  * Cached for the render pass so `generateMetadata` and the page itself share
  * one query rather than each making their own.
@@ -161,6 +164,7 @@ function fromProfile(profile: Profile, racing: Racing): RunnerView {
     city: profile.city,
     club: profile.club,
     bio: profile.bio,
+    isPublic: profile.isPublic,
     // `created_at` is a timestamptz; the formatters take a plain date.
     joinedAt: profile.joinedAt.slice(0, 10),
     social: null,
@@ -179,6 +183,7 @@ function fromRunner(runner: Runner): RunnerView {
     city: runner.city,
     club: runner.club,
     bio: runner.bio,
+    isPublic: true,
     joinedAt: null,
     social: { followers: runner.followers, following: runner.following },
     stats: runner.stats,

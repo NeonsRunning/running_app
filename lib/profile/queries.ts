@@ -13,8 +13,8 @@ import type { MailingAddress } from "./address";
  * module should have to know a column name.
  *
  * Authorization is the database's job, not this file's: row-level security
- * already limits `profiles` to public rows plus the caller's own, and
- * `profile_private` to the caller's own. A missing row therefore reads the
+ * already limits `profiles` to public rows plus the caller's own (every row,
+ * for a platform admin), and `profile_private` to the caller's own. A missing row therefore reads the
  * same as a hidden one — `null` — which is what a stranger should see.
  */
 

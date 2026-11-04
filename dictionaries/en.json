@@ -49,7 +49,8 @@
     "settings": "Settings",
     "organizerDashboard": "Organizer Dashboard",
     "paymentReview": "Payment Review",
-    "eventModeration": "Event Moderation"
+    "eventModeration": "Event Moderation",
+    "users": "Users"
   },
   "tabs": {
     "home": "Home",
@@ -927,6 +928,8 @@
     "removedContact": "Contact Us"
   },
   "runner": {
+    "adminPrivateNotice": "This profile is private. Only its owner and admins can see it.",
+    "adminBackToUsers": "Back to Users",
     "notFound": "Runner not found",
     "metaDescription": "{name}'s profile on NEONS RUNNING: races, results and personal bests.",
     "clubLine": "{city} · Club {club}",
@@ -1435,7 +1438,7 @@
     "club": "Running club",
     "bio": "Bio",
     "raceDetails": "Race-day details",
-    "raceDetailsDescription": "Private — only you and the organizers of races you sign up for see these. Every registration opens with them already filled in.",
+    "raceDetailsDescription": "Private — only you and the organizers of races you sign up for see these. The NEONS RUNNING team can also see your phone and emergency contact. Every registration opens with them already filled in.",
     "raceDetailsSaved": "Race-day details saved",
     "mailingAddress": "Mailing address",
     "mailingAddressDescription": "Private — where your medal goes when you pick “send by mail” at registration. Saved here, it fills that step in for you.",
@@ -1865,7 +1868,8 @@
     },
     "account": "Sent to",
     "manageAccounts": "Manage ATH Móvil Accounts",
-    "manageEvents": "Manage Events"
+    "manageEvents": "Manage Events",
+    "viewUsers": "View Users"
   },
   "eventPayments": {
     "title": "Pending payments",
@@ -2236,6 +2240,38 @@
     "ownerLooking": "Looking up…",
     "ownerFound": "Will be assigned to {name} (@{handle}).",
     "ownerCurrent": "Assigned to {name} (@{handle})."
+  },
+  "adminUsers": {
+    "metaTitle": "Users",
+    "eyebrow": "Admin · Users",
+    "title": "Users",
+    "body": "Everyone with an account, newest first. Open a name to see that person’s profile, including private ones. Use phone numbers and emergency contacts only to help with a race or an account. Birth dates and addresses stay visible only to their owner.",
+    "backToPayments": "Back to Payments",
+    "searchLabel": "Search users",
+    "searchPlaceholder": "Name, email, handle, city or club…",
+    "search": "Search",
+    "showing": "{first}–{last} of {total}",
+    "empty": "No users match.",
+    "pastTheEnd": "This page has no users.",
+    "firstPage": "Go to First Page",
+    "pagesLabel": "Pages",
+    "previous": "Previous",
+    "next": "Next",
+    "columnUser": "User",
+    "columnEmail": "Email",
+    "columnPhone": "Phone",
+    "columnEmergency": "Emergency contact",
+    "columnRole": "Role",
+    "columnLocation": "City · Club",
+    "columnProfile": "Profile",
+    "columnJoined": "Joined",
+    "columnLastSignIn": "Last sign-in",
+    "roleRunner": "Runner",
+    "roleOrganizer": "Organizer",
+    "roleAdmin": "Admin",
+    "profilePublic": "Public",
+    "profilePrivate": "Private",
+    "neverSignedIn": "Never"
   },
   "adminEvents": {
     "metaTitle": "Events",
