@@ -242,10 +242,11 @@ header and the profile's settings. The account type is the trigger's to set — 
 Sign-up refuses an address that already has a confirmed account and says so
 (Supabase returns a decoy user, detectable only by an empty `identities` array),
 so a runner knows to sign in instead of waiting on an email. That tells anyone
-trying an address whether it is registered; the per-IP and per-address limits on
-`signUpAction` are what keep it from being scanned in bulk. Recovery reports
-success on every failure except a rate limit — which describes the sender, not
-the account.
+trying an address whether it is registered. The per-IP and per-address limits on
+`signUpAction` slow that down only through the form: the same decoy comes back
+to anyone calling Auth directly with the public key, where only the project's
+own Auth rate limits apply. Recovery reports success on every failure except a
+rate limit — which describes the sender, not the account.
 
 ## Database
 

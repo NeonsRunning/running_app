@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { useFocusFirstInvalid } from "@/components/ui/focus";
 import { useFormStatus } from "react-dom";
 import { Link } from "@/components/i18n/link";
@@ -37,7 +37,7 @@ function LocaleField() {
 }
 
 /** Whole-form failure — a rejected password, an expired link, a rate limit. */
-function AuthAlert({ error }: { error?: string }) {
+function AuthAlert({ error, children }: { error?: string; children?: ReactNode }) {
   const t = useT();
   if (!error) return null;
 
@@ -47,7 +47,10 @@ function AuthAlert({ error }: { error?: string }) {
       className="flex items-start gap-2 border-2 border-danger bg-danger/8 px-4 py-3 text-[13px] font-semibold text-danger"
     >
       <span aria-hidden="true">▲</span>
-      {t(`auth.errors.${error}`)}
+      <span>
+        {t(`auth.errors.${error}`)}
+        {children ? <span className="mt-1 block">{children}</span> : null}
+      </span>
     </p>
   );
 }
@@ -140,7 +143,19 @@ export function SignUpForm() {
     <form ref={formRef} action={action} className="flex flex-col gap-6" noValidate>
       <LocaleField />
 
-      <AuthAlert error={state?.error} />
+      <AuthAlert error={state?.error}>
+        {state?.error === "userAlreadyExists" ? (
+          <>
+            <Link href="/login" className="font-bold underline">
+              {t("auth.signup.footerLink")}
+            </Link>
+            {" · "}
+            <Link href="/forgot-password" className="font-bold underline">
+              {t("auth.login.forgotPassword")}
+            </Link>
+          </>
+        ) : null}
+      </AuthAlert>
 
       <Field label={t("auth.signup.fullName")} error={fieldError("name")}>
         {(p) => (
