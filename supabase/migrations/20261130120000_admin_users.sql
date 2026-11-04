@@ -1,7 +1,7 @@
 -- ---------------------------------------------------------------------------
 -- Admins can see the app's users
 --
--- Two things a platform admin could not do until now:
+-- Three things a platform admin could not do until now:
 --
 --   read a private profile   `/runners/[id]` answers 404 to everyone but the
 --                            owner. A new select policy lets admins through,
@@ -13,8 +13,12 @@
 --                            in `auth.users`, out of reach of the API. So the
 --                            list comes from a function that checks the role.
 --
--- `profile_private` is untouched: birth dates, phones, emergency contacts and
--- addresses stay readable only by their owner.
+--   reach a runner           the same list carries the phone and the emergency
+--                            contact from `profile_private`.
+--
+-- `profile_private` keeps its owner-only policies: admins get those three
+-- columns through the function and nothing else from the table. Birth dates,
+-- gender, shirt sizes and addresses stay with their owner.
 -- ---------------------------------------------------------------------------
 
 -- Only `authenticated`: `is_platform_admin()` is not executable by anon, so a
@@ -23,6 +27,9 @@ create policy "Platform admins read every profile"
   on public.profiles for select
   to authenticated
   using ((select public.is_platform_admin()));
+
+comment on table public.profile_private is
+  'Contact and race-day data. Readable by its owner; platform admins get the phone and emergency contact through admin_list_users().';
 
 -- A page of accounts, newest first, optionally matching a name, handle, email,
 -- city or club. `total_count` is the number of matches across all pages.
@@ -39,6 +46,9 @@ returns table (
   handle text,
   full_name text,
   email text,
+  phone text,
+  emergency_contact_name text,
+  emergency_contact_phone text,
   account_type public.account_type,
   is_admin boolean,
   city text,
@@ -65,13 +75,16 @@ begin
 
   return query
   select
-    p.id, p.handle, p.full_name, u.email::text, p.account_type,
+    p.id, p.handle, p.full_name, u.email::text,
+    pp.phone, pp.emergency_contact_name, pp.emergency_contact_phone,
+    p.account_type,
     exists (select 1 from public.platform_admins a where a.user_id = p.id),
     p.city, p.club, p.is_public, p.avatar_path, p.created_at,
     u.last_sign_in_at,
     count(*) over ()
   from public.profiles p
   join auth.users u on u.id = p.id
+  left join public.profile_private pp on pp.id = p.id
   where p.full_name ilike pattern
     or p.handle ilike pattern
     or u.email ilike pattern

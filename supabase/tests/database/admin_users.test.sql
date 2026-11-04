@@ -31,12 +31,15 @@ insert into auth.users (id, email) values
 update public.profiles set full_name = 'Ana Rivera', is_public = false
 where id = '00000000-0000-4000-8000-000000000003';
 
-update public.profile_private set phone = '787-555-0000'
+update public.profile_private set
+  phone = '787-555-0000',
+  emergency_contact_name = 'Luis Rivera',
+  emergency_contact_phone = '787-555-0001'
 where id = '00000000-0000-4000-8000-000000000003';
 
 insert into public.platform_admins (user_id) values ('00000000-0000-4000-8000-000000000005');
 
-select plan(12);
+select plan(14);
 
 -- Private profiles ----------------------------------------------------------
 
@@ -96,6 +99,19 @@ select is(
   (select l.email from public.admin_list_users('ana@example') l),
   'ana@example.com',
   'the list carries the sign-in email and searches it'
+);
+
+select is(
+  (select l.phone from public.admin_list_users('ana@example') l),
+  '787-555-0000',
+  'the list carries the phone'
+);
+
+select is(
+  (select l.emergency_contact_name || ' ' || l.emergency_contact_phone
+    from public.admin_list_users('ana@example') l),
+  'Luis Rivera 787-555-0001',
+  'the list carries the emergency contact'
 );
 
 select is(

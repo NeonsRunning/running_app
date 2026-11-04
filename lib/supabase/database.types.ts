@@ -908,6 +908,9 @@ export type Database = {
           handle: string;
           full_name: string;
           email: string;
+          phone: string | null;
+          emergency_contact_name: string | null;
+          emergency_contact_phone: string | null;
           account_type: Database["public"]["Enums"]["account_type"];
           is_admin: boolean;
           city: string | null;

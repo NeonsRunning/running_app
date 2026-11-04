@@ -53,17 +53,20 @@ En **Ajustes** → **Tipo de cuenta** aparece además la tarjeta **Admin**.
 **Dónde:** menú → **Usuarios** (`/admin/users`).
 
 La tabla muestra, de la cuenta más nueva a la más antigua, el nombre y usuario,
-el correo, el rol, la ciudad y el club, si el perfil es público o privado, la
+el correo, el teléfono, el contacto de emergencia, el rol, la ciudad y el club, si el perfil es público o privado, la
 fecha de registro y el último acceso. El buscador encuentra por nombre, correo,
 usuario, ciudad o club, y la lista muestra 50 cuentas por página.
 
 Pulsa un nombre para abrir el perfil. Un administrador puede ver también los
-perfiles **privados**, que avisan de ello en la parte superior. Los teléfonos,
-fechas de nacimiento, contactos de emergencia y direcciones de `profile_private`
-siguen siendo visibles solo para su dueño.
+perfiles **privados**, que avisan de ello en la parte superior.
+
+Usa los teléfonos y contactos de emergencia solo para ayudar con una carrera o
+una cuenta. Las fechas de nacimiento y las direcciones siguen siendo visibles
+solo para su dueño.
 
 > **🛠 Nota técnica:** la lista viene de `admin_list_users()`, que comprueba el
-> rol y lee el correo de `auth.users`. Los perfiles privados se abren por la
+> rol, lee el correo de `auth.users` y solo esas tres columnas de
+> `profile_private`, cuyas políticas siguen limitadas a su dueño. Los perfiles privados se abren por la
 > política *Platform admins read every profile* de `public.profiles`.
 
 ## 4.2 Revisión de pagos

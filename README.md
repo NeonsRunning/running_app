@@ -265,7 +265,7 @@ which is what every organizer-only screen reads.
 | Table | Holds | Who can read it |
 | --- | --- | --- |
 | `public.profiles` | handle, name, account type, avatar, bio, city, club, visibility | anyone, for public rows; always its owner |
-| `public.profile_private` | birth date, gender, shirt size, phone, emergency contact, email language | its owner, and no one else |
+| `public.profile_private` | birth date, gender, shirt size, phone, emergency contact, email language | its owner; platform admins get the phone and emergency contact through `admin_list_users()` |
 
 **The split is a privacy boundary.** Row-level security filters rows, never
 columns, so a table a stranger may read cannot also hold a phone number: any
@@ -379,8 +379,9 @@ under review is refunded automatically.
 Platform admins see every account at `/admin/users` (**Users** in the account
 menu): a searchable table, 50 per page, whose names link to `/runners/[id]`.
 The list comes from `admin_list_users()`, which checks the role and reads the
-email from `auth.users`. A select policy on `profiles` lets admins open private
-profiles too. `profile_private` stays owner-only.
+email from `auth.users` and the phone and emergency contact from
+`profile_private`, whose policies stay owner-only. A select policy on `profiles`
+lets admins open private profiles too.
 
 ## Email
 

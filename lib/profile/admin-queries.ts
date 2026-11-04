@@ -14,6 +14,9 @@ export type AdminUserRow = {
   initials: string;
   avatarUrl: string | null;
   email: string;
+  phone: string | null;
+  emergencyContactName: string | null;
+  emergencyContactPhone: string | null;
   accountType: AccountType;
   isAdmin: boolean;
   city: string | null;
@@ -53,6 +56,9 @@ export async function listAdminUsers(
       initials: initialsOf(r.full_name),
       avatarUrl: avatarUrl(r.avatar_path),
       email: r.email,
+      phone: r.phone,
+      emergencyContactName: r.emergency_contact_name,
+      emergencyContactPhone: r.emergency_contact_phone,
       accountType: r.account_type,
       isAdmin: r.is_admin,
       city: r.city,

@@ -374,7 +374,7 @@ número de rastreo.
 | Sección | Qué puedes hacer |
 | --- | --- |
 | **Perfil** | Cambiar nombre, ciudad, club y biografía. Se ve también el correo con el que inicias sesión. |
-| **Datos para carreras** | Fecha de nacimiento, género, teléfono, talla de camiseta y contacto de emergencia. **Privado**: solo lo ven tú y los organizadores de tus carreras. Llena la inscripción automáticamente. |
+| **Datos para carreras** | Fecha de nacimiento, género, teléfono, talla de camiseta y contacto de emergencia. **Privado**: solo lo ven tú y los organizadores de tus carreras; el equipo de NEONS RUNNING también puede ver tu teléfono y tu contacto de emergencia. Llena la inscripción automáticamente. |
 | **Dirección postal** | Dónde enviamos tu kit o medalla. **Privada**. Llena el paso de extras automáticamente. |
 | **Notificaciones** | Activar o desactivar los correos de **Recordatorios de carrera**, **Resultados publicados** y **Actualizaciones del evento**. |
 | **Tipo de cuenta** | Ver tu rol y [pedir acceso de organizador](#210-pedir-acceso-de-organizador). |

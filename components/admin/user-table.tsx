@@ -5,6 +5,19 @@ import type { Formatters } from "@/lib/i18n/format";
 import type { Translate } from "@/lib/i18n/translate";
 import type { AdminUserRow } from "@/lib/profile/admin-queries";
 
+/** A number the admin can call straight from the table. */
+function PhoneLink({ phone }: { phone: string }) {
+  return (
+    <a
+      href={`tel:${phone.replace(/[^+\d]/g, "")}`}
+      translate="no"
+      className="whitespace-nowrap tabular-nums hover:text-neon-lime"
+    >
+      {phone}
+    </a>
+  );
+}
+
 /**
  * The accounts on `/admin/users`, one per row. A server component: nothing
  * here changes in place, and each name links to that person's profile. The
@@ -22,6 +35,8 @@ export function UserTable({
   const columns = [
     t("adminUsers.columnUser"),
     t("adminUsers.columnEmail"),
+    t("adminUsers.columnPhone"),
+    t("adminUsers.columnEmergency"),
     t("adminUsers.columnRole"),
     t("adminUsers.columnLocation"),
     t("adminUsers.columnProfile"),
@@ -31,7 +46,7 @@ export function UserTable({
 
   return (
     <div className="overflow-x-auto border-2 border-line">
-      <table className="w-full min-w-[60rem] border-collapse">
+      <table className="w-full min-w-[76rem] border-collapse">
         <caption className="sr-only">{t("adminUsers.title")}</caption>
         <thead>
           <tr className="border-b-2 border-line">
@@ -86,6 +101,21 @@ export function UserTable({
               </td>
               <td translate="no" className="px-3 py-3 text-sm break-all text-fg-dim">
                 {row.email}
+              </td>
+              <td className="px-3 py-3 text-sm text-fg-dim">
+                {row.phone ? <PhoneLink phone={row.phone} /> : "—"}
+              </td>
+              <td className="px-3 py-3 text-sm wrap-break-word text-fg-dim">
+                {row.emergencyContactName || row.emergencyContactPhone ? (
+                  <>
+                    {row.emergencyContactName ? <p>{row.emergencyContactName}</p> : null}
+                    {row.emergencyContactPhone ? (
+                      <PhoneLink phone={row.emergencyContactPhone} />
+                    ) : null}
+                  </>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="px-3 py-3">
                 <div className="flex flex-wrap gap-1.5">
