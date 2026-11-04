@@ -219,9 +219,8 @@ same for local development, but the hosted project keeps its own:
    sender such as Gmail fails the inbox providers' checks and lands in spam.
 4. **Authentication → Rate Limits → emails.** Each sign-up and reset sends one;
    raise it to cover the busiest hour, such as a popular race opening.
-5. **Authentication → Sign In / Providers → Confirm email: on.** `signUpAction`
-   relies on it to answer a taken address the same as a new one, and an
-   unconfirmed address proves nobody owns it.
+5. **Authentication → Sign In / Providers → Confirm email: on.** An unconfirmed
+   address proves nobody owns it.
 6. **Authentication → Providers → Email → Minimum password length: 8**, the
    same as `MIN_PASSWORD` in `lib/auth/actions.ts`. Auth must refuse what the
    form refuses: anyone can call it directly with the public key.
@@ -240,11 +239,14 @@ trigger reads it to seed the profile row that `toSession()` projects onto the
 header and the profile's settings. The account type is the trigger's to set — always
 `runner` — and settings can promote a runner to an organizer later.
 
-Neither the sign-up form nor the recovery form will tell a stranger whether an
-address is registered. Sign-up shows the same inbox screen either way (Supabase
-returns a decoy user, detectable only by an empty `identities` array), and
-recovery reports success on every failure except a rate limit — which describes
-the sender, not the account.
+Sign-up refuses an address that already has a confirmed account and says so
+(Supabase returns a decoy user, detectable only by an empty `identities` array),
+so a runner knows to sign in instead of waiting on an email. That tells anyone
+trying an address whether it is registered. The per-IP and per-address limits on
+`signUpAction` slow that down only through the form: the same decoy comes back
+to anyone calling Auth directly with the public key, where only the project's
+own Auth rate limits apply. Recovery reports success on every failure except a
+rate limit — which describes the sender, not the account.
 
 ## Database
 

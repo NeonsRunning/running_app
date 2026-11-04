@@ -4,6 +4,7 @@ import { getT } from "@/lib/i18n/server";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { LoginForm } from "@/components/auth/forms";
 import { safeNextPath } from "@/lib/auth/routes";
+import { getPlatformStats } from "@/lib/events/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getT();
@@ -14,8 +15,11 @@ export async function generateMetadata(): Promise<Metadata> {
 const NOTICES = new Set(["oauth", "link"]);
 
 export default async function LoginPage(props: PageProps<"/[lang]/login">) {
-  const t = await getT();
-  const params = await props.searchParams;
+  const [t, params, stats] = await Promise.all([
+    getT(),
+    props.searchParams,
+    getPlatformStats(),
+  ]);
   const first = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;
 
@@ -28,6 +32,7 @@ export default async function LoginPage(props: PageProps<"/[lang]/login">) {
     <AuthShell
       title={t("auth.login.title")}
       intro={t("auth.login.intro")}
+      stats={stats}
       footer={
         <>
           {t("auth.login.footerPre")}{" "}

@@ -11,6 +11,7 @@ const withinLimits = vi.fn<(checks: Check[]) => Promise<boolean>>();
 const clientIp = vi.fn<() => Promise<string>>();
 const signInWithPassword = vi.fn();
 const resetPasswordForEmail = vi.fn();
+const signUp = vi.fn();
 
 vi.mock("@/lib/rate-limit", () => ({
   LIMITS: new Proxy({}, { get: () => ({ limit: 1, window: "1 hour" }) }),
@@ -18,7 +19,7 @@ vi.mock("@/lib/rate-limit", () => ({
   clientIp,
 }));
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { signInWithPassword, resetPasswordForEmail } }),
+  createClient: async () => ({ auth: { signInWithPassword, resetPasswordForEmail, signUp } }),
 }));
 vi.mock("@/lib/site-url", () => ({ siteOrigin: async () => "https://example.test" }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -29,7 +30,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("./session", () => ({ isRecoverySession: vi.fn() }));
 
-const { requestPasswordResetAction, signInAction } = await import("./actions");
+const { requestPasswordResetAction, signInAction, signUpAction } = await import("./actions");
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -89,6 +90,39 @@ it("hands back the email, never the password, when signing in fails", async () =
   );
   expect(state.values).toEqual({ email: "ana@example.com" });
   expect(JSON.stringify(state)).not.toContain("hunter22");
+});
+
+describe("signUpAction", () => {
+  const fields = { name: "Ana", email: "ana@example.com", password: "long-enough" };
+
+  it("refuses an address that already has an account", async () => {
+    // Supabase's decoy for a taken address: a user with no identities.
+    signUp.mockResolvedValue({ data: { user: { identities: [] }, session: null }, error: null });
+
+    await expect(signUpAction(undefined, form(fields))).resolves.toEqual({
+      error: "userAlreadyExists",
+      values: { name: "Ana", email: "ana@example.com" },
+    });
+  });
+
+  it("refuses a taken address when Supabase answers with an error", async () => {
+    signUp.mockResolvedValue({ data: { user: null, session: null }, error: { code: "user_already_exists" } });
+
+    await expect(signUpAction(undefined, form(fields))).resolves.toMatchObject({
+      error: "userAlreadyExists",
+    });
+  });
+
+  it("sends a new address to the inbox screen", async () => {
+    signUp.mockResolvedValue({
+      data: { user: { identities: [{ id: "1" }] }, session: null },
+      error: null,
+    });
+
+    await expect(signUpAction(undefined, form(fields))).rejects.toMatchObject({
+      to: expect.stringContaining("/verify-email?email=ana%40example.com"),
+    });
+  });
 });
 
 describe("requestPasswordResetAction", () => {

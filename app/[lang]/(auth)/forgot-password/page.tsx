@@ -16,7 +16,6 @@ export default async function ForgotPasswordPage() {
     <AuthShell
       title={t("auth.forgot.title")}
       intro={t("auth.forgot.intro")}
-      stats={false}
       footer={
         <>
           {t("auth.forgot.footerPre")}{" "}
