@@ -189,6 +189,7 @@ export type Database = {
           accepts_results: boolean;
           /** Finishers get the medal mailed, at no extra cost. */
           mails_medals: boolean;
+          sold_out: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -239,6 +240,7 @@ export type Database = {
           ath_movil_account_id?: string | null;
           accepts_results?: boolean;
           mails_medals?: boolean;
+          sold_out?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -289,6 +291,7 @@ export type Database = {
           ath_movil_account_id?: string | null;
           accepts_results?: boolean;
           mails_medals?: boolean;
+          sold_out?: boolean;
           created_at?: string;
           updated_at?: string;
         };

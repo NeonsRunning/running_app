@@ -1,6 +1,7 @@
 import { NeonsEmblem, NeonsWordmark } from "@/components/brand/logo";
 import { Link } from "@/components/i18n/link";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { FacebookIcon, InstagramIcon } from "@/components/ui/icons";
 import { getT } from "@/lib/i18n/server";
 
 /** Titles and labels are dictionary keys, resolved against the active locale. */
@@ -25,8 +26,18 @@ const COLUMNS = [
   },
 ];
 
+/** Logos for the `contact.channels` entries that are social profiles. */
+const SOCIAL_ICONS: Record<string, typeof FacebookIcon> = {
+  Facebook: FacebookIcon,
+  Instagram: InstagramIcon,
+};
+
 export async function SiteFooter() {
   const t = await getT();
+  // The profile URLs live with the contact page's channels, so each has one home.
+  const socials = t
+    .items<{ label: string; href?: string }>("contact.channels")
+    .filter((channel) => channel.href && SOCIAL_ICONS[channel.label]);
   return (
     <footer className="border-t-2 border-line bg-ink">
       <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-10">
@@ -39,6 +50,24 @@ export async function SiteFooter() {
             <p className="mt-5 text-[13px] leading-relaxed text-fg-dim">
               {t("footer.blurb")}
             </p>
+            <ul className="mt-5 flex gap-2">
+              {socials.map(({ label, href }) => {
+                const SocialIcon = SOCIAL_ICONS[label];
+                return (
+                  <li key={label}>
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={t("footer.social", { network: label })}
+                      className="flex h-11 w-11 items-center justify-center border-2 border-line-strong text-fg-dim transition-colors hover:border-neon-lime hover:text-neon-lime"
+                    >
+                      <SocialIcon />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
 
           {COLUMNS.map((col) => (

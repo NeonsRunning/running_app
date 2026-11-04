@@ -93,6 +93,8 @@ export type EventFormValues = {
   acceptsResults: boolean;
   /** Finishers get the medal mailed to the address they gave at sign-up. */
   mailsMedals: boolean;
+  /** Marked sold out by hand. The only way a past race can be listed. */
+  soldOut: boolean;
   categories: EventFormCategory[];
 };
 
@@ -142,6 +144,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   athMovilAccountId: "",
   acceptsResults: false,
   mailsMedals: false,
+  soldOut: false,
   categories: [
     { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0, locked: false },
     { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0, locked: false },

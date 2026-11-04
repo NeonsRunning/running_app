@@ -136,6 +136,8 @@ function toEvent(
     routeImage: eventImageUrl(row.route_image_path),
     medalImage: eventImageUrl(row.medal_image_path),
     acceptsResults: row.accepts_results,
+    soldOut: row.sold_out,
+    finished: (row.end_date ?? row.event_date) < todayIso(),
     mailsMedals: row.mails_medals,
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
@@ -249,6 +251,8 @@ async function selectEvents(where: {
   slugs?: string[];
   from?: string;
   ids?: string[];
+  /** Only races marked sold out that ended before this day, newest first. */
+  soldOutBefore?: string;
   /** The first this many, soonest first; otherwise every match. */
   limit?: number;
 }): Promise<PublishedRow[]> {
@@ -268,7 +272,12 @@ async function selectEvents(where: {
     if (where.ids) query = query.in("id", where.ids);
     // Listed until its last day has passed, not just its first.
     if (where.from) query = query.gte("last_day", where.from);
-    return query.order("event_date").order("id").range(from, to);
+    if (where.soldOutBefore)
+      query = query.eq("sold_out", true).lt("last_day", where.soldOutBefore);
+    return query
+      .order("event_date", { ascending: !where.soldOutBefore })
+      .order("id")
+      .range(from, to);
   };
   // Paged otherwise: every published race, as the sitemap asks for, can pass
   // the API's 1000-row cap. Ordered by id after the date, so pages neither
@@ -640,6 +649,22 @@ export async function listPublishedEvents(
 ): Promise<RunningEvent[]> {
   const [rows, t] = await Promise.all([
     selectEvents({ from: todayIso(), ...only }),
+    getTranslator(locale),
+  ]);
+  const counts = await registrationCounts(rows.map((r) => r.id));
+  return rows.map((r) => toEvent(r, counts, locale, t));
+}
+
+/**
+ * Races already run that their organizers marked sold out, newest first:
+ * references that keep the home page from looking empty at launch.
+ */
+export async function listPastSoldOutEvents(
+  locale: Locale,
+  limit: number,
+): Promise<RunningEvent[]> {
+  const [rows, t] = await Promise.all([
+    selectEvents({ soldOutBefore: todayIso(), limit }),
     getTranslator(locale),
   ]);
   const counts = await registrationCounts(rows.map((r) => r.id));

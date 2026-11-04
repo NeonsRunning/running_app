@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { SectionHeading } from "@/components/ui/misc";
 import { getClubs, getCommunityFeed } from "@/lib/data";
-import { getPlatformStats, listPublishedEvents } from "@/lib/events/queries";
+import {
+  getPlatformStats,
+  listPastSoldOutEvents,
+  listPublishedEvents,
+} from "@/lib/events/queries";
 import { getAccount, isOrganizer } from "@/lib/auth/session";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
@@ -57,16 +61,23 @@ export default async function LandingPage() {
 
   // Only races organizers have published; no sample fixtures here. The five
   // soonest are all the page shows (three as rows, five on the mobile rail).
-  const [events, stats] = await Promise.all([
+  // While fewer than that are coming up, past races marked sold out fill in.
+  const [upcoming, past, stats] = await Promise.all([
     listPublishedEvents(locale, { limit: 5 }),
+    listPastSoldOutEvents(locale, 5),
     getPlatformStats(),
   ]);
+  const events = [...upcoming, ...past].slice(0, 5);
   const clubs = getClubs(locale);
   const communityFeed = getCommunityFeed(locale);
   const featured = events.slice(0, 3);
-  // The months the listed races span; events arrive soonest first.
-  const upcomingKicker = featured.length
-    ? fmt.monthRange(featured[0].date, featured[featured.length - 1].date)
+  // The months the upcoming races span; they arrive soonest first.
+  const shownUpcoming = featured.filter((e) => !e.finished);
+  const upcomingKicker = shownUpcoming.length
+    ? fmt.monthRange(
+        shownUpcoming[0].date,
+        shownUpcoming[shownUpcoming.length - 1].date,
+      )
     : undefined;
 
   return (
@@ -165,7 +176,9 @@ export default async function LandingPage() {
       {/* ---------------------------------------------------------------- */}
       <section className="mx-auto max-w-[1600px] px-4 py-14 sm:px-6 lg:px-10 lg:py-20">
         <SectionHeading
-          title={t("home.upcomingTitle")}
+          title={t(
+            events.some((e) => e.finished) ? "home.racesTitle" : "home.upcomingTitle",
+          )}
           kicker={upcomingKicker}
           href="/events"
           hrefLabel={t("home.upcomingHrefLabel")}

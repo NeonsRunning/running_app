@@ -65,6 +65,7 @@
     "blurb": "Descubrimiento, inscripción y resultados de carreras para la comunidad corredora del Caribe. Hecho por corredores que también están en la línea de salida.",
     "copyright": "© 2026 Neons Running · Cabo Rojo, Puerto Rico",
     "motto": "Corremos · Superamos · Inspiramos",
+    "social": "Neons Running en {network}",
     "runners": {
       "title": "Corredores",
       "findRaces": "Buscar carreras",
@@ -192,6 +193,7 @@
     "statsOrganizers": "Organizadores",
     "statsClubs": "Clubes de corredores",
     "upcomingTitle": "Próximas carreras",
+    "racesTitle": "Carreras",
     "upcomingEmpty": "Aún no hay carreras próximas. Las nuevas aparecen aquí en cuanto los organizadores las publican.",
     "upcomingHrefLabel": "Ver todas las carreras",
     "swipeForMore": "Desliza para ver más →",
@@ -1753,7 +1755,7 @@
       "typeRequired": "Elige un tipo de evento.",
       "dateRequired": "Elige una fecha.",
       "dateInvalid": "Escribe una fecha válida.",
-      "dateInPast": "La fecha del evento no puede estar en el pasado.",
+      "dateInPast": "La fecha del evento no puede estar en el pasado, a menos que marques el evento como agotado.",
       "endBeforeStart": "La fecha de fin no puede ser antes de la fecha del evento.",
       "timeInvalid": "Escribe una hora de salida válida.",
       "closesAfterEvent": "La inscripción tiene que cerrar a más tardar el último día de la carrera.",
@@ -1819,6 +1821,10 @@
     "athMovilAccountNone": "Todavía no hay cuentas de ATH Móvil, así que los corredores pagan con tarjeta. Comunícate con el equipo para añadir una.",
     "athMovilAccountOff": "No aceptar ATH Móvil",
     "athMovilAccountRetired": "retirada",
+    "soldOut": {
+      "title": "Agotado",
+      "detail": "Cierra las inscripciones y muestra el evento como agotado, sin importar el conteo. Actívalo para publicar una carrera que ya celebraste: las fechas pasadas solo se aceptan en un evento agotado."
+    },
     "results": {
       "title": "Evidencia de llegada",
       "detail": "Desde el día de la carrera, los corredores inscritos pueden enviar una captura de su carrera (Strava, Nike Run Club, la app de su reloj) con su tiempo. Tú aceptas o rechazas cada una desde la página del evento; quienes sean aceptados reciben el resultado y esta medalla en su perfil."

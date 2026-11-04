@@ -182,6 +182,7 @@ export function PublishWizard({
   const [offersMail, setOffersMail] = useState(initial.offersMail);
   const [acceptsResults, setAcceptsResults] = useState(initial.acceptsResults);
   const [mailsMedals, setMailsMedals] = useState(initial.mailsMedals);
+  const [soldOut, setSoldOut] = useState(initial.soldOut);
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -725,6 +726,17 @@ export function PublishWizard({
                   />
                 )}
               </Field>
+            </div>
+
+            {/* Beside the dates: it is what lets them be in the past. */}
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="sold_out"
+                checked={soldOut}
+                onChange={setSoldOut}
+                title={t("publish.soldOut.title")}
+                detail={t("publish.soldOut.detail")}
+              />
             </div>
           </div>
 

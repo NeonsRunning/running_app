@@ -136,10 +136,12 @@ export default async function EventDetailPage(
     pendingPayments !== null &&
     (Boolean(event.athMovil) || pendingPayments.length > 0);
   const days = daysUntil(event.date);
-  const spotsLeft = openSpots(event.capacity, event.registered);
+  // Marked sold out, the race reads as full whatever was signed up here.
+  const taken = event.soldOut ? event.capacity : event.registered;
+  const spotsLeft = openSpots(event.capacity, taken);
   const percentFull =
     event.capacity > 0
-      ? Math.min(100, Math.round((event.registered / event.capacity) * 100))
+      ? Math.min(100, Math.round((taken / event.capacity) * 100))
       : 0;
   const categoryNames = Object.fromEntries(
     event.categories.map((c) => [c.id, c.name]),
@@ -370,7 +372,7 @@ export default async function EventDetailPage(
 
             <div className="border-b-2 border-line px-5 py-6 sm:px-7">
               <Progress
-                value={event.registered}
+                value={taken}
                 max={event.capacity}
                 label={t("events.detail.capacity")}
               />
@@ -412,20 +414,23 @@ export default async function EventDetailPage(
               </ul>
             </div>
 
-            <div className="px-5 py-7 sm:px-7">
-              <Eyebrow>{t("events.detail.countdown")}</Eyebrow>
-              <p className="mt-3 font-display text-5xl leading-none font-black tracking-[-0.03em]">
-                {fmt.number(days)}
-                <span className="ml-2 align-middle text-lg font-bold tracking-widest text-fg-dim">
-                  {t("events.detail.days")}
-                </span>
-              </p>
-              <p className="mt-3 text-[13px] text-fg-dim">
-                {t("events.detail.registrationCloses", {
-                  date: event.registrationCloses,
-                })}
-              </p>
-            </div>
+            {/* Nothing to count down to once the race has been run. */}
+            {event.finished ? null : (
+              <div className="px-5 py-7 sm:px-7">
+                <Eyebrow>{t("events.detail.countdown")}</Eyebrow>
+                <p className="mt-3 font-display text-5xl leading-none font-black tracking-[-0.03em]">
+                  {fmt.number(days)}
+                  <span className="ml-2 align-middle text-lg font-bold tracking-widest text-fg-dim">
+                    {t("events.detail.days")}
+                  </span>
+                </p>
+                <p className="mt-3 text-[13px] text-fg-dim">
+                  {t("events.detail.registrationCloses", {
+                    date: event.registrationCloses,
+                  })}
+                </p>
+              </div>
+            )}
           </div>
         </aside>
       </div>

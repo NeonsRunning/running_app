@@ -27,7 +27,7 @@ export type RegistrationStatus =
   | "open"
   | "opening-soon"
   | "almost-full"
-  /** Sold out: the event's cap, or every category's, is reached. */
+  /** Sold out: marked so, or the event's cap, or every category's, is reached. */
   | "full"
   | "closed";
 
@@ -141,6 +141,13 @@ export type RunningEvent = {
   athMovil?: AthMovilAccount;
   /** Runners may send finish evidence after race day; set on bookable races. */
   acceptsResults?: boolean;
+  /**
+   * Marked sold out by the organizer. `registered` stays the real count, so
+   * it may be far from the cap, even zero for a past race listed as a reference.
+   */
+  soldOut?: boolean;
+  /** The last day has passed. Only a race marked sold out is still listed then. */
+  finished?: boolean;
   /** Finishers get the medal mailed, so sign-up asks for an address. */
   mailsMedals?: boolean;
 };

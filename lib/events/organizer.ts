@@ -64,6 +64,8 @@ export type DashboardEvent = {
   slug: string;
   name: string;
   status: DashboardStatus;
+  /** Marked sold out by the organizer; `status` still says where it stands. */
+  soldOut: boolean;
   date: string | null;
   /** Run anywhere in the region, so there is no city. */
   anywhere: boolean;
@@ -225,6 +227,7 @@ export async function getOrganizerEvents(
         slug: e.slug,
         name: e.name,
         status: dashboardStatus(e, registered, capacity, today),
+        soldOut: e.sold_out,
         date: e.event_date,
         anywhere: e.anywhere,
         city: e.city,
@@ -490,6 +493,7 @@ export async function getEventForm(
     athMovilAccountId: event.ath_movil_account_id ?? "",
     acceptsResults: event.accepts_results,
     mailsMedals: event.mails_medals,
+    soldOut: event.sold_out,
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,
