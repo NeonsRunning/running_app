@@ -11,20 +11,24 @@ import { cn } from "@/lib/cn";
 import { setMedalDeliveryAction } from "@/lib/profile/medal-delivery";
 
 /**
- * How a finisher medal reaches the runner, on their own profile: by mail to
- * an address, or picked up in person. Either can change until the medal is
- * handed over. A mailed medal without an address — the organizer turned the
- * mail on after the sign-up — opens on the address saved in settings.
+ * How a finisher medal reaches the runner, on their own profile: in their
+ * shipment, or picked up in person. Either can change until the medal is
+ * handed over, but only a sign-up that includes the mail can choose it: one
+ * that had it for free and gives it up cannot come back. A mailed medal
+ * without an address opens on the address saved in settings.
  */
 export function MedalDelivery({
   registrationId,
   byMail: initialByMail,
   address: initialAddress,
   fallback,
+  paidMail,
 }: {
   registrationId: string;
   byMail: boolean;
   address: string | null;
+  /** They paid for "send by mail", so they may come back to it. */
+  paidMail: boolean;
   /** The settings address, offered when the medal has none yet. */
   fallback: string;
 }) {
@@ -108,6 +112,11 @@ export function MedalDelivery({
             </button>
           ))}
         </RadioGroup>
+        {!draftByMail && !paidMail ? (
+          <p className="mt-3 text-[13px] text-fg-dim">
+            {t("runner.medalPickupFinal")}
+          </p>
+        ) : null}
         {draftByMail ? (
           <Field
             label={t("runner.medalAddress")}
@@ -156,9 +165,11 @@ export function MedalDelivery({
     return (
       <div className="mt-3">
         <p className="max-w-[60ch] text-[14px] text-fg-muted">{t("runner.medalPickupBody")}</p>
-        <button type="button" onClick={() => open(true)} className={link}>
-          {t("runner.switchToMail")} <span aria-hidden="true">→</span>
-        </button>
+        {paidMail ? (
+          <button type="button" onClick={() => open(true)} className={link}>
+            {t("runner.switchToMail")} <span aria-hidden="true">→</span>
+          </button>
+        ) : null}
       </div>
     );
   }

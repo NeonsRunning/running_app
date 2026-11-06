@@ -38,8 +38,7 @@ Cada enlace abre la pantalla **Confirma que eres tú** antes de usarse (ver
 | **Tu resultado de … es oficial** | Aceptaron tu resultado; la medalla ya está en tu perfil | **Resultados publicados** |
 | **Tu resultado de … necesita revisión** | Devolvieron tu resultado, con la nota del organizador si dejó una | **Resultados publicados** |
 | **Tu resultado de … fue descalificado** | Descalificaron tu resultado, con el motivo | **Resultados publicados** |
-| **Tu paquete de … va en camino** | El organizador marcó tu paquete como enviado, con el rastreo si lo añadió | — |
-| **Tu medalla de finisher de … va en camino** | El organizador marcó tu medalla como enviada | — |
+| **Tu envío de … va en camino** | El organizador marcó tu envío como enviado, con el rastreo si lo añadió; otra vez si la medalla sale después del paquete | — |
 | **… fue cancelado** | Un administrador retiró una carrera que aún no se había corrido | — |
 | **Buenas noticias: … va de nuevo** | Un administrador restauró esa carrera | — |
 

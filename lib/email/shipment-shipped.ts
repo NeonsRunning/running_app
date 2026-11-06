@@ -11,37 +11,38 @@ import { getLocaleOf } from "./recipient";
 import { siteOrigin } from "@/lib/site-url";
 
 /**
- * "Your finisher medal is on its way" — the email a finisher gets when the
- * organizer marks their medal shipped, with the address and the tracking
- * number if one was given. The kit's email (`kit-shipped.ts`) is its twin.
+ * "Your package is on its way" — the email a runner gets when the organizer
+ * marks their shipment shipped, with the address and the tracking number if
+ * one was given. What is inside varies, kit, medal or both, and the wording
+ * stays clear of it: a medal following its kit gets this email too.
  *
  * Marking again only updates the tracking number, so sending is claimed: the
- * update that sets `medal_email_sent_at` while it is still null wins, and a
- * failed send gives the claim back for the next marking to retry.
+ * update that sets `shipping_email_sent_at` while it is still null wins, and
+ * a failed send gives the claim back for the next marking to retry.
  */
 
 type Registration = Tables<"registrations">;
 
-export async function scheduleMedalShippedEmail(registration: Registration): Promise<void> {
-  if (!hasBrevoEnv() || registration.medal_email_sent_at) return;
+export async function scheduleShipmentEmail(registration: Registration): Promise<void> {
+  if (!hasBrevoEnv() || registration.shipping_email_sent_at) return;
 
   const origin = await siteOrigin();
   after(() =>
-    sendMedalShippedEmail(registration.id, origin).catch((err) => {
-      console.error(`Medal shipped email for ${registration.id} failed:`, err);
+    sendShipmentEmail(registration.id, origin).catch((err) => {
+      console.error(`Shipment email for ${registration.id} failed:`, err);
     }),
   );
 }
 
-async function sendMedalShippedEmail(registrationId: string, origin: string) {
+async function sendShipmentEmail(registrationId: string, origin: string) {
   const admin = createAdminClient();
 
   const { data: claimed } = await admin
     .from("registrations")
-    .update({ medal_email_sent_at: new Date().toISOString() })
+    .update({ shipping_email_sent_at: new Date().toISOString() })
     .eq("id", registrationId)
-    .not("medal_shipped_at", "is", null)
-    .is("medal_email_sent_at", null)
+    .not("shipped_at", "is", null)
+    .is("shipping_email_sent_at", null)
     .select("*")
     .maybeSingle();
   // Sent already, or being sent by another marking.
@@ -55,8 +56,8 @@ async function sendMedalShippedEmail(registrationId: string, origin: string) {
     if (!event) throw new Error("Event not found.");
 
     const t = await getTranslator(locale);
-    const k = (key: string) => `emails.medalShipped.${key}`;
-    const address = (claimed.medal_mailing_address ?? "")
+    const k = (key: string) => `emails.shipment.${key}`;
+    const address = (claimed.mailing_address ?? "")
       .split(/\s*\n\s*/)
       .filter(Boolean)
       .join(", ");
@@ -71,12 +72,13 @@ async function sendMedalShippedEmail(registrationId: string, origin: string) {
         intro: [t(k("intro"), { event: event.name })],
         rows: [
           [t(k("race")), event.name],
+          ...(claimed.bib ? [[t(k("bib")), String(claimed.bib)] as [string, string]] : []),
           ...(address ? [[t(k("mailTo")), address] as [string, string]] : []),
-          ...(claimed.medal_tracking
-            ? [[t(k("tracking")), claimed.medal_tracking] as [string, string]]
+          ...(claimed.shipping_tracking
+            ? [[t(k("tracking")), claimed.shipping_tracking] as [string, string]]
             : []),
         ],
-        outro: [t(k(claimed.medal_tracking ? "next" : "nextNoTracking"))],
+        outro: [t(k(claimed.shipping_tracking ? "next" : "nextNoTracking"))],
         // The profile keeps the tracking number once this email is buried.
         cta: {
           label: t(k("cta")),
@@ -84,13 +86,13 @@ async function sendMedalShippedEmail(registrationId: string, origin: string) {
         },
         footer: t(k("footer"), { event: event.name }),
       }),
-      tags: ["medal-shipped"],
+      tags: ["shipment-shipped"],
     });
   } catch (err) {
     // Give the claim back so marking it again retries.
     await admin
       .from("registrations")
-      .update({ medal_email_sent_at: null })
+      .update({ shipping_email_sent_at: null })
       .eq("id", registrationId);
     throw err;
   }

@@ -399,7 +399,7 @@ nothing is sent and everything else works as before.
 | `registration-changed` | Runner | Their sign-up is removed, or an ATH Móvil confirmation is undone |
 | `result-reviewed` | Runner | Their finish time is accepted or sent back |
 | `race-reminder` | Runner | The day before the race (see below) |
-| `kit-shipped` | Runner | The organizer marks their mailed kit shipped (tracking number optional) |
+| `shipment-shipped` | Runner | The organizer marks their shipment shipped, kit and medal together (tracking number optional); again if a medal follows its kit |
 | `review-requested` | Organizer | A runner sends an ATH Móvil payment or a finish time to review |
 | `event-removed` | Organizer | An admin removes their event, with the reason |
 | `event-cancelled` | Runners | An admin removes a race not yet run |
@@ -416,7 +416,7 @@ lib/email/*.ts          one module per email: who, what, when
 
 - **Never in the way.** Emails go out with `after()`, once the response is
   sent, and a Brevo failure is logged rather than failing the action.
-- **Sent once.** The confirmation, the reminder and the kit-shipped email
+- **Sent once.** The confirmation, the reminder and the shipment email
   claim their registration first (`confirmation_email_sent_at`,
   `reminder_email_sent_at`, `shipping_email_sent_at`); a failed
   send clears the claim so a later attempt retries. A refund emails only when

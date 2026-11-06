@@ -149,11 +149,11 @@ Solo aparecen los extras que ofrece el organizador de esa carrera:
 - **Donar**: elige una cantidad ($5, $10, $25) u **Otra cantidad**, hasta
   $1,000.
 - **Envío por correo**: recibe el paquete de la carrera en tu casa, con un
-  cargo de envío.
-- **Medalla de finisher**: elige **Envíenmela por correo** o **La recojo en
-  persona**. El envío de la medalla está **incluido**.
+  cargo de envío. En carreras que incluyen las medallas en el envío, el paquete
+  y la medalla viajan juntos, en un solo envío, **cuando termines**. Si no lo
+  eliges, recoges ambos en persona.
 
-Si algo va por correo, escribe la **Dirección postal** (calle, ciudad, estado y
+Si eliges el envío, escribe la **Dirección postal** (calle, ciudad, estado y
 código postal). Si guardaste una en Ajustes, ya aparece escrita.
 
 Al pulsar **Continuar** se **reserva tu cupo por 30 minutos** mientras pagas.
@@ -342,8 +342,8 @@ cada carrera son públicos en `/events/<carrera>/results`.
 
 ## 2.8 Kit y medalla por correo
 
-**Para qué sirve:** seguir el envío de tu paquete o tu medalla, y cambiar cómo
-quieres recibir la medalla.
+**Para qué sirve:** seguir tu envío, con un solo número de rastreo para el
+paquete y la medalla, y cambiar cómo quieres recibir la medalla.
 
 **Dónde:** **Mi perfil** → sección **Correo**. Solo aparece si tienes algo por
 correo o por recoger.
@@ -353,17 +353,18 @@ correo o por recoger.
 | Estado | Qué significa |
 | --- | --- |
 | **En preparación** | El organizador aún no envía el paquete. |
-| **Cuando termines** | La medalla se envía cuando el organizador acepte tu llegada o después del día de la carrera. |
+| **Cuando termines** | El envío sale cuando el organizador acepte tu llegada o después del día de la carrera. Si tu paquete ya salió, la medalla lo sigue. |
 | **Enviado** | Ya va en camino; verás el **Número de rastreo** si el organizador lo añadió (pulsa **Copiar**). |
 | **Recogida** | Elegiste recoger la medalla en persona (debajo dice *Recogida en persona*) o ya la recogiste (debajo dice *Recogida el* y la fecha). |
 
 **Cambiar cómo recibes la medalla:** pulsa **Cambiar** (o **Mejor envíenmela
 por correo**), elige **Envíenmela por correo** o **La recojo en persona**,
 escribe la dirección si hace falta y guarda. Puedes cambiarlo hasta que la
-medalla se envíe o la recojas.
+medalla se envíe o la recojas. El correo es parte del extra pagado **Envío por
+correo**: sin él no puedes pasar a recibirla por correo.
 
-Cuando el organizador envía tu paquete o tu medalla, recibes un correo con el
-número de rastreo.
+Cuando el organizador marca tu envío, recibes un correo con el número de
+rastreo.
 
 ## 2.9 Ajustes de la cuenta
 
@@ -450,8 +451,7 @@ Estas partes se ven en la aplicación pero **todavía no funcionan del todo**:
 | **Tu inscripción en … fue cancelada** | El organizador quitó tu inscripción | No |
 | **Te reembolsamos tu pago para …** | La app cobró la tarjeta pero no pudo confirmar la inscripción (por ejemplo, la carrera se llenó mientras pagabas) y devolvió el pago completo automáticamente | No |
 | **Tu resultado de … es oficial** / **necesita revisión** / **fue descalificado** | El organizador revisó tu resultado | Sí — Resultados publicados |
-| **Tu paquete de … va en camino** | El organizador envió tu kit | No |
-| **Tu medalla de finisher de … va en camino** | El organizador envió tu medalla | No |
+| **Tu envío de … va en camino** | El organizador marcó tu envío | No |
 
 Cada correo opcional trae al pie el enlace **Elige qué correos recibes**, que
 abre las preferencias en Ajustes (ver

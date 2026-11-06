@@ -91,7 +91,7 @@ insert into public.registrations (
   emergency_contact_name, emergency_contact_phone, amount, amount_refunded,
   payment_method, payment_intent_id, payment_reference, ath_movil_account_id,
   payment_submitted_at, hold_expires_at, paid_at,
-  ships_by_mail, mailing_address, medal_by_mail, medal_mailing_address,
+  ships_by_mail, mailing_address, medal_by_mail,
   reminder_email_sent_at
 ) values (
   -- Beto at the Audit Run: kit by mail, medal at the tent, reminded already.
@@ -104,7 +104,7 @@ insert into public.registrations (
   'Carla Rivera', '787-555-0199', 38, 0,
   'stripe', 'pi_test_beto', null, null,
   null, null, now() - interval '1 day',
-  true, 'Calle Sol 2, Ponce, PR 00730', false, null,
+  true, 'Calle Sol 2, Ponce, PR 00730', false,
   now()
 ), (
   -- Cruz at the Audit Run: ATH Móvil reference sent, waiting on review.
@@ -117,7 +117,7 @@ insert into public.registrations (
   'Rosa Ortiz', '787-555-0196', 30, 0,
   'ath_movil', null, 'REF-CRUZ', '00000000-0000-4000-9000-0000000000a1',
   now(), 'infinity', null,
-  false, null, false, null,
+  false, null, false,
   null
 ), (
   -- Beto at the Storm Run: refunded in full while it was down.
@@ -130,7 +130,7 @@ insert into public.registrations (
   'Carla Rivera', '787-555-0199', 20, 20,
   'stripe', 'pi_test_beto_storm', null, null,
   null, null, now() - interval '10 days',
-  false, null, false, null,
+  false, null, false,
   null
 ), (
   -- Ana at the Storm Run: paid, not refunded.
@@ -143,7 +143,7 @@ insert into public.registrations (
   'Luis Figueroa', '787-555-0198', 20, 0,
   'stripe', 'pi_test_ana_storm', null, null,
   null, null, now() - interval '10 days',
-  false, null, false, null,
+  false, null, false,
   null
 );
 

@@ -394,13 +394,18 @@ export type Database = {
           shipped_at: string | null;
           shipping_email_sent_at: string | null;
           shipping_tracking: string | null;
-          /** The runner chose to have the medal mailed rather than pick it up. */
+          /** The medal goes in the runner's shipment rather than being picked up. */
           medal_by_mail: boolean;
-          /** Where the finisher medal goes, when mailed. */
-          medal_mailing_address: string | null;
+          /** When the medal left in the shipment; a kit can go ahead of it. */
           medal_shipped_at: string | null;
+          /** Retired: folded into `mailing_address`. */
+          medal_mailing_address: string | null;
+          /** Retired: folded into `shipping_tracking`. */
           medal_tracking: string | null;
+          /** Retired: folded into `shipping_email_sent_at`. */
           medal_email_sent_at: string | null;
+          /** The kit's number where the shipment's replaced it. Record only. */
+          kit_tracking_before_merge: string | null;
           medal_picked_up_at: string | null;
           /** When the runner was checked in on race day; null until then. */
           checked_in_at: string | null;
@@ -440,7 +445,6 @@ export type Database = {
           shipped_at?: string | null;
           shipping_email_sent_at?: string | null;
           shipping_tracking?: string | null;
-          medal_email_sent_at?: string | null;
           amount_refunded?: number;
           refunded_at?: string | null;
           disputed_at?: string | null;
@@ -803,7 +807,7 @@ export type Database = {
         Args: { p_event_id: string };
         Returns: Database["public"]["Tables"]["events"]["Row"];
       };
-      mark_medal_shipped: {
+      mark_shipment_shipped: {
         Args: { p_registration_id: string; p_tracking?: string | null };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
@@ -817,10 +821,6 @@ export type Database = {
       };
       set_medal_delivery: {
         Args: { p_registration_id: string; p_by_mail: boolean; p_address?: string | null };
-        Returns: Database["public"]["Tables"]["registrations"]["Row"];
-      };
-      mark_kit_shipped: {
-        Args: { p_registration_id: string; p_tracking?: string | null };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
       remove_registration: {

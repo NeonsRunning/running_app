@@ -177,14 +177,13 @@ const { scheduleEventCancelledEmails } = await import("./event-cancelled");
 const { scheduleEventRemovedEmail } = await import("./event-removed");
 const { scheduleEventRestoredEmails } = await import("./event-restored");
 const { scheduleEventSavedEmails } = await import("./event-updated");
-const { scheduleKitShippedEmail } = await import("./kit-shipped");
-const { scheduleMedalShippedEmail } = await import("./medal-shipped");
 const { schedulePaymentRefundedEmail } = await import("./payment-refunded");
 const { sendRaceReminders } = await import("./race-reminder");
 const { scheduleRegistrationChangedEmail } = await import("./registration-changed");
 const { scheduleRegistrationEmail } = await import("./registration-confirmed");
 const { scheduleResultReviewedEmail } = await import("./result-reviewed");
 const { scheduleReviewRequestedEmail } = await import("./review-requested");
+const { scheduleShipmentEmail } = await import("./shipment-shipped");
 const { UnconfirmedSendError } = await import("./brevo");
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- sample rows stand in for full table types */
@@ -243,9 +242,8 @@ const TEMPLATES: [string, () => Promise<unknown>][] = [
         byAdmin: false,
       }),
   ],
-  ["kit shipped", () => scheduleKitShippedEmail(reg())],
-  ["kit shipped, no tracking", () => scheduleKitShippedEmail(reg({ shipping_tracking: null }))],
-  ["medal shipped", () => scheduleMedalShippedEmail(reg({ medal_tracking: "TRK-2" }))],
+  ["shipment shipped", () => scheduleShipmentEmail(reg())],
+  ["shipment shipped, no tracking", () => scheduleShipmentEmail(reg({ shipping_tracking: null }))],
   ...(
     ["soldOut", "registrationMissing", "amountMismatch", "paymentUnderReview", "duplicate"] as const
   ).map(
