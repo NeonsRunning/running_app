@@ -351,7 +351,7 @@
       "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
       "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}",
-      "medalMailed": "Quienes terminan la recogen en persona, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse."
+      "medalMailed": "Quienes terminan la recogen en persona, coordinando la recogida con el organizador, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse y la medalla está disponible para envío. Pueden aplicar cargos adicionales por el envío."
     },
     "anywhere": {
       "short": "Cualquier lugar",
