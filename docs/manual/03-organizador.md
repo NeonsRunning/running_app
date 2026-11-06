@@ -199,7 +199,7 @@ iPhone de hasta 40 MB; la app la ajusta de tamaño y la convierte a WebP.
 - **Evidencia de llegada**: desde el día de la carrera, los inscritos pueden
   enviar una captura con su tiempo, y tú la aceptas o la rechazas (ver
   [3.8](#38-revisar-resultados)). Es lo habitual en carreras virtuales.
-- **Incluir las medallas de finisher en el envío**: quien añade **Envío por
+- **Incluir las medallas en el envío**: quien añade **Envío por
   correo** recibe su paquete y su medalla en un solo envío, cubierto por el
   cargo de envío; los demás recogen ambos. Requiere **Envío por correo** activo
   en los extras (ver [3.6](#36-enviar-kits-y-medallas)).
@@ -372,7 +372,8 @@ ella. Un paquete sin medalla pendiente puede salir en cualquier momento.
 | *Esperando la llegada* | Todavía no se puede enviar. El corredor puede recoger su paquete en el check-in. |
 | *Sin dirección* | El corredor aún no ha dado una dirección. |
 | **Marcar medalla enviada** | El paquete salió antes y la medalla ya se ganó. Escribe su número de rastreo; el corredor recibe otro correo. |
-| *Medalla: recogida* | Cuando la recoja, pulsa **Marcar recogida**. |
+| *Medalla: se recoge al terminar* | El corredor aún no ha terminado. No hay nada que hacer todavía. |
+| *Medalla: por recoger* | Cuando la recoja, pulsa **Marcar recogida**. |
 
 Si la carrera termina y el corredor no ganó la medalla, **Marcar enviado** manda
 solo el paquete, para que no se quede retenido. Si la gana después, sigue como

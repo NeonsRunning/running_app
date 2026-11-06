@@ -354,6 +354,7 @@ function RemoveForm({
       </Field>
       <Field
         label={t("adminEvents.typeName", { name: row.name })}
+        literalLabel
         error={errors.name}
       >
         {(props) => (

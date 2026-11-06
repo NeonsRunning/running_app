@@ -17,10 +17,13 @@ export function Field({
   hint,
   error,
   optional,
+  literalLabel,
   children,
   className,
 }: {
   label: string;
+  /** Show the label's real casing, for labels that quote text to type exactly. */
+  literalLabel?: boolean;
   hint?: string;
   error?: string;
   optional?: boolean;
@@ -41,7 +44,10 @@ export function Field({
     <div className={cn("flex flex-col", className)}>
       <label
         htmlFor={id}
-        className="font-mono text-[10px] uppercase tracking-[0.18em] text-fg-faint"
+        className={cn(
+          "font-mono text-[10px] tracking-[0.18em] text-fg-faint",
+          !literalLabel && "uppercase",
+        )}
       >
         {label}
         {optional ? (
