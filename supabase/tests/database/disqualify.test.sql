@@ -97,9 +97,13 @@ $$;
 grant execute on function tests.ana_details() to authenticated;
 -- End of fixtures.
 
--- The race was run today and takes evidence; Beto's finish was accepted.
+-- The race was run today, by the Puerto Rico date submit_race_result() checks
+-- (current_date is UTC, a day ahead from 8pm), and takes evidence; Beto's
+-- finish was accepted.
 update public.events set
-  event_date = current_date, registration_closes = current_date, accepts_results = true
+  event_date = (now() at time zone 'America/Puerto_Rico')::date,
+  registration_closes = (now() at time zone 'America/Puerto_Rico')::date,
+  accepts_results = true
 where id = '00000000-0000-4000-9000-0000000000e1';
 
 insert into public.race_results (

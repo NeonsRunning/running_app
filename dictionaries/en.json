@@ -351,7 +351,7 @@
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}",
-      "medalMailed": "Finishers can pick it up in person or have it mailed, at no extra cost — you choose when you sign up."
+      "medalMailed": "Finishers can pick it up in person or have it mailed — you choose when you sign up."
     },
     "anywhere": {
       "short": "Anywhere",
@@ -1327,7 +1327,7 @@
           },
           {
             "q": "Can my kit or medal be mailed to me?",
-            "a": "If the organizer offers it. Mailing your kit is an extra with a shipping and handling price the organizer sets, and you get an email when it ships. On races that mail finisher medals, you choose at sign-up between picking yours up and having it mailed at no extra cost, and you can switch to the mail from your profile later."
+            "a": "If the organizer offers it. Mailing your kit is an extra with a shipping and handling price the organizer sets, and you get an email when it ships. On races that mail finisher medals, you choose at sign-up between picking yours up and having it mailed, and you can switch to the mail from your profile later."
           },
           {
             "q": "What is an \"anywhere\" race?",
