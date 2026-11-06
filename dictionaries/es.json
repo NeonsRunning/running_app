@@ -351,7 +351,7 @@
       "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
       "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}",
-      "medalMailed": "Quienes terminan pueden recogerla en persona o recibirla por correo, sin costo adicional — eliges al inscribirte."
+      "medalMailed": "Quienes terminan pueden recogerla en persona o recibirla por correo — eliges al inscribirte."
     },
     "anywhere": {
       "short": "Cualquier lugar",
@@ -1327,7 +1327,7 @@
           },
           {
             "q": "¿Me pueden enviar el paquete o la medalla por correo?",
-            "a": "Si el organizador lo ofrece. El envío del paquete es un extra con un precio de envío y manejo que fija el organizador, y te avisamos por correo cuando sale. En las carreras que envían la medalla de finisher, eliges al inscribirte entre recogerla en persona o recibirla por correo sin costo adicional, y puedes cambiar al correo desde tu perfil más adelante."
+            "a": "Si el organizador lo ofrece. El envío del paquete es un extra con un precio de envío y manejo que fija el organizador, y te avisamos por correo cuando sale. En las carreras que envían la medalla de finisher, eliges al inscribirte entre recogerla en persona o recibirla por correo, y puedes cambiar al correo desde tu perfil más adelante."
           },
           {
             "q": "¿Qué es una carrera \"en cualquier lugar\"?",
