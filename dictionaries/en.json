@@ -351,7 +351,7 @@
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}",
-      "medalMailed": "Finishers pick it up in person, or get it in the mail with their kit when they add “Send by mail” at sign-up."
+      "medalMailed": "Finishers pick it up in person, coordinating the pickup with the organizer, or get it in the mail with their kit when they add “Send by mail” at sign-up and the medal is available for shipping. Additional shipping charges may apply."
     },
     "anywhere": {
       "short": "Anywhere",
