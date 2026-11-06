@@ -6,7 +6,7 @@ import { useT } from "@/components/i18n/provider";
 import { useToast } from "@/components/ui/toast";
 
 /**
- * A mailed kit's tracking number as a button: tapping it copies the number so
+ * A shipment's tracking number as a button: tapping it copies the number so
  * the runner can paste it into the carrier's tracking page.
  */
 export function CopyTracking({ tracking }: { tracking: string }) {

@@ -516,9 +516,11 @@ export type EventRegistrationRow = {
   age: number;
   shirtSize: string | null;
   club: string | null;
-  /** Where to mail the kit; null when the runner picks it up. */
+  /** The runner paid to have their kit mailed. */
+  kitByMail: boolean;
+  /** Where the shipment goes; null when nothing is mailed, or none given yet. */
   mailingAddress: string | null;
-  /** When the mailed kit was marked shipped; null until then. */
+  /** When the shipment was marked shipped; null until then. */
   shippedAt: string | null;
   shippingTracking: string | null;
   amount: number;
@@ -534,16 +536,16 @@ export type EventRegistrationRow = {
 };
 
 export type MedalShipping = {
-  /** The runner chose the mail; otherwise they pick it up in person. */
+  /** It goes in the shipment; otherwise the runner picks it up in person. */
   byMail: boolean;
   /** Earned, as `medal_earned()` decides for the mail: once the race is over. */
   finished: boolean;
   /** Earned for a pickup, which can happen at the finish on race day. */
   canHandOut: boolean;
-  /** Null until the runner gives one. */
-  address: string | null;
+  /** The last day has passed, so a kit stops waiting for this medal. */
+  raceEnded: boolean;
+  /** When it left in the shipment; null until then. */
   shippedAt: string | null;
-  tracking: string | null;
   pickedUpAt: string | null;
 };
 
@@ -573,7 +575,7 @@ export async function getEventRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_mailing_address, medal_shipped_at, medal_tracking, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
+        "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
       )
       .eq("event_id", eventId)
       .eq("status", "confirmed")
@@ -605,9 +607,12 @@ export async function getEventRegistrations(
     age: ageOn(r.birth_date, raceDay),
     shirtSize: r.shirt_size,
     club: r.club,
-    mailingAddress: r.ships_by_mail ? r.mailing_address : null,
-    shippedAt: r.ships_by_mail ? r.shipped_at : null,
-    shippingTracking: r.ships_by_mail ? r.shipping_tracking : null,
+    kitByMail: r.ships_by_mail,
+    // A picked-up medal may leave an address behind; it is nobody's shipment.
+    mailingAddress:
+      r.ships_by_mail || r.medal_by_mail ? r.mailing_address : null,
+    shippedAt: r.shipped_at,
+    shippingTracking: r.shipping_tracking,
     amount: Number(r.amount),
     paymentMethod: r.payment_method,
     paidAt: r.paid_at ?? r.created_at,
@@ -624,9 +629,9 @@ export async function getEventRegistrations(
             canHandOut: medals.acceptsResults
               ? r.result?.status === "accepted"
               : raceStarted,
-            address: r.medal_mailing_address,
+            // Undated races never end, so they hold no kit back either.
+            raceEnded: medals.lastDay === null || raceOver,
             shippedAt: r.medal_shipped_at,
-            tracking: r.medal_tracking,
             pickedUpAt: r.medal_picked_up_at,
           }
         : null,

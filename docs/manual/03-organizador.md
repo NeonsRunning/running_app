@@ -199,10 +199,10 @@ iPhone de hasta 40 MB; la app la ajusta de tamaño y la convierte a WebP.
 - **Evidencia de llegada**: desde el día de la carrera, los inscritos pueden
   enviar una captura con su tiempo, y tú la aceptas o la rechazas (ver
   [3.8](#38-revisar-resultados)). Es lo habitual en carreras virtuales.
-- **Ofrecer medallas por correo**: cada corredor elige al inscribirse si
-  recoge la medalla en persona o la recibe por correo, **sin costo adicional
-  para él**, así que inclúyelo en tus precios (ver
-  [3.6](#36-enviar-kits-y-medallas)).
+- **Incluir las medallas de finisher en el envío**: quien añade **Envío por
+  correo** recibe su paquete y su medalla en un solo envío, cubierto por el
+  cargo de envío; los demás recogen ambos. Requiere **Envío por correo** activo
+  en los extras (ver [3.6](#36-enviar-kits-y-medallas)).
 
 ### Paso 10 · Revisión y publicación
 
@@ -345,13 +345,13 @@ entregó.
 Las acciones de envío aparecen en la fila de cada corredor, dentro de
 **Inscripciones**.
 
-### Paquete de la carrera (kit) por correo
+### El envío del corredor
 
-Para corredores que eligieron **Envío por correo** (la fila muestra *"Enviar
-a: …"*):
+Cada corredor tiene **un solo envío**, con una dirección y un número de rastreo:
+su paquete (kit), su medalla o ambos. La fila muestra *"Enviar a: …"*.
 
-1. Pulsa **Marcar enviado** y confirma. El corredor recibe el correo *"Tu
-   paquete de … va en camino"*. No se puede deshacer.
+1. Pulsa **Marcar enviado** y confirma. El corredor recibe el correo *"Tu envío
+   de … va en camino"*. No se puede deshacer.
 
    ![Confirmación para marcar un paquete como enviado](img/organizador/kit-marcar-enviado.png)
 
@@ -361,30 +361,34 @@ a: …"*):
 
    ![Diálogo para añadir el número de rastreo](img/organizador/kit-rastreo.png)
 
-### Medalla de finisher
+### Cuándo sale
 
-Solo en eventos con **Ofrecer medallas por correo** activo. Cada fila indica
-cómo la recibe el corredor:
+Un envío con medalla espera a que el corredor la gane, y el paquete viaja con
+ella. Un paquete sin medalla pendiente puede salir en cualquier momento.
 
 | Lo que ves | Qué hacer |
 | --- | --- |
-| *Medalla a: dirección* | Cuando termine, pulsa **Marcar medalla enviada** (y añade el rastreo si quieres). El corredor recibe un correo. |
+| **Marcar enviado** | Ya puede salir. |
+| *Esperando la llegada* | Todavía no se puede enviar. El corredor puede recoger su paquete en el check-in. |
+| *Sin dirección* | El corredor aún no ha dado una dirección. |
+| **Marcar medalla enviada** | El paquete salió antes y la medalla ya se ganó. Escribe su número de rastreo; el corredor recibe otro correo. |
 | *Medalla: recogida* | Cuando la recoja, pulsa **Marcar recogida**. |
-| *Medalla: no ha terminado* | Todavía no se puede enviar. |
-| *Medalla: sin dirección* | El corredor aún no ha dado una dirección. |
+
+Si la carrera termina y el corredor no ganó la medalla, **Marcar enviado** manda
+solo el paquete, para que no se quede retenido. Si la gana después, sigue como
+**Marcar medalla enviada**. Un corredor descalificado recibe solo el paquete.
 
 ![Inscripción con la acción Marcar recogida](img/organizador/inscripciones-medalla.png)
 
 **"Terminar"** depende del evento: si acepta evidencia de llegada, cuando
 aceptas su resultado; si no, cuando pasa el día de la carrera.
 
-Marca **Medallas por enviar (n)** sobre la tabla para ver solo las medallas
-pendientes de envío.
+Marca **Envíos por hacer (n)** sobre la tabla para ver solo los envíos que ya
+pueden salir.
 
-> **🛠 Nota técnica:** `markKitShippedAction` (`lib/events/ship-kit.ts`),
-> `markMedalShippedAction` y `markMedalPickedUpAction`
-> (`lib/events/ship-medal.ts`). Los correos *kitShipped* y *medalShipped* pasan
-> por la cola de correos.
+> **🛠 Nota técnica:** `markShipmentShippedAction` y
+> `markMedalPickedUpAction` (`lib/events/shipment.ts`). El correo *shipment*
+> pasa por la cola de correos.
 
 ## 3.7 Check-in el día de la carrera
 

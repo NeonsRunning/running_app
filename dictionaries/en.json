@@ -351,7 +351,7 @@
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}",
-      "medalMailed": "Finishers can pick it up in person or have it mailed — you choose when you sign up."
+      "medalMailed": "Finishers pick it up in person, or get it in the mail with their kit when they add “Send by mail” at sign-up."
     },
     "anywhere": {
       "short": "Anywhere",
@@ -420,7 +420,7 @@
       "paymentRefunded": "We couldn’t match your payment to your registration, so it has been refunded in full. Please start again.",
       "paymentUnderReview": "Your ATH Móvil payment for this race is being verified. We’ll email you as soon as it’s confirmed.",
       "referenceInvalid": "Enter the reference number from your ATH Móvil receipt (up to 40 characters).",
-      "mailingAddressInvalid": "Enter the address to mail your medal to (up to 300 characters). Go back to the extras step and check it.",
+      "mailingAddressInvalid": "Enter the address to mail your package to (up to 300 characters). Go back to the extras step and check it.",
       "holdLimitReached": "Your spot was held for 2 hours without a payment, so it was released. You can try again in 15 minutes.",
       "referenceUsed": "That reference number was already used for another registration. Check the receipt in your ATH Móvil app and enter the reference for this payment.",
       "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment.",
@@ -476,19 +476,13 @@
       "none": "The organizer doesn’t offer any extras for this race.",
       "free": "Free",
       "mail": "Send by mail",
-      "mailDetail": "Can’t make packet pickup? We mail your medal to you.",
-      "addMail": "Send my medal by mail",
+      "mailDetail": "Can’t make packet pickup? We mail your kit to you.",
+      "addMail": "Send my kit by mail",
       "mailingAddress": "Mailing address",
       "mailingAddressHint": "Street, city, state and ZIP code.",
-      "mailingAddressRequired": "Enter the address to mail your medal to.",
-      "medalMail": "Finisher medal",
-      "medalMailDetail": "Finish the race and the organizer mails your medal to this address.",
-      "medalMailDetailWithKit": "Your kit and your finisher medal both go to this address.",
-      "included": "Included",
-      "medalDelivery": "How you get your medal",
-      "medalByMail": "Mail it to me",
-      "medalPickup": "I’ll pick it up",
-      "medalPickupDetail": "Pick up your medal in person when you finish. You can switch to the mail from your profile later."
+      "mailingAddressRequired": "Enter the address to mail your package to.",
+      "mailDetailWithMedal": "We mail your kit and finisher medal together, in one package, once you finish. Skip it and you pick up both in person.",
+      "addMailWithMedal": "Send my kit and medal by mail"
     },
     "step4": {
       "title": "Payment",
@@ -836,32 +830,19 @@
       "intro": "Don’t delete this account. The runner withdrew the request from their settings.",
       "footer": "Sent when a runner withdraws an account deletion request on NEONS RUNNING."
     },
-    "kitShipped": {
-      "subject": "Your race kit for {event} is on its way",
-      "preheader": "The organizer just mailed your kit.",
+    "shipment": {
+      "subject": "Your package for {event} is on its way",
+      "preheader": "The organizer just mailed your package.",
       "heading": "It’s in the mail, {name}!",
-      "intro": "The organizer of {event} just shipped your race kit.",
+      "intro": "The organizer of {event} just mailed your package.",
       "race": "Race",
       "bib": "Bib number",
-      "mailTo": "Mailed to",
-      "tracking": "Tracking number",
-      "next": "Use the tracking number on the carrier’s website to follow your package. If it doesn’t arrive, contact us.",
-      "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
-      "cta": "Track it on your profile",
-      "footer": "You’re receiving this because you chose to have your kit for {event} mailed to you on NEONS RUNNING."
-    },
-    "medalShipped": {
-      "subject": "Your finisher medal for {event} is on its way",
-      "preheader": "The organizer just mailed your medal.",
-      "heading": "Your medal is in the mail, {name}!",
-      "intro": "You finished {event}, and the organizer just mailed your finisher medal.",
-      "race": "Race",
       "mailTo": "Mailed to",
       "tracking": "Tracking number",
       "next": "Use the tracking number on the carrier’s website to follow your package. It’s on your profile too. If it doesn’t arrive, contact us.",
       "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
       "cta": "Track it on your profile",
-      "footer": "You’re receiving this because you finished {event} on NEONS RUNNING and asked for your finisher medal by mail."
+      "footer": "You’re receiving this because you asked to have your items for {event} mailed to you on NEONS RUNNING."
     }
   },
   "results": {
@@ -1031,7 +1012,7 @@
     "medalWaiting": "After you finish",
     "medalWaitingResult": "The organizer mails it once they accept your finish.",
     "medalWaitingRaceDay": "The organizer mails it after race day.",
-    "medalAddress": "Medal mailing address",
+    "medalAddress": "Mailing address",
     "medalMailTo": "Mail to: {address}",
     "medalAddressMissing": "Add the address to mail your medal to.",
     "addMedalAddress": "Add address",
@@ -1053,8 +1034,12 @@
       "medalsOff": "This race no longer mails medals.",
       "alreadyShipped": "Your medal has already shipped.",
       "pickedUp": "You’ve already picked up your medal.",
-      "saveFailed": "Something went wrong — try again in a moment."
-    }
+      "saveFailed": "Something went wrong — try again in a moment.",
+      "mailNotIncluded": "Mailing your medal is part of the “Send by mail” extra, which this sign-up doesn’t include."
+    },
+    "mailKitAndMedal": "Race kit + finisher medal",
+    "kitAheadOfMedal": "Your kit shipped {date}. Your medal follows once it’s earned.",
+    "medalPickupFinal": "Mailing your medal is now part of the paid “Send by mail” extra, so you won’t be able to switch back to the mail."
   },
   "auth": {
     "shell": {
@@ -1327,7 +1312,7 @@
           },
           {
             "q": "Can my kit or medal be mailed to me?",
-            "a": "If the organizer offers it. Mailing your kit is an extra with a shipping and handling price the organizer sets, and you get an email when it ships. On races that mail finisher medals, you choose at sign-up between picking yours up and having it mailed, and you can switch to the mail from your profile later."
+            "a": "If the organizer offers it. “Send by mail” is an extra with a shipping and handling price the organizer sets. On races that include medals in the mail, your kit and medal travel together in one package with one tracking number, once you’ve earned the medal. You get an email when it ships. Skip the extra and you pick up both in person."
           },
           {
             "q": "What is an \"anywhere\" race?",
@@ -1443,7 +1428,7 @@
     "raceDetailsDescription": "Private — only you and the organizers of races you sign up for see these. The NEONS RUNNING team can also see your phone and emergency contact. Every registration opens with them already filled in.",
     "raceDetailsSaved": "Race-day details saved",
     "mailingAddress": "Mailing address",
-    "mailingAddressDescription": "Private — where your medal goes when you pick “send by mail” at registration. Saved here, it fills that step in for you.",
+    "mailingAddressDescription": "Private — where your package goes when you pick “send by mail” at registration. Saved here, it fills that step in for you.",
     "mailingAddressSaved": "Mailing address saved",
     "addressLine1": "Street address",
     "addressLine1Placeholder": "123 Calle Luna",
@@ -1671,7 +1656,7 @@
       "donationRecipientPlaceholder": "e.g. Fundación Corre PR",
       "freeHint": "Enter 0 to include it at no cost.",
       "mail": "Send by mail",
-      "mailDetail": "Runners who can’t make packet pickup can have their medal mailed. Shipping and handling is added at the end of their total.",
+      "mailDetail": "Runners who can’t make packet pickup can have their kit mailed. Shipping and handling is added at the end of their total.",
       "shippingPrice": "Shipping & handling (USD)",
       "shippingPriceHint": "Added at the end of the runner’s total. Enter 0 to ship free."
     },
@@ -1830,9 +1815,9 @@
       "detail": "From race day, registered runners can send a screenshot of their run (Strava, Nike Run Club, a watch app) with their finish time. You accept or reject each one from the event page; accepted runners get the result and this medal on their profile."
     },
     "medalMail": {
-      "title": "Offer finisher medals by mail",
-      "detail": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Mailed medals go out once race day is over: you mark each one shipped from the event page and we email the runner. Pickups you mark as runners collect them.",
-      "detailResults": "At sign-up, each runner chooses to pick up their medal in person or have it mailed, at no extra cost to them — build it into your prices. Once you accept a runner’s finish evidence, you mark their medal shipped from the event page and we email them, or mark it picked up when they collect it."
+      "title": "Include finisher medals in the mail",
+      "detail": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once race day is over. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras.",
+      "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras."
     },
     "categoryLocked": "Has sign-ups",
     "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is."
@@ -2095,65 +2080,44 @@
       "actions": "Actions",
       "shipped": "Shipped on",
       "tracking": "Tracking number",
-      "medalMailTo": "Medal mailing address",
-      "medalShipped": "Medal shipped on",
-      "medalTracking": "Medal tracking number",
       "medalDelivery": "Medal",
       "medalPickedUp": "Medal picked up on"
     },
     "markShipped": "Mark shipped",
-    "markShippedAria": "Mark shipped: {name}’s kit",
+    "markShippedAria": "Mark shipped: {name}’s shipment",
     "editTracking": "Edit tracking",
     "addTracking": "Add tracking",
-    "addTrackingAria": "Add tracking for {name}’s kit",
-    "editTrackingAria": "Edit tracking for {name}’s kit",
+    "addTrackingAria": "Add tracking for {name}’s shipment",
+    "editTrackingAria": "Edit tracking for {name}’s shipment",
     "shippedOn": "Shipped {date}",
     "trackingValue": "Tracking: {tracking}",
-    "shipTitle": "Mark {name}’s kit as shipped?",
-    "shipDescription": "We’ll email {name} that their kit is on its way. This can’t be undone.",
+    "shipTitle": "Mark {name}’s shipment as shipped?",
+    "shipDescription": "We’ll email {name} that their package is on its way. This can’t be undone.",
     "trackingTitle": "Tracking number for {name}",
     "trackingDescription": "Saving a new tracking number doesn’t email {name} again.",
     "trackingLabel": "Tracking number",
     "trackingHint": "From the carrier’s receipt, so the runner can follow the package.",
     "saveTracking": "Save tracking",
-    "shippedTitle": "Kit marked as shipped",
+    "shippedTitle": "Marked as shipped",
     "shippedBody": "We’re emailing {name} that it’s on its way.",
     "trackingSavedTitle": "Tracking saved",
-    "trackingSavedBody": "The tracking number for {name}’s kit was updated.",
+    "trackingSavedBody": "The tracking number for {name}’s shipment was updated.",
     "shipErrors": {
       "title": "Couldn’t mark it shipped",
-      "notAllowed": "Only this event’s organizer can mark kits as shipped.",
+      "notAllowed": "Only this event’s organizer can mark shipments as shipped.",
       "registrationMissing": "This sign-up was removed or changed. Reload the page to see the latest list.",
-      "notMailed": "This runner picks up their kit, so there’s nothing to ship.",
+      "notMailed": "This runner picks everything up, so there’s nothing to ship.",
       "trackingTooLong": "That tracking number is too long. Check it and try again.",
       "shipFailed": "Something went wrong — try again in a moment.",
       "medalsOff": "This race doesn’t mail medals. Turn it on in the event’s settings first.",
-      "notFinished": "This runner hasn’t finished yet, so their medal can’t ship.",
-      "addressMissing": "This runner hasn’t given an address for their medal yet.",
+      "notFinished": "This runner’s medal isn’t earned yet, so their shipment can’t go.",
+      "addressMissing": "This runner hasn’t given a mailing address yet.",
       "pickupTitle": "Couldn’t mark it picked up",
-      "pickupChosen": "This runner chose to pick up their medal, so there’s nothing to mail.",
       "mailChosen": "This runner asked for their medal by mail. Mark it shipped instead.",
       "pickedUp": "This runner already picked up their medal.",
       "shipped": "This runner’s medal was already mailed."
     },
     "medal": {
-      "filter": "Medals to mail ({count})",
-      "mailTo": "Medal to: {address}",
-      "notFinished": "Medal: not finished",
-      "noAddress": "Medal: no address yet",
-      "markShipped": "Mark medal shipped",
-      "markShippedAria": "Mark medal shipped for {name}",
-      "addTrackingAria": "Add tracking for {name}’s medal",
-      "editTrackingAria": "Edit tracking for {name}’s medal",
-      "shippedOn": "Medal shipped {date}",
-      "shipTitle": "Mark {name}’s medal as shipped?",
-      "shipDescription": "We’ll email {name} that their finisher medal is on its way. This can’t be undone.",
-      "trackingTitle": "Medal tracking number for {name}",
-      "trackingDescription": "Saving a new tracking number doesn’t email {name} again.",
-      "shippedTitle": "Medal marked as shipped",
-      "shippedBody": "We’re emailing {name} that it’s on its way.",
-      "trackingSavedTitle": "Tracking saved",
-      "trackingSavedBody": "The tracking number for {name}’s medal was updated.",
       "pickupChosen": "Medal: pickup",
       "pickupNotYet": "Medal: pickup, not finished",
       "pickedUpOn": "Medal picked up {date}",
@@ -2166,7 +2130,13 @@
       "deliveryMail": "Mail",
       "deliveryPickup": "Pickup"
     },
-    "checkin": "Race-day check-in"
+    "checkin": "Race-day check-in",
+    "shipmentFilter": "Shipments to mail ({count})",
+    "notFinished": "Waiting for the finish",
+    "noAddress": "No address yet",
+    "markMedalShipped": "Mark medal shipped",
+    "shipMedalTitle": "Mark {name}’s medal as shipped?",
+    "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone."
   },
   "cancelledRegistrations": {
     "title": "Removed runners",

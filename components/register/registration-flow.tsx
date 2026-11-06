@@ -186,15 +186,13 @@ export function RegistrationFlow({
   const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
   const photoPrice = extras.photoPrice;
   const shippingPrice = extras.shippingPrice;
-  // Not an extra — it costs nothing — but it needs the address, so it sits
-  // with them.
+  // The medal rides in the same shipment, so the extra covers it too.
   const mailsMedals = Boolean(event.bookable && event.mailsMedals);
   const hasExtras =
     shirtPrice !== null ||
     photoPrice !== null ||
     extras.donationRecipient !== null ||
-    shippingPrice !== null ||
-    mailsMedals;
+    shippingPrice !== null;
 
   const [confirmed, setConfirmed] = useState(existing);
   const [step, setStep] = useState(existing ? 5 : 1);
@@ -234,12 +232,6 @@ export function RegistrationFlow({
   const [wantsMail, setWantsMail] = useState(false);
   const [mailingAddress, setMailingAddress] = useState(initialMailingAddress);
   const [addressError, setAddressError] = useState(false);
-  // Mailed or picked up, free either way. A race run anywhere has no finish
-  // to pick it up at, so the mail comes first there.
-  const [medalChoice, setMedalByMail] = useState(Boolean(event.anywhere));
-  const medalByMail = mailsMedals && medalChoice;
-  // One address serves the kit and the medal alike.
-  const needsAddress = wantsMail || medalByMail;
   const [presetDonation, setPresetDonation] = useState<number>(0);
   // What the runner typed in "Other amount"; while it holds anything it wins
   // over the preset buttons.
@@ -386,7 +378,7 @@ export function RegistrationFlow({
       focusFirstInvalid();
       return;
     }
-    if (step === 3 && needsAddress && !mailingAddress.trim()) {
+    if (step === 3 && wantsMail && !mailingAddress.trim()) {
       setAddressError(true);
       focusFirstInvalid();
       return;
@@ -402,8 +394,7 @@ export function RegistrationFlow({
         wantsPhotos,
         donation,
         shipsByMail: wantsMail,
-        medalByMail,
-        mailingAddress: needsAddress ? mailingAddress : "",
+        mailingAddress: wantsMail ? mailingAddress : "",
         locale,
       })
         .then((result) => {
@@ -1048,7 +1039,11 @@ export function RegistrationFlow({
                           {t("register.step3.mail")}
                         </h2>
                         <p className="mt-1.5 text-sm text-fg-dim">
-                          {t("register.step3.mailDetail")}
+                          {t(
+                            mailsMedals
+                              ? "register.step3.mailDetailWithMedal"
+                              : "register.step3.mailDetail",
+                          )}
                         </p>
                       </div>
                       <div className="flex items-center gap-4">
@@ -1063,70 +1058,20 @@ export function RegistrationFlow({
                           }}
                           label={
                             <span className="sr-only">
-                              {t("register.step3.addMail")}
+                              {t(
+                                mailsMedals
+                                  ? "register.step3.addMailWithMedal"
+                                  : "register.step3.addMail",
+                              )}
                             </span>
                           }
                         />
                       </div>
                     </div>
-                    {/* With the medal mailed too, the field sits with it. */}
-                    {wantsMail && !medalByMail ? addressField : null}
+                    {wantsMail ? addressField : null}
                   </div>
                 ) : null}
 
-                {mailsMedals ? (
-                  <div className="border-t-2 border-line p-5 first:border-t-0 sm:p-7">
-                    <div className="flex items-start justify-between gap-5">
-                      <div>
-                        <h2 className="font-display text-xl font-black uppercase">
-                          {t("register.step3.medalMail")}
-                        </h2>
-                        <p className="mt-1.5 text-sm text-fg-dim">
-                          {t(
-                            !medalByMail
-                              ? "register.step3.medalPickupDetail"
-                              : wantsMail
-                                ? "register.step3.medalMailDetailWithKit"
-                                : "register.step3.medalMailDetail",
-                          )}
-                        </p>
-                      </div>
-                      <span className="shrink-0 font-display text-xl font-black text-neon-yellow">
-                        {t("register.step3.included")}
-                      </span>
-                    </div>
-                    <RadioGroup
-                      aria-label={t("register.step3.medalDelivery")}
-                      className="mt-5 flex flex-wrap gap-2"
-                    >
-                      {[true, false].map((mail) => (
-                        <button
-                          key={String(mail)}
-                          type="button"
-                          role="radio"
-                          aria-checked={medalByMail === mail}
-                          onClick={() => {
-                            setMedalByMail(mail);
-                            setAddressError(false);
-                          }}
-                          className={cn(
-                            "border-2 px-4 py-3 text-sm font-bold",
-                            medalByMail === mail
-                              ? "border-neon-lime bg-neon-lime text-ink"
-                              : "border-line-strong text-fg-muted hover:border-fg-dim",
-                          )}
-                        >
-                          {t(
-                            mail
-                              ? "register.step3.medalByMail"
-                              : "register.step3.medalPickup",
-                          )}
-                        </button>
-                      ))}
-                    </RadioGroup>
-                    {medalByMail ? addressField : null}
-                  </div>
-                ) : null}
               </div>
             </section>
           ) : null}

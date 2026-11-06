@@ -50,11 +50,9 @@ export type RegistrationInput = {
   shirtSize: string | null;
   wantsPhotos: boolean;
   donation: number;
-  /** Mail the kit; `mailingAddress` is where it goes. */
+  /** The paid mail extra: the kit, and the medal on a race that mails it. */
   shipsByMail: boolean;
-  /** Mail the finisher medal, on a race that offers it, rather than pick it up. */
-  medalByMail: boolean;
-  /** Where the kit and the medal go, whichever is mailed; empty otherwise. */
+  /** Where the shipment goes; empty otherwise. */
   mailingAddress: string;
   /** The language the runner signed up in: their emails are written in it. */
   locale: string;
@@ -230,8 +228,7 @@ export async function startRegistrationPaymentAction(
     wants_photos: Boolean(input.wantsPhotos),
     donation: Number(input.donation),
     ships_by_mail: Boolean(input.shipsByMail),
-    medal_by_mail: Boolean(input.medalByMail),
-    // `register_for_event()` keeps it for the kit, the medal, or neither.
+    // `register_for_event()` keeps it only with the extra.
     mailing_address: trim(input.mailingAddress),
   };
 
@@ -251,7 +248,7 @@ export async function startRegistrationPaymentAction(
     details.club.length > 80 ||
     (details.shirt_size !== null && !isOneOf(SHIRT_SIZES, details.shirt_size)) ||
     !Number.isFinite(details.donation) ||
-    ((details.ships_by_mail || details.medal_by_mail) && !details.mailing_address) ||
+    (details.ships_by_mail && !details.mailing_address) ||
     details.mailing_address.length > 300
   ) {
     return { ok: false, error: "detailsInvalid" };

@@ -48,7 +48,7 @@ los que muestra la app.
 | Me **descalificaron** por error | Escribe al equipo: solo un administrador puede restablecer el resultado. |
 | No aparezco en los resultados públicos | Solo aparecen los corredores con **Perfil público** activo y con el resultado aceptado. |
 | Mi paquete o medalla no llega | En **Mi perfil** → **Correo** mira si está **Enviado** y copia el número de rastreo. Si no hay rastreo y no llega en unos días, escribe al equipo. |
-| Quiero la medalla por correo en vez de recogerla | **Mi perfil** → **Correo** → **Mejor envíenmela por correo**. Se puede cambiar hasta que se envíe o se recoja. |
+| Quiero la medalla por correo en vez de recogerla | Es parte del extra pagado **Envío por correo**. Si lo elegiste: **Mi perfil** → **Correo** → **Mejor envíenmela por correo**, hasta que se envíe o se recoja. |
 
 ## 7.4 Organizador
 
@@ -66,7 +66,7 @@ los que muestra la app.
 | Eliminé a un corredor que había pagado | El reembolso no es automático: hazlo en Stripe o en ATH Móvil Business. |
 | No veo **Registro del día de la carrera** | Los eventos virtuales o *en cualquier lugar* no tienen check-in presencial. |
 | En el check-in, un corredor aparece como **Pago en revisión** | No se puede registrar hasta aprobar su pago. Usa **Abrir revisión de pagos**. |
-| No puedo marcar la medalla como enviada | El corredor aún no ha terminado (resultado sin aceptar o carrera sin pasar) o no ha dado una dirección. |
+| No puedo marcar un envío como enviado | Si lleva medalla, el corredor aún no ha terminado (resultado sin aceptar o carrera sin pasar), o no ha dado una dirección. |
 | Descalifiqué un resultado por error | Solo un administrador puede **Restablecerlo**: escribe al equipo. |
 
 ## 7.5 Administrador y equipo técnico

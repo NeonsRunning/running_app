@@ -351,7 +351,7 @@
       "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
       "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}",
-      "medalMailed": "Quienes terminan pueden recogerla en persona o recibirla por correo — eliges al inscribirte."
+      "medalMailed": "Quienes terminan la recogen en persona, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse."
     },
     "anywhere": {
       "short": "Cualquier lugar",
@@ -420,7 +420,7 @@
       "paymentRefunded": "No pudimos asociar tu pago a tu inscripción, así que te lo devolvimos completo. Vuelve a empezar, por favor.",
       "paymentUnderReview": "Estamos verificando tu pago por ATH Móvil para esta carrera. Te enviaremos un email en cuanto se confirme.",
       "referenceInvalid": "Escribe el número de referencia de tu recibo de ATH Móvil (hasta 40 caracteres).",
-      "mailingAddressInvalid": "Escribe la dirección a la que enviamos tu medalla (hasta 300 caracteres). Regresa al paso de extras y revísala.",
+      "mailingAddressInvalid": "Escribe la dirección a la que enviamos tu paquete (hasta 300 caracteres). Regresa al paso de extras y revísala.",
       "holdLimitReached": "Tu espacio estuvo reservado 2 horas sin pago, así que se liberó. Puedes intentarlo otra vez en 15 minutos.",
       "referenceUsed": "Ese número de referencia ya se usó en otra inscripción. Revisa el recibo en tu app de ATH Móvil y escribe la referencia de este pago.",
       "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago.",
@@ -476,19 +476,13 @@
       "none": "El organizador no ofrece extras para esta carrera.",
       "free": "Gratis",
       "mail": "Envío por correo",
-      "mailDetail": "¿No puedes recoger tu medalla? Te la enviamos por correo.",
-      "addMail": "Enviar mi medalla por correo",
+      "mailDetail": "¿No puedes recoger tu paquete? Te lo enviamos por correo.",
+      "addMail": "Enviar mi paquete por correo",
       "mailingAddress": "Dirección postal",
       "mailingAddressHint": "Calle, ciudad, estado y código postal.",
-      "mailingAddressRequired": "Escribe la dirección a la que enviamos tu medalla.",
-      "medalMail": "Medalla de finisher",
-      "medalMailDetail": "Termina la carrera y el organizador te envía la medalla a esta dirección.",
-      "medalMailDetailWithKit": "Tu paquete y tu medalla de finisher llegan a esta dirección.",
-      "included": "Incluido",
-      "medalDelivery": "Cómo recibes tu medalla",
-      "medalByMail": "Envíenmela por correo",
-      "medalPickup": "La recojo en persona",
-      "medalPickupDetail": "Recoge tu medalla en persona al terminar. Puedes cambiar al correo desde tu perfil más adelante."
+      "mailingAddressRequired": "Escribe la dirección a la que enviamos tu paquete.",
+      "mailDetailWithMedal": "Te enviamos tu paquete y tu medalla de finisher juntos, en un solo envío, cuando termines. Si no lo eliges, recoges ambos en persona.",
+      "addMailWithMedal": "Enviar mi paquete y mi medalla por correo"
     },
     "step4": {
       "title": "Pago",
@@ -836,32 +830,19 @@
       "intro": "No borres esta cuenta. El corredor retiró la solicitud desde su configuración.",
       "footer": "Enviado cuando un corredor retira una solicitud de borrado de cuenta en NEONS RUNNING."
     },
-    "kitShipped": {
-      "subject": "Tu paquete de {event} va en camino",
+    "shipment": {
+      "subject": "Tu envío de {event} va en camino",
       "preheader": "El organizador acaba de enviar tu paquete.",
       "heading": "¡Va por correo, {name}!",
-      "intro": "El organizador de {event} acaba de enviar tu paquete de la carrera.",
+      "intro": "El organizador de {event} acaba de enviar tu paquete.",
       "race": "Carrera",
       "bib": "Número de corredor",
       "mailTo": "Enviado a",
       "tracking": "Número de rastreo",
-      "next": "Usa el número de rastreo en la página del transportista para seguir tu paquete. Si no llega, contáctanos.",
-      "nextNoTracking": "Si no llega en los próximos días, contáctanos.",
-      "cta": "Rastréalo en tu perfil",
-      "footer": "Recibes este correo porque pediste que te enviaran por correo tu paquete de {event} en NEONS RUNNING."
-    },
-    "medalShipped": {
-      "subject": "Tu medalla de finisher de {event} va en camino",
-      "preheader": "El organizador acaba de enviar tu medalla.",
-      "heading": "¡Tu medalla va por correo, {name}!",
-      "intro": "Terminaste {event} y el organizador acaba de enviar tu medalla de finisher.",
-      "race": "Carrera",
-      "mailTo": "Enviada a",
-      "tracking": "Número de rastreo",
       "next": "Usa el número de rastreo en la página del transportista para seguir tu paquete. También está en tu perfil. Si no llega, contáctanos.",
       "nextNoTracking": "Si no llega en los próximos días, contáctanos.",
-      "cta": "Rastréala en tu perfil",
-      "footer": "Recibes este correo porque terminaste {event} en NEONS RUNNING y pediste tu medalla de finisher por correo."
+      "cta": "Rastréalo en tu perfil",
+      "footer": "Recibes este correo porque pediste que te enviaran por correo lo tuyo de {event} en NEONS RUNNING."
     }
   },
   "results": {
@@ -1031,7 +1012,7 @@
     "medalWaiting": "Cuando termines",
     "medalWaitingResult": "El organizador la envía cuando acepte tu llegada.",
     "medalWaitingRaceDay": "El organizador la envía después del día de la carrera.",
-    "medalAddress": "Dirección para la medalla",
+    "medalAddress": "Dirección postal",
     "medalMailTo": "Enviar a: {address}",
     "medalAddressMissing": "Añade la dirección a la que enviamos tu medalla.",
     "addMedalAddress": "Añadir dirección",
@@ -1053,8 +1034,12 @@
       "medalsOff": "Esta carrera ya no envía medallas por correo.",
       "alreadyShipped": "Tu medalla ya se envió.",
       "pickedUp": "Ya recogiste tu medalla.",
-      "saveFailed": "Algo salió mal — inténtalo de nuevo en un momento."
-    }
+      "saveFailed": "Algo salió mal — inténtalo de nuevo en un momento.",
+      "mailNotIncluded": "Enviar tu medalla es parte del extra “Envío por correo”, que esta inscripción no incluye."
+    },
+    "mailKitAndMedal": "Paquete de la carrera + medalla de finisher",
+    "kitAheadOfMedal": "Tu paquete se envió el {date}. Tu medalla sigue cuando la ganes.",
+    "medalPickupFinal": "Enviar la medalla ahora es parte del extra pagado “Envío por correo”, así que no podrás volver al correo."
   },
   "auth": {
     "shell": {
@@ -1327,7 +1312,7 @@
           },
           {
             "q": "¿Me pueden enviar el paquete o la medalla por correo?",
-            "a": "Si el organizador lo ofrece. El envío del paquete es un extra con un precio de envío y manejo que fija el organizador, y te avisamos por correo cuando sale. En las carreras que envían la medalla de finisher, eliges al inscribirte entre recogerla en persona o recibirla por correo, y puedes cambiar al correo desde tu perfil más adelante."
+            "a": "Si el organizador lo ofrece. “Envío por correo” es un extra con un precio de envío y manejo que fija el organizador. En carreras que incluyen las medallas en el envío, tu paquete y tu medalla viajan juntos, con un solo número de rastreo, cuando ganes la medalla. Recibes un correo cuando sale. Si no eliges el extra, recoges ambos en persona."
           },
           {
             "q": "¿Qué es una carrera \"en cualquier lugar\"?",
@@ -1443,7 +1428,7 @@
     "raceDetailsDescription": "Privado — solo lo ven tú y los organizadores de las carreras en las que te inscribes. El equipo de NEONS RUNNING también puede ver tu teléfono y tu contacto de emergencia. Cada inscripción se abre con estos datos ya llenos.",
     "raceDetailsSaved": "Datos para carreras guardados",
     "mailingAddress": "Dirección postal",
-    "mailingAddressDescription": "Privado — a donde enviamos tu medalla cuando eliges “enviar por correo” al inscribirte. Guardada aquí, ese paso se llena solo.",
+    "mailingAddressDescription": "Privado — a donde enviamos tu paquete cuando eliges “enviar por correo” al inscribirte. Guardada aquí, ese paso se llena solo.",
     "mailingAddressSaved": "Dirección postal guardada",
     "addressLine1": "Dirección",
     "addressLine1Placeholder": "123 Calle Luna",
@@ -1671,7 +1656,7 @@
       "donationRecipientPlaceholder": "p. ej. Fundación Corre PR",
       "freeHint": "Escribe 0 para incluirlo sin costo.",
       "mail": "Envío por correo",
-      "mailDetail": "Los corredores que no puedan recoger su medalla pueden recibirla por correo. El envío y manejo se suma al final de su total.",
+      "mailDetail": "Los corredores que no puedan recoger su paquete pueden recibirlo por correo. El envío y manejo se suma al final de su total.",
       "shippingPrice": "Envío y manejo (USD)",
       "shippingPriceHint": "Se suma al final del total del corredor. Escribe 0 para enviar gratis."
     },
@@ -1830,9 +1815,9 @@
       "detail": "Desde el día de la carrera, los corredores inscritos pueden enviar una captura de su carrera (Strava, Nike Run Club, la app de su reloj) con su tiempo. Tú aceptas o rechazas cada una desde la página del evento; quienes sean aceptados reciben el resultado y esta medalla en su perfil."
     },
     "medalMail": {
-      "title": "Ofrecer medallas por correo",
-      "detail": "Al inscribirse, cada corredor elige recoger su medalla en persona o recibirla por correo, sin costo adicional para él — inclúyelo en tus precios. Las medallas por correo salen cuando pasa el día de la carrera: marcas cada una como enviada desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando el corredor la recoge.",
-      "detailResults": "Al inscribirse, cada corredor elige recoger su medalla en persona o recibirla por correo, sin costo adicional para él — inclúyelo en tus precios. Cuando aceptes la evidencia de llegada de un corredor, marcas su medalla como enviada desde la página del evento y le escribimos, o como recogida cuando la recoja."
+      "title": "Incluir las medallas de finisher en el envío",
+      "detail": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando pase el día de la carrera. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras.",
+      "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras."
     },
     "categoryLocked": "Tiene inscripciones",
     "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar."
@@ -2095,65 +2080,44 @@
       "actions": "Acciones",
       "shipped": "Enviado el",
       "tracking": "Número de rastreo",
-      "medalMailTo": "Dirección de la medalla",
-      "medalShipped": "Medalla enviada el",
-      "medalTracking": "Rastreo de la medalla",
       "medalDelivery": "Medalla",
       "medalPickedUp": "Medalla recogida el"
     },
     "markShipped": "Marcar enviado",
-    "markShippedAria": "Marcar enviado: el paquete de {name}",
+    "markShippedAria": "Marcar enviado: el envío de {name}",
     "editTracking": "Editar rastreo",
     "addTracking": "Añadir rastreo",
-    "addTrackingAria": "Añadir rastreo del paquete de {name}",
-    "editTrackingAria": "Editar rastreo del paquete de {name}",
+    "addTrackingAria": "Añadir rastreo del envío de {name}",
+    "editTrackingAria": "Editar rastreo del envío de {name}",
     "shippedOn": "Enviado el {date}",
     "trackingValue": "Rastreo: {tracking}",
-    "shipTitle": "¿Marcar como enviado el paquete de {name}?",
-    "shipDescription": "Le escribiremos a {name} que su paquete va en camino. Esto no se puede deshacer.",
+    "shipTitle": "¿Marcar como enviado el envío de {name}?",
+    "shipDescription": "Le escribiremos a {name} que su envío va en camino. Esto no se puede deshacer.",
     "trackingTitle": "Número de rastreo de {name}",
     "trackingDescription": "Guardar un nuevo número de rastreo no le vuelve a escribir a {name}.",
     "trackingLabel": "Número de rastreo",
     "trackingHint": "Del recibo del transportista, para que el corredor pueda seguir el paquete.",
     "saveTracking": "Guardar rastreo",
-    "shippedTitle": "Paquete marcado como enviado",
+    "shippedTitle": "Marcado como enviado",
     "shippedBody": "Le estamos escribiendo a {name} que va en camino.",
     "trackingSavedTitle": "Rastreo guardado",
-    "trackingSavedBody": "Se actualizó el número de rastreo del paquete de {name}.",
+    "trackingSavedBody": "Se actualizó el número de rastreo del envío de {name}.",
     "shipErrors": {
       "title": "No se pudo marcar como enviado",
-      "notAllowed": "Solo el organizador de este evento puede marcar paquetes como enviados.",
+      "notAllowed": "Solo el organizador de este evento puede marcar envíos como enviados.",
       "registrationMissing": "Esta inscripción se eliminó o cambió. Recarga la página para ver la lista al día.",
-      "notMailed": "Este corredor recoge su paquete, así que no hay nada que enviar.",
+      "notMailed": "Este corredor recoge todo en persona, así que no hay nada que enviar.",
       "trackingTooLong": "Ese número de rastreo es demasiado largo. Revísalo e inténtalo de nuevo.",
       "shipFailed": "Algo salió mal — inténtalo de nuevo en un momento.",
       "medalsOff": "Esta carrera no envía medallas por correo. Actívalo primero en la configuración del evento.",
-      "notFinished": "Este corredor aún no ha terminado, así que su medalla no se puede enviar.",
-      "addressMissing": "Este corredor aún no ha dado una dirección para su medalla.",
+      "notFinished": "La medalla de este corredor aún no se ha ganado, así que su envío no puede salir.",
+      "addressMissing": "Este corredor aún no ha dado una dirección postal.",
       "pickupTitle": "No se pudo marcar como recogida",
-      "pickupChosen": "Este corredor eligió recoger su medalla, así que no hay nada que enviar.",
       "mailChosen": "Este corredor pidió su medalla por correo. Márcala como enviada.",
       "pickedUp": "Este corredor ya recogió su medalla.",
       "shipped": "La medalla de este corredor ya se envió por correo."
     },
     "medal": {
-      "filter": "Medallas por enviar ({count})",
-      "mailTo": "Medalla a: {address}",
-      "notFinished": "Medalla: no ha terminado",
-      "noAddress": "Medalla: sin dirección",
-      "markShipped": "Marcar medalla enviada",
-      "markShippedAria": "Marcar medalla enviada de {name}",
-      "addTrackingAria": "Añadir rastreo de la medalla de {name}",
-      "editTrackingAria": "Editar rastreo de la medalla de {name}",
-      "shippedOn": "Medalla enviada el {date}",
-      "shipTitle": "¿Marcar como enviada la medalla de {name}?",
-      "shipDescription": "Le escribiremos a {name} que su medalla de finisher va en camino. Esto no se puede deshacer.",
-      "trackingTitle": "Rastreo de la medalla de {name}",
-      "trackingDescription": "Guardar un nuevo número de rastreo no le vuelve a escribir a {name}.",
-      "shippedTitle": "Medalla marcada como enviada",
-      "shippedBody": "Le estamos escribiendo a {name} que va en camino.",
-      "trackingSavedTitle": "Rastreo guardado",
-      "trackingSavedBody": "Se actualizó el número de rastreo de la medalla de {name}.",
       "pickupChosen": "Medalla: recogida",
       "pickupNotYet": "Medalla: recogida, no ha terminado",
       "pickedUpOn": "Medalla recogida el {date}",
@@ -2166,7 +2130,13 @@
       "deliveryMail": "Correo",
       "deliveryPickup": "Recogida"
     },
-    "checkin": "Registro del día de la carrera"
+    "checkin": "Registro del día de la carrera",
+    "shipmentFilter": "Envíos por hacer ({count})",
+    "notFinished": "Esperando la llegada",
+    "noAddress": "Sin dirección",
+    "markMedalShipped": "Marcar medalla enviada",
+    "shipMedalTitle": "¿Marcar como enviada la medalla de {name}?",
+    "shipKitOnlyDescription": "{name} no ha ganado su medalla, así que solo va el paquete. La medalla puede seguir si la gana. Le escribiremos a {name}. Esto no se puede deshacer."
   },
   "cancelledRegistrations": {
     "title": "Corredores removidos",

@@ -517,7 +517,11 @@ export async function getUpcomingRegistrations(
 
 /** A race kit or finisher medal on its way to the runner by mail. */
 export type MailItem = {
-  kind: "kit" | "medal";
+  /** A shipment, or a medal the runner picks up in person. */
+  kind: "shipment" | "pickup";
+  /** What the shipment holds. */
+  kit: boolean;
+  medal: boolean;
   registrationId: string;
   eventName: string;
   eventSlug: string;
@@ -525,30 +529,34 @@ export type MailItem = {
   /** Whether the event page still exists to link to. */
   eventListed: boolean;
   /**
-   * `waiting`: a mailed medal not earned yet — `waitingFor` says what for.
+   * `waiting`: its medal is not earned yet — `waitingFor` says what for.
    * `preparing`: the organizer has yet to mail it.
+   * `shipped`: all of it is on its way.
    * `pickup`: a medal the runner picks up in person; `pickedUp` once they have.
    */
   status: "waiting" | "preparing" | "shipped" | "pickup" | "pickedUp";
   waitingFor: "result" | "raceDay" | null;
-  /** Null until the organizer marks it shipped. */
+  /** Null until the organizer marks it shipped. A kit can leave ahead of its medal. */
   shippedAt: string | null;
   tracking: string | null;
   pickedUpAt: string | null;
-  /** A medal's way and address, which the runner may change until it is handed over. */
+  /** The medal has yet to be handed over, so the runner may still change how. */
+  medalPending: boolean;
+  /** They paid for "send by mail", so the mail stays open to them. */
+  paidMail: boolean;
   medalByMail: boolean;
-  medalAddress: string | null;
+  address: string | null;
 };
 
 /**
- * What the runner has coming, whatever the race date: the kits they paid to
- * have mailed, and the finisher medals of races that mail them — by mail or
- * picked up, as the runner chose, since they may switch until it is handed
- * over. A tracking number matters after the race leaves the calendar. A medal
- * whose finish was disqualified is left out unless it was already handed over.
+ * What the runner has coming, whatever the race date: one shipment per
+ * sign-up, kit and medal together, and otherwise the finisher medal they pick
+ * up on a race that tracks them. A tracking number matters after the race
+ * leaves the calendar. A medal whose finish was disqualified is left out
+ * unless it was already handed over.
  *
- * Still to come first — a mailed medal missing its address at the very top —
- * then the most recently handed over.
+ * Still to come first — a shipment missing its address at the very top — then
+ * the most recently handed over.
  */
 export async function getMailItems(runnerId: string): Promise<MailItem[]> {
   if (!hasSupabaseEnv()) return [];
@@ -557,7 +565,7 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
   const { data, error } = await supabase
     .from("registrations")
     .select(
-      "id, ships_by_mail, shipped_at, shipping_tracking, medal_by_mail, medal_mailing_address, medal_shipped_at, medal_tracking, medal_picked_up_at, event:events(name, slug, event_date, last_day, status, mails_medals, accepts_results), result:race_results!race_results_registration_id_fkey (status)",
+      "id, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, event:events(name, slug, event_date, last_day, status, mails_medals, accepts_results), result:race_results!race_results_registration_id_fkey (status)",
     )
     .eq("runner_id", runnerId)
     .eq("status", "confirmed");
@@ -577,50 +585,63 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
     };
     const out: MailItem[] = [];
 
-    if (r.ships_by_mail) {
-      out.push({
-        ...base,
-        kind: "kit",
-        status: r.shipped_at ? "shipped" : "preparing",
-        waitingFor: null,
-        shippedAt: r.shipped_at,
-        tracking: r.shipping_tracking,
-        pickedUpAt: null,
-        medalByMail: false,
-        medalAddress: null,
-      });
-    }
-
     const result = r.result?.status ?? null;
     const handedOver = r.medal_shipped_at ?? r.medal_picked_up_at;
-    if (handedOver || (ev.mails_medals && result !== "disqualified")) {
+    const tracksMedal =
+      Boolean(handedOver) || (ev.mails_medals && result !== "disqualified");
+    const medalPending = tracksMedal && !handedOver;
+    const mailedMedal =
+      Boolean(r.medal_shipped_at) || (medalPending && r.medal_by_mail);
+
+    if (r.ships_by_mail || mailedMedal) {
       // The same rule as `medal_earned()` for the mail.
       const finished = ev.accepts_results
         ? result === "accepted"
         : ev.last_day !== null && ev.last_day < today;
+      const medalDue = medalPending && r.medal_by_mail;
       out.push({
         ...base,
-        kind: "medal",
-        status: r.medal_shipped_at
-          ? "shipped"
-          : r.medal_picked_up_at
-            ? "pickedUp"
-            : !r.medal_by_mail
-              ? "pickup"
-              : finished
-                ? "preparing"
-                : "waiting",
+        kind: "shipment",
+        kit: r.ships_by_mail,
+        medal: mailedMedal,
+        status: medalDue
+          ? finished
+            ? "preparing"
+            : "waiting"
+          : r.shipped_at
+            ? "shipped"
+            : "preparing",
         waitingFor:
-          handedOver || finished || !r.medal_by_mail
+          !medalDue || finished
             ? null
             : ev.accepts_results
               ? "result"
               : "raceDay",
-        shippedAt: r.medal_shipped_at,
-        tracking: r.medal_tracking,
+        shippedAt: r.shipped_at,
+        tracking: r.shipping_tracking,
+        pickedUpAt: null,
+        medalPending: medalDue,
+        paidMail: r.ships_by_mail,
+        medalByMail: mailedMedal,
+        address: r.mailing_address,
+      });
+    }
+
+    if (tracksMedal && !mailedMedal) {
+      out.push({
+        ...base,
+        kind: "pickup",
+        kit: false,
+        medal: true,
+        status: r.medal_picked_up_at ? "pickedUp" : "pickup",
+        waitingFor: null,
+        shippedAt: null,
+        tracking: null,
         pickedUpAt: r.medal_picked_up_at,
-        medalByMail: r.medal_by_mail,
-        medalAddress: r.medal_mailing_address,
+        medalPending,
+        paidMail: r.ships_by_mail,
+        medalByMail: false,
+        address: r.mailing_address,
       });
     }
     return out;
@@ -628,7 +649,7 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
 
   const done = (i: MailItem) => i.status === "shipped" || i.status === "pickedUp";
   const rank = (i: MailItem) =>
-    done(i) ? 2 : i.kind === "medal" && i.medalByMail && !i.medalAddress ? 0 : 1;
+    done(i) ? 2 : i.kind === "shipment" && !i.address ? 0 : 1;
   return items.sort(
     (a, b) =>
       rank(a) - rank(b) ||

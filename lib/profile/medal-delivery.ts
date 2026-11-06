@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * A runner choosing how their finisher medal reaches them — mailed, or
- * picked up in person — and correcting the address, from the Mail section
- * of their profile until it ships or is picked up. `set_medal_delivery()`
- * decides.
+ * A runner choosing how their finisher medal reaches them — in their
+ * shipment, or picked up in person — and correcting the address, from the Mail
+ * section of their profile until it ships or is picked up. Mail is for those
+ * whose sign-up includes it. `set_medal_delivery()` decides.
  */
 
 export type MedalDeliveryResult =
@@ -20,11 +20,19 @@ export type MedalDeliveryResult =
         | "medalsOff"
         | "alreadyShipped"
         | "pickedUp"
+        | "mailNotIncluded"
         | "addressInvalid"
         | "saveFailed";
     };
 
-const KNOWN = new Set(["notAllowed", "medalsOff", "alreadyShipped", "pickedUp", "addressInvalid"]);
+const KNOWN = new Set([
+  "notAllowed",
+  "medalsOff",
+  "alreadyShipped",
+  "pickedUp",
+  "mailNotIncluded",
+  "addressInvalid",
+]);
 
 export async function setMedalDeliveryAction(
   registrationId: string,
@@ -52,5 +60,5 @@ export async function setMedalDeliveryAction(
   }
 
   revalidatePath("/", "layout");
-  return { ok: true, byMail: data.medal_by_mail, address: data.medal_mailing_address };
+  return { ok: true, byMail: data.medal_by_mail, address: data.mailing_address };
 }

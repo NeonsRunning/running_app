@@ -231,10 +231,10 @@ export default async function RunnerProfilePage(
         getMailItems(runner.id),
       ])
     : [[], [], []];
-  // A medal with no address yet — picked up, or mailed but missing one — opens
-  // the form on the one saved in settings; nobody else needs the lookup.
+  // A medal still to come with no address yet opens the form on the one saved
+  // in settings; nobody else needs the lookup.
   const details = mail.some(
-    (m) => m.kind === "medal" && !m.medalAddress && !m.shippedAt && !m.pickedUpAt,
+    (m) => m.medalPending && (m.paidMail || m.medalByMail) && !m.address,
   )
     ? await getProfileDetails(runner.id)
     : null;
@@ -562,12 +562,18 @@ export default async function RunnerProfilePage(
               <ul className="mt-6 border-t-2 border-line">
                 {mail.map((s) => (
                   <li
-                    key={`${s.kind}-${s.registrationId}`}
+                    key={s.registrationId + s.kind}
                     className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-line py-5"
                   >
                     <div className="min-w-0">
                       <p className="mb-1 font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                        {t(s.kind === "kit" ? "runner.mailKit" : "runner.mailMedal")}
+                        {t(
+                          s.kit && s.medal
+                            ? "runner.mailKitAndMedal"
+                            : s.kit
+                              ? "runner.mailKit"
+                              : "runner.mailMedal",
+                        )}
                       </p>
                       {s.eventListed ? (
                         <Link
@@ -582,7 +588,7 @@ export default async function RunnerProfilePage(
                         </p>
                       )}
                       <p className="mt-1.5 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                        {s.shippedAt
+                        {s.shippedAt && !s.medalPending
                           ? t("runner.kitShippedOn", {
                               date: fmt.mediumDate(puertoRicoDate(s.shippedAt)),
                             })
@@ -598,12 +604,20 @@ export default async function RunnerProfilePage(
                                   ? t("runner.medalWaitingRaceDay")
                                   : t("runner.kitPreparingBody")}
                       </p>
-                      {s.kind === "medal" && !s.shippedAt && !s.pickedUpAt ? (
+                      {s.shippedAt && s.medalPending ? (
+                        <p className="mt-1.5 max-w-[60ch] text-[14px] text-fg-muted">
+                          {t("runner.kitAheadOfMedal", {
+                            date: fmt.mediumDate(puertoRicoDate(s.shippedAt)),
+                          })}
+                        </p>
+                      ) : null}
+                      {s.medalPending ? (
                         <MedalDelivery
                           registrationId={s.registrationId}
                           byMail={s.medalByMail}
-                          address={s.medalAddress}
+                          address={s.address}
                           fallback={settingsAddress}
+                          paidMail={s.paidMail}
                         />
                       ) : null}
                       {s.shippedAt ? (

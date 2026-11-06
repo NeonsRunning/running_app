@@ -192,7 +192,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.mark_kit_shipped('00000000-0000-4000-9000-0000000000b4', 'TRACK') $$,
+  $$ select public.mark_shipment_shipped('00000000-0000-4000-9000-0000000000b4', 'TRACK') $$,
   'P0001', 'notAllowed',
   'nor mark a kit shipped'
 );
@@ -295,7 +295,7 @@ select throws_ok(
 );
 
 select throws_ok(
-  $$ select public.mark_kit_shipped('00000000-0000-4000-9000-0000000000b4', 'TRACK') $$,
+  $$ select public.mark_shipment_shipped('00000000-0000-4000-9000-0000000000b4', 'TRACK') $$,
   'P0001', 'notAllowed',
   'nor ship for it'
 );
