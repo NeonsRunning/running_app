@@ -481,7 +481,7 @@
       "mailingAddress": "Dirección postal",
       "mailingAddressHint": "Calle, ciudad, estado y código postal.",
       "mailingAddressRequired": "Escribe la dirección a la que enviamos tu paquete.",
-      "mailDetailWithMedal": "Te enviamos tu paquete y tu medalla de finisher juntos, en un solo envío, cuando termines. Si no lo eliges, recoges ambos en persona.",
+      "mailDetailWithMedal": "Te enviamos por correo tu medalla y los extras que elijas cuando termines. Si no lo eliges, debes coordinar con el organizador la recogida de tu medalla y de los extras que hayas elegido.",
       "addMailWithMedal": "Enviar mi paquete y mi medalla por correo"
     },
     "step4": {
@@ -982,8 +982,8 @@
         "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo y vuelve a intentarlo."
       }
     },
-    "medalDetail": "Finisher · {distance} · {date}",
-    "medalAlt": "Medalla de finisher de {event}",
+    "medalDetail": "Finalista · {distance} · {date}",
+    "medalAlt": "Medalla de {event}",
     "verifiedByOrganizer": "Evidencia verificada por el organizador",
     "pendingResults": "Resultados pendientes",
     "pendingResultsMeta": "{count} en revisión",
@@ -1008,7 +1008,7 @@
     "copyTracking": "Copiar número de rastreo {tracking}",
     "mail": "Correo",
     "mailKit": "Paquete de la carrera",
-    "mailMedal": "Medalla de finisher",
+    "mailMedal": "Medalla",
     "medalWaiting": "Cuando termines",
     "medalWaitingResult": "El organizador la envía cuando acepte tu llegada.",
     "medalWaitingRaceDay": "El organizador la envía después del día de la carrera.",
@@ -1037,7 +1037,7 @@
       "saveFailed": "Algo salió mal — inténtalo de nuevo en un momento.",
       "mailNotIncluded": "Enviar tu medalla es parte del extra “Envío por correo”, que esta inscripción no incluye."
     },
-    "mailKitAndMedal": "Paquete de la carrera + medalla de finisher",
+    "mailKitAndMedal": "Paquete de la carrera + medalla",
     "kitAheadOfMedal": "Tu paquete se envió el {date}. Tu medalla sigue cuando la ganes.",
     "medalPickupFinal": "Enviar la medalla ahora es parte del extra pagado “Envío por correo”, así que no podrás volver al correo."
   },
@@ -1815,7 +1815,7 @@
       "detail": "Desde el día de la carrera, los corredores inscritos pueden enviar una captura de su carrera (Strava, Nike Run Club, la app de su reloj) con su tiempo. Tú aceptas o rechazas cada una desde la página del evento; quienes sean aceptados reciben el resultado y esta medalla en su perfil."
     },
     "medalMail": {
-      "title": "Incluir las medallas de finisher en el envío",
+      "title": "Incluir las medallas en el envío",
       "detail": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando pase el día de la carrera. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras.",
       "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras."
     },
@@ -1922,7 +1922,7 @@
     "pending": "En revisión",
     "pendingBody": "Enviado {date}. Lo verás en tu perfil cuando el organizador lo acepte.",
     "accepted": "Aceptado",
-    "acceptedBody": "Tu resultado y la medalla de finisher están en tu perfil.",
+    "acceptedBody": "Tu resultado y la medalla están en tu perfil.",
     "viewProfile": "Ver perfil",
     "rejected": "Devuelto",
     "rejectedNote": "Nota del organizador: “{note}”. Envía nueva evidencia abajo.",
@@ -2118,8 +2118,8 @@
       "shipped": "La medalla de este corredor ya se envió por correo."
     },
     "medal": {
-      "pickupChosen": "Medalla: recogida",
-      "pickupNotYet": "Medalla: recogida, no ha terminado",
+      "pickupChosen": "Medalla: por recoger",
+      "pickupNotYet": "Medalla: se recoge al terminar",
       "pickedUpOn": "Medalla recogida el {date}",
       "markPickedUp": "Marcar recogida",
       "markPickedUpAria": "Marcar recogida: la medalla de {name}",

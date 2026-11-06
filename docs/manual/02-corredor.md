@@ -268,7 +268,7 @@ Tu perfil es tu página principal. Lo que ves tú y lo que ven los demás:
 | --- | --- | --- |
 | Encabezado | Foto, nombre, ciudad, club y días para tu próxima carrera | Sí (sin la cuenta regresiva) |
 | **Estadísticas de carrera** | Carreras, corridas, completadas, marcas personales | Sí |
-| **Logros** | Medallas de finisher de tus resultados aceptados | Sí |
+| **Logros** | Medallas de tus resultados aceptados | Sí |
 | **Resultados pendientes** | Resultados que enviaste y aún no se revisan | Solo tú |
 | **Correo** | Kits y medallas que van por correo | Solo tú |
 | **Historial de carreras** | Tus resultados oficiales | Sí |
@@ -300,7 +300,7 @@ organizador* indica que el resultado vino de una captura aceptada.
 
 ## 2.7 Enviar tu resultado
 
-**Para qué sirve:** que tu tiempo quede oficial y tu medalla de finisher
+**Para qué sirve:** que tu tiempo quede oficial y tu medalla
 aparezca en tu perfil. Funciona en las carreras que **aceptan evidencia de
 llegada**, sobre todo las virtuales.
 

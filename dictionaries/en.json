@@ -481,7 +481,7 @@
       "mailingAddress": "Mailing address",
       "mailingAddressHint": "Street, city, state and ZIP code.",
       "mailingAddressRequired": "Enter the address to mail your package to.",
-      "mailDetailWithMedal": "We mail your kit and finisher medal together, in one package, once you finish. Skip it and you pick up both in person.",
+      "mailDetailWithMedal": "We mail your finisher medal and any extras you choose once you finish. Skip it and you’ll need to coordinate pickup of your medal and any extras with the organizer.",
       "addMailWithMedal": "Send my kit and medal by mail"
     },
     "step4": {
@@ -2118,8 +2118,8 @@
       "shipped": "This runner’s medal was already mailed."
     },
     "medal": {
-      "pickupChosen": "Medal: pickup",
-      "pickupNotYet": "Medal: pickup, not finished",
+      "pickupChosen": "Medal: to pick up",
+      "pickupNotYet": "Medal: pickup after finishing",
       "pickedUpOn": "Medal picked up {date}",
       "markPickedUp": "Mark picked up",
       "markPickedUpAria": "Mark picked up: {name}’s medal",
