@@ -122,7 +122,7 @@ export function AthMovilAccounts({
               className="flex flex-wrap items-center gap-5 border-2 border-line p-5 sm:p-6"
             >
               <QrThumb url={account.qrUrl} path={account.path} />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 grow basis-48">
                 <div className="flex flex-wrap items-center gap-3">
                   <h2
                     data-focus={`name-${account.id}`}
@@ -465,7 +465,7 @@ function AccountForm({
 
       <div className="flex flex-wrap items-center gap-5 border-t-2 border-line p-5 sm:p-6">
         <QrThumb url={qrUrl} path={account?.path ?? ""} />
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex min-w-0 grow basis-48 flex-col gap-3">
           <input
             ref={fileRef}
             id={fileId}
