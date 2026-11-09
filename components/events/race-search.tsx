@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/badge";
 import { useT } from "@/components/i18n/provider";
 import { useLocalizedRouter } from "@/components/i18n/link";
-import { distanceLabel } from "@/lib/i18n/labels";
+import { distanceLabel, eventTypeLabel } from "@/lib/i18n/labels";
+import { EVENT_TYPES } from "@/lib/events/vocabulary";
 import { PR_MUNICIPALITIES } from "@/lib/pr-municipalities";
 import { cn } from "@/lib/cn";
 
@@ -27,6 +28,9 @@ const DISTANCES = [
   "Other",
 ];
 
+/** UI-only sentinel: any kind of race, i.e. send no `type` at all. */
+const ANY_TYPE = "Any type";
+
 /** UI-only sentinel: search the whole island, i.e. send no `q` at all. */
 const ANY_LOCATION = "Any location";
 
@@ -39,6 +43,7 @@ export function RaceSearch({ className }: { className?: string }) {
   const router = useLocalizedRouter();
   const [location, setLocation] = useState(ANY_LOCATION);
   const [distance, setDistance] = useState(ANY_DISTANCE);
+  const [type, setType] = useState(ANY_TYPE);
   const [date, setDate] = useState("");
 
   function submit(e: React.FormEvent) {
@@ -46,6 +51,7 @@ export function RaceSearch({ className }: { className?: string }) {
     const params = new URLSearchParams();
     if (location !== ANY_LOCATION) params.set("q", location);
     if (distance !== ANY_DISTANCE) params.set("distance", distance);
+    if (type !== ANY_TYPE) params.set("type", type);
     if (date) params.set("from", date);
     router.push(`/events?${params.toString()}`);
   }
@@ -57,7 +63,7 @@ export function RaceSearch({ className }: { className?: string }) {
     <form
       onSubmit={submit}
       className={cn(
-        "grid grid-cols-1 border-2 border-line bg-carbon lg:grid-cols-[1.3fr_1fr_1fr_auto]",
+        "grid grid-cols-1 border-2 border-line bg-carbon lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto]",
         className,
       )}
     >
@@ -99,6 +105,27 @@ export function RaceSearch({ className }: { className?: string }) {
                 : d === "Other"
                   ? t("search.other")
                   : distanceLabel(t, d)}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className={cellClass}>
+        <Eyebrow>
+          <label htmlFor="search-type">{t("search.eventType")}</label>
+        </Eyebrow>
+        <select
+          id="search-type"
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="mt-1.5 w-full cursor-pointer appearance-none border-0 bg-transparent p-0 text-base font-semibold text-fg focus:outline-none"
+        >
+          <option value={ANY_TYPE} className="bg-charcoal">
+            {t("search.anyType")}
+          </option>
+          {EVENT_TYPES.map((et) => (
+            <option key={et} value={et} className="bg-charcoal">
+              {eventTypeLabel(t, et)}
             </option>
           ))}
         </select>

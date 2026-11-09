@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { EventDiscovery } from "@/components/events/discovery";
 import { searchEvents } from "@/lib/events/queries";
 import { EMPTY_SEARCH, type EventSearch } from "@/lib/events/search";
-import { DISTANCES, isOneOf } from "@/lib/events/vocabulary";
+import { DISTANCES, EVENT_TYPES, isOneOf } from "@/lib/events/vocabulary";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { pageAlternates } from "@/lib/seo";
 
@@ -21,11 +21,13 @@ export default async function EventsPage(props: PageProps<"/[lang]/events">) {
   const first = (v: string | string[] | undefined) =>
     Array.isArray(v) ? v[0] : v;
   const distance = first(params.distance);
+  const type = first(params.type);
 
   const search: EventSearch = {
     ...EMPTY_SEARCH,
     query: first(params.q) ?? "",
     distances: distance && isOneOf(DISTANCES, distance) ? [distance] : [],
+    types: type && isOneOf(EVENT_TYPES, type) ? [type] : [],
   };
 
   // The first page renders with the HTML; the client fetches the rest.

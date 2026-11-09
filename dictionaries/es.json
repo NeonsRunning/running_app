@@ -364,6 +364,8 @@
     "anyLocation": "Todo Puerto Rico",
     "distance": "Distancia",
     "anyDistance": "Cualquier distancia",
+    "eventType": "Tipo de evento",
+    "anyType": "Cualquier tipo",
     "other": "Otra",
     "dateFrom": "Desde la fecha",
     "findRaces": "Buscar carreras"
