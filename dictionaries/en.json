@@ -1335,7 +1335,7 @@
           },
           {
             "q": "What is the service fee?",
-            "a": "A flat $2.00 per registration, shown in the order summary before you pay. There is no percentage cut on top. Puerto Rico sales tax (IVU, 11.5%) applies to the registration, extras, service fee and shipping, but not to donations."
+            "a": "A flat $2.00 per registration, shown in the order summary before you pay. There is no percentage cut on top. When a race charges Puerto Rico sales tax (IVU, 11.5%), it applies to the registration, extras, service fee and shipping, but not to donations, and shows as its own line in the summary."
           },
           {
             "q": "Can I get a refund?",
@@ -1850,6 +1850,10 @@
     "athMovilAccountNone": "No ATH Móvil accounts are set up yet, so runners pay by card. Contact the team to add one.",
     "athMovilAccountOff": "Don’t accept ATH Móvil",
     "athMovilAccountRetired": "retired",
+    "salesTax": {
+      "title": "Charge sales tax (IVU 11.5%)",
+      "detail": "Runners pay Puerto Rico sales tax on the registration, extras, service fee and shipping, but not on donations. It shows as its own line in their order summary. Changing it applies to new sign-ups only."
+    },
     "soldOut": {
       "title": "Sold out",
       "detail": "Closes sign-ups and shows the event as sold out, whatever the count says. Turn this on to list a race you already ran: past dates are only accepted on a sold-out event."

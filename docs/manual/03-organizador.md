@@ -155,6 +155,12 @@ Cada categoría es una distancia con su **precio**, su **cupo máximo** y una
   corredores pueden pagar por ATH Móvil, además de con tarjeta. Las cuentas
   las crea el equipo de NEONS RUNNING. Si no hay ninguna, los corredores solo
   pagan con tarjeta. Elige **No aceptar ATH Móvil** para desactivarlo.
+- **Cobrar IVU (11.5%)**: márcalo para que los corredores paguen el IVU de
+  Puerto Rico sobre la inscripción, los extras, el cargo por servicio y el
+  envío (nunca sobre el donativo). Los eventos nuevos empiezan sin marcar; los
+  que existían antes de esta opción la tienen marcada. Cambiarlo solo afecta
+  las inscripciones nuevas: las ya hechas conservan el IVU con que se
+  calcularon.
 
 ### Paso 5 · Extras
 

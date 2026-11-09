@@ -95,6 +95,8 @@ export type EventFormValues = {
   mailsMedals: boolean;
   /** Marked sold out by hand. The only way a past race can be listed. */
   soldOut: boolean;
+  /** Runners pay Puerto Rico sales tax (IVU) on top of the registration. */
+  chargesSalesTax: boolean;
   categories: EventFormCategory[];
 };
 
@@ -145,6 +147,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   acceptsResults: false,
   mailsMedals: false,
   soldOut: false,
+  chargesSalesTax: false,
   categories: [
     { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0, locked: false },
     { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0, locked: false },

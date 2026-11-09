@@ -139,6 +139,7 @@ function toEvent(
     soldOut: row.sold_out,
     finished: (row.end_date ?? row.event_date) < todayIso(),
     mailsMedals: row.mails_medals,
+    chargesSalesTax: row.charges_sales_tax,
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,

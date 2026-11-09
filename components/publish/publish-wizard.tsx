@@ -183,6 +183,7 @@ export function PublishWizard({
   const [acceptsResults, setAcceptsResults] = useState(initial.acceptsResults);
   const [mailsMedals, setMailsMedals] = useState(initial.mailsMedals);
   const [soldOut, setSoldOut] = useState(initial.soldOut);
+  const [chargesSalesTax, setChargesSalesTax] = useState(initial.chargesSalesTax);
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -1121,6 +1122,16 @@ export function PublishWizard({
                 </Select>
               )}
             </Field>
+
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="charges_sales_tax"
+                checked={chargesSalesTax}
+                onChange={setChargesSalesTax}
+                title={t("publish.salesTax.title")}
+                detail={t("publish.salesTax.detail")}
+              />
+            </div>
           </div>
 
           {/* 5 — Extras ------------------------------------------------- */}

@@ -18,6 +18,7 @@ describe("registrationTotal", () => {
       photos: true,
       donation: 10,
       mail: true,
+      salesTax: true,
     });
     // 45 + 22 + 12 + 2 + 8 = 89; 89 × 0.115 = 10.235 → 10.24
     expect(tax).toBe(10.24);
@@ -32,6 +33,7 @@ describe("registrationTotal", () => {
       photos: false,
       donation: 0,
       mail: false,
+      salesTax: true,
     });
     expect(tax).toBe(0.23);
     expect(total).toBe(2.23);
@@ -45,6 +47,7 @@ describe("registrationTotal", () => {
       photos: false,
       donation: 0.07,
       mail: false,
+      salesTax: true,
     });
     expect(Number.isInteger(Math.round(total * 100))).toBe(true);
     expect(total).toBe(2.63);
@@ -57,6 +60,23 @@ describe("registrationTotal", () => {
  * the tax rate changes in one place only, one of the two tests fails, so the
  * form never shows a total the database will not charge.
  */
+describe("registrationTotal on an event without sales tax", () => {
+  it("charges no tax and totals the price, extras, fee and shipping", () => {
+    const { tax, total } = registrationTotal({
+      price: 45,
+      extras,
+      shirt: true,
+      photos: true,
+      donation: 10,
+      mail: true,
+      salesTax: false,
+    });
+    // 45 + 22 + 12 + 2 + 8 = 89, plus the $10 donation.
+    expect(tax).toBe(0);
+    expect(total).toBe(99);
+  });
+});
+
 describe("registrationTotal agrees with register_for_event()", () => {
   it("prices the shared sign-up at $92.51", () => {
     const { tax, total } = registrationTotal({
@@ -66,6 +86,7 @@ describe("registrationTotal agrees with register_for_event()", () => {
       photos: true,
       donation: 10,
       mail: true,
+      salesTax: true,
     });
     expect(tax).toBe(8.51);
     expect(total).toBe(92.51);
