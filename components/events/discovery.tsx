@@ -119,7 +119,7 @@ export function EventDiscovery({
   const [distances, setDistances] = useState<Distance[]>(
     initialSearch.distances,
   );
-  const [types, setTypes] = useState<EventType[]>([]);
+  const [types, setTypes] = useState<EventType[]>(initialSearch.types);
   const [difficulties, setDifficulties] = useState<Difficulty[]>([]);
   const [statuses, setStatuses] = useState<RegistrationStatus[]>([]);
   const [dateWindow, setDateWindow] = useState<string>("any");

@@ -364,6 +364,8 @@
     "anyLocation": "All of Puerto Rico",
     "distance": "Distance",
     "anyDistance": "Any distance",
+    "eventType": "Event type",
+    "anyType": "Any type",
     "other": "Other",
     "dateFrom": "Date from",
     "findRaces": "Find Races"
