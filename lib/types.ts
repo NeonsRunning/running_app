@@ -150,6 +150,8 @@ export type RunningEvent = {
   finished?: boolean;
   /** Finishers get the medal mailed, so sign-up asks for an address. */
   mailsMedals?: boolean;
+  /** Sign-ups pay Puerto Rico sales tax (IVU) on all but the donation. */
+  chargesSalesTax?: boolean;
 };
 
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */

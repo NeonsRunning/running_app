@@ -190,7 +190,8 @@ export type Database = {
           /** Finishers get the medal mailed, at no extra cost. */
           mails_medals: boolean;
           sold_out: boolean;
-          created_at: string;
+          
+          charges_sales_tax: boolean;created_at: string;
           updated_at: string;
         };
         Insert: {
@@ -241,7 +242,8 @@ export type Database = {
           accepts_results?: boolean;
           mails_medals?: boolean;
           sold_out?: boolean;
-          created_at?: string;
+          
+          charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
         };
         Update: {
@@ -292,7 +294,8 @@ export type Database = {
           accepts_results?: boolean;
           mails_medals?: boolean;
           sold_out?: boolean;
-          created_at?: string;
+          
+          charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
         };
         Relationships: [

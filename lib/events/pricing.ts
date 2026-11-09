@@ -7,7 +7,7 @@ import type { EventExtras } from "@/lib/types";
  * prices here are the starting values a new event gets, and what fixture
  * races charge. The registration flow uses these to show a running total; the
  * amount that is stored is computed again by `register_for_event()` in
- * `20261104120000_service_fee_and_sales_tax.sql`, which repeats the service fee
+ * `20261202120000_optional_sales_tax.sql`, which repeats the service fee
  * and the sales tax rate. Change them in both places.
  */
 export const SHIRT_PRICE = 22;
@@ -15,7 +15,10 @@ export const PHOTO_PRICE = 12;
 /** Shipping and handling for a kit sent by mail; added after the service fee. */
 export const SHIPPING_PRICE = 8;
 export const SERVICE_FEE = 2;
-/** Puerto Rico sales tax (IVU), on everything but the donation. */
+/**
+ * Puerto Rico sales tax (IVU), on everything but the donation. Charged only
+ * on events whose organizer turned it on (`charges_sales_tax`).
+ */
 export const SALES_TAX_RATE = 0.115;
 export const DONATIONS = [0, 5, 10, 25] as const;
 /** Largest donation a runner can type in; `register_for_event()` enforces it too. */
@@ -41,7 +44,10 @@ export const FIXTURE_EXTRAS: EventExtras = {
   shippingPrice: null,
 };
 
-/** The sign-up's sales tax and what the runner pays in all, in dollars. */
+/**
+ * The sign-up's sales tax (0 when the event doesn't charge it) and what the
+ * runner pays in all, in dollars.
+ */
 export function registrationTotal(opts: {
   price: number;
   extras: EventExtras;
@@ -49,6 +55,8 @@ export function registrationTotal(opts: {
   photos: boolean;
   donation: number;
   mail: boolean;
+  /** The event charges sales tax; when it doesn't, the tax is 0. */
+  salesTax: boolean;
 }): { tax: number; total: number } {
   // In cents, so the tax rounds the way Postgres's round(x, 2) does.
   const taxable = Math.round(
@@ -59,7 +67,7 @@ export function registrationTotal(opts: {
       (opts.mail ? (opts.extras.shippingPrice ?? 0) : 0)) *
       100,
   );
-  const tax = Math.round(taxable * SALES_TAX_RATE);
+  const tax = opts.salesTax ? Math.round(taxable * SALES_TAX_RATE) : 0;
   const total = taxable + tax + Math.round(opts.donation * 100);
   return { tax: tax / 100, total: total / 100 };
 }

@@ -103,7 +103,7 @@ $$;
 grant execute on function tests.ana_details() to authenticated;
 -- End of fixtures.
 
-select plan(3);
+select plan(5);
 
 -- Every extra on: $30 race, $22 shirt, $12 photos, $8 shipping, and a $10
 -- donation (not taxed). Taxable: 30 + 22 + 12 + 2 (service fee) + 8 = 74.
@@ -111,7 +111,8 @@ update public.events set
   offers_shirt = true, shirt_sizes = '{M}', shirt_price = 22,
   offers_photos = true, photo_price = 12,
   accepts_donations = true, donation_recipient = 'Fundación Corre PR',
-  offers_mail = true, shipping_price = 8
+  offers_mail = true, shipping_price = 8,
+  charges_sales_tax = true
 where id = '00000000-0000-4000-9000-0000000000e1';
 
 select tests.act_as('00000000-0000-4000-8000-000000000003');
@@ -146,6 +147,38 @@ select is(
    where runner_id = '00000000-0000-4000-8000-000000000003'),
   92.51::numeric,
   'the amount charged matches registrationTotal() for the same sign-up'
+);
+
+-- The organizer turns the sales tax off: the same sign-up, held again, is
+-- the taxable 74 plus the donation, with no tax.
+update public.events set charges_sales_tax = false
+where id = '00000000-0000-4000-9000-0000000000e1';
+
+select tests.act_as('00000000-0000-4000-8000-000000000003');
+set local role authenticated;
+
+select public.register_for_event(
+  '00000000-0000-4000-9000-0000000000c1',
+  tests.ana_details() || jsonb_build_object(
+    'shirt_size', 'M', 'wants_photos', true, 'donation', 10,
+    'ships_by_mail', true, 'mailing_address', '123 Calle Luna, San Juan, PR 00901'
+  )
+);
+
+reset role;
+
+select is(
+  (select sales_tax from public.registrations
+   where runner_id = '00000000-0000-4000-8000-000000000003'),
+  0::numeric,
+  'an event that does not charge sales tax charges none'
+);
+
+select is(
+  (select amount from public.registrations
+   where runner_id = '00000000-0000-4000-8000-000000000003'),
+  84.00::numeric,
+  'without the tax the amount is the taxable 74 plus the $10 donation'
 );
 
 select * from finish();

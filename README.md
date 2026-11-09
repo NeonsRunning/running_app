@@ -318,7 +318,8 @@ npm run db:functions save_event    # just one
 Prices are worked out twice, in `register_for_event()` (what is charged) and
 `lib/events/pricing.ts` (what the form shows). `supabase/tests/database/pricing.test.sql`
 and `lib/events/pricing.test.ts` price the same sign-up; change the fee or the
-tax rate in both places, or one of them fails.
+tax rate in both places, or one of them fails. The tax is charged only on
+events with `charges_sales_tax` on, the organizer's checkbox in the wizard.
 
 ### Testing it
 

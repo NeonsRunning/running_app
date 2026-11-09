@@ -188,6 +188,7 @@ export function RegistrationFlow({
   const shippingPrice = extras.shippingPrice;
   // The medal rides in the same shipment, so the extra covers it too.
   const mailsMedals = Boolean(event.bookable && event.mailsMedals);
+  const chargesSalesTax = Boolean(event.bookable && event.chargesSalesTax);
   const hasExtras =
     shirtPrice !== null ||
     photoPrice !== null ||
@@ -284,8 +285,17 @@ export function RegistrationFlow({
         photos: wantsPhotos,
         donation,
         mail: wantsMail,
+        salesTax: chargesSalesTax,
       }),
-    [category.price, extras, wantsShirt, wantsPhotos, donation, wantsMail],
+    [
+      category.price,
+      extras,
+      wantsShirt,
+      wantsPhotos,
+      donation,
+      wantsMail,
+      chargesSalesTax,
+    ],
   );
 
   const done = step === 5;
@@ -1247,11 +1257,13 @@ export function RegistrationFlow({
                     value={fmt.money(shippingPrice ?? 0)}
                   />
                 ) : null}
-                <SummaryRow
-                  label={t("register.summary.salesTax")}
-                  value={fmt.money(tax)}
-                  muted
-                />
+                {chargesSalesTax ? (
+                  <SummaryRow
+                    label={t("register.summary.salesTax")}
+                    value={fmt.money(tax)}
+                    muted
+                  />
+                ) : null}
               </dl>
               <div className="mt-6 flex items-baseline justify-between">
                 <span className="text-[15px] font-extrabold tracking-[0.12em] uppercase">

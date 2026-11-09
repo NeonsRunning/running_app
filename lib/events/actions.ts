@@ -454,6 +454,7 @@ export async function saveEventAction(
   const offersMail = formData.get("offers_mail") === "on";
   const acceptsResults = formData.get("accepts_results") === "on";
   const mailsMedals = formData.get("mails_medals") === "on";
+  const chargesSalesTax = formData.get("charges_sales_tax") === "on";
   const donationRecipient = readText(formData, "donation_recipient");
   const shirtPrice = readDecimal(readText(formData, "shirt_price"));
   const photoPrice = readDecimal(readText(formData, "photo_price"));
@@ -575,6 +576,7 @@ export async function saveEventAction(
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
     sold_out: soldOut,
+    charges_sales_tax: chargesSalesTax,
   };
 
   // A slug is chosen once, from the first saved name, and kept: links to a

@@ -169,7 +169,7 @@ El **Resumen del pedido** aparece a la derecha en todos los pasos y se actualiza
    | Inscripción · categoría | Precio de la categoría |
    | Camiseta, fotos, envío y manejo | Si los elegiste |
    | Cargo por servicio | $2.00 |
-   | IVU (11.5 %) | Sobre todo excepto la donación |
+   | IVU (11.5 %) | Solo si la carrera lo cobra; sobre todo excepto la donación |
    | Donación | Sin IVU |
    | **Total** | Lo que pagas |
 
@@ -216,8 +216,9 @@ Escribe al equipo desde **Contacto** o al organizador de la carrera.
 > `completeRegistrationPaymentAction` confirma el cobro y asigna el dorsal. El
 > webhook `/api/stripe/webhook` y `reconcilePendingPayment` (al volver a abrir
 > la página) cubren los pagos que el navegador no llegó a confirmar. Las cifras
-> de `lib/events/pricing.ts` deben coincidir con la migración
-> `20261104120000_service_fee_and_sales_tax.sql`. Las carreras de demostración
+> de `lib/events/pricing.ts` deben coincidir con `register_for_event()`
+> (hoy en `20261202120000_optional_sales_tax.sql`), que cobra el IVU solo
+> cuando el evento tiene `charges_sales_tax`. Las carreras de demostración
 > (`event.bookable = false`) recorren el flujo sin cobrar ni guardar nada.
 
 ## 2.5 Pagar con ATH Móvil
