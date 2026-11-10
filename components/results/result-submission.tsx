@@ -140,12 +140,17 @@ export function ResultSubmission({
       if (error) return fail("uploadFailed");
 
       setPhase("saving");
+      // Thrown when the request never got an answer: the result may or may
+      // not have been saved with this file as its evidence, so leave the
+      // file rather than risk deleting what the organizer is about to open.
       const result = await submitRaceResultAction(eventId, time, path).catch(
-        () => ({ ok: false, error: "submitFailed" }) as const,
+        () => ({ ok: false, error: "submitFailed", unanswered: true }) as const,
       );
       if (!result.ok) {
-        // Nothing points at it now.
-        void supabase.storage.from(EVIDENCE_BUCKET).remove([path]);
+        // Refused by the server: nothing points at it now.
+        if (!("unanswered" in result)) {
+          void supabase.storage.from(EVIDENCE_BUCKET).remove([path]);
+        }
         if (result.error === "timeInvalid") {
           setTimeError(t("raceResult.errors.timeInvalid"));
           return;

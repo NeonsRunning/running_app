@@ -164,10 +164,18 @@ export async function settlePayment(
     return { ok: false, error: "registrationFailed" };
   }
 
+  // Whether this is the payment that confirmed the sign-up. Being the
+  // PaymentIntent on file is not enough: a sign-up confirmed by an approved
+  // ATH Móvil payment keeps the card payment that was open beside it, and a
+  // runner who pays that one afterwards has paid twice. That is a duplicate
+  // to refund, like any other second payment.
+  const confirmedIt =
+    data.payment_intent_id === intent.id && data.payment_method !== "ath_movil";
+
   // The organizer or an admin took the runner off the race after this payment
   // confirmed it: a late or replayed report of that same payment. Nothing to
   // do — whether it is refunded is a person's call, made in Stripe.
-  if (data.status === "cancelled" && data.payment_intent_id === intent.id) {
+  if (data.status === "cancelled" && confirmedIt) {
     return { ok: false, error: "registrationCancelled" };
   }
 
@@ -185,7 +193,7 @@ export async function settlePayment(
   // Confirmed earlier by a different payment: this one is a duplicate. The
   // sign-up itself is fine, so the runner still sees it; only the webhook
   // needs to hear that the refund has to be tried again.
-  if (data.payment_intent_id !== intent.id) {
+  if (!confirmedIt) {
     const refunded = await refund(intent, "duplicate");
     return { ok: true, registration: data, refundFailed: !refunded };
   }

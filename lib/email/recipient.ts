@@ -34,10 +34,18 @@ export async function getLocaleOf(userId: string): Promise<Locale> {
   return data && isLocale(data.locale) ? data.locale : DEFAULT_LOCALE;
 }
 
-/** The language of each of many accounts, keyed by id. */
+/**
+ * The language of each of many accounts, keyed by id. Only a language is at
+ * stake, so a failed read falls back to the default one: an email in the
+ * wrong language beats none.
+ */
 export async function getLocalesOf(userIds: string[]): Promise<Map<string, Locale>> {
-  const settings = await getEmailSettingsOf(userIds);
+  const settings = await getEmailSettingsOf(userIds).catch(() => defaultsFor(userIds));
   return new Map([...settings].map(([id, s]) => [id, s.locale]));
+}
+
+function defaultsFor(userIds: string[]): Map<string, EmailSettings> {
+  return new Map(userIds.map((id) => [id, DEFAULT_SETTINGS]));
 }
 
 /**
@@ -48,7 +56,7 @@ export type EmailPreference = "reminders" | "results" | "updates";
 
 export type EmailSettings = { locale: Locale } & Record<EmailPreference, boolean>;
 
-const DEFAULT_SETTINGS: EmailSettings = {
+export const DEFAULT_SETTINGS: EmailSettings = {
   locale: DEFAULT_LOCALE,
   reminders: true,
   results: true,
@@ -58,6 +66,12 @@ const DEFAULT_SETTINGS: EmailSettings = {
 /**
  * Each account's language and email switches, keyed by id. An account with
  * no row gets the defaults: the default language, every email on.
+ *
+ * Throws when any of it cannot be read. A failed read must not look like
+ * "no row": the defaults switch every email on, and the runners it missed
+ * would be sent the reminders and results they turned off. Callers that
+ * decide whether to send let it throw (the reminder cron and the outbox try
+ * again); those that only need a language catch it.
  */
 export async function getEmailSettingsOf(
   userIds: string[],
@@ -75,6 +89,10 @@ export async function getEmailSettingsOf(
         .in("id", ids),
     ),
   );
+  const failed = pages.find((p) => p.error);
+  if (failed?.error) {
+    throw new Error(`Reading email settings failed: ${failed.error.message}`);
+  }
   for (const row of pages.flatMap((p) => p.data ?? [])) {
     settings.set(row.id, {
       locale: isLocale(row.locale) ? row.locale : DEFAULT_LOCALE,
@@ -126,7 +144,13 @@ export async function getConfirmedRunners(
   if (error) throw new Error(error.message);
   if (!data.length) return [];
 
-  const settings = await getEmailSettingsOf(data.map((r) => r.runner_id));
+  const ids = data.map((r) => r.runner_id);
+  // Without `only` every runner is written to whatever their switches say,
+  // so a failed read costs only the language — and a cancellation notice
+  // must not be lost to it.
+  const settings = only
+    ? await getEmailSettingsOf(ids)
+    : await getEmailSettingsOf(ids).catch(() => defaultsFor(ids));
   return data
     .filter((r) => !only || (settings.get(r.runner_id) ?? DEFAULT_SETTINGS)[only])
     .map((r) => ({

@@ -7,6 +7,7 @@ import { scheduleReviewRequestedEmail } from "@/lib/email/review-requested";
 import { getStripe, hasStripeEnv, toCents } from "@/lib/stripe/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isLocale } from "@/lib/i18n/config";
+import { WAIVER_VERSION } from "@/lib/legal";
 import { LIMITS, withinLimits } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { settlePayment } from "./payments";
@@ -54,6 +55,8 @@ export type RegistrationInput = {
   shipsByMail: boolean;
   /** Where the shipment goes; empty otherwise. */
   mailingAddress: string;
+  /** The runner ticked the waiver on the first step. Required. */
+  waiverAccepted: boolean;
   /** The language the runner signed up in: their emails are written in it. */
   locale: string;
 };
@@ -254,6 +257,11 @@ export async function startRegistrationPaymentAction(
     return { ok: false, error: "detailsInvalid" };
   }
 
+  // The checkbox on the first step is only the browser's word; a sign-up
+  // without the waiver is refused here, and its acceptance is written on the
+  // registration below.
+  if (input.waiverAccepted !== true) return { ok: false, error: "waiverRequired" };
+
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
   if (!userData.user) return { ok: false, error: "sessionExpired" };
@@ -321,6 +329,24 @@ export async function startRegistrationPaymentAction(
     return { ok: false, error: KNOWN_ERRORS.has(key) ? key : "registrationFailed" };
   }
 
+  // The record that this runner accepted the waiver, which text, and when:
+  // kept from the first time they accepted it for this sign-up. Runners
+  // cannot write to `registrations`, hence the service role. No record, no
+  // checkout: a paid sign-up must not exist without one.
+  const { error: waiverError } = await createAdminClient()
+    .from("registrations")
+    .update({
+      waiver_accepted_at: new Date().toISOString(),
+      waiver_version: WAIVER_VERSION,
+    })
+    .eq("id", reg.id)
+    .eq("runner_id", userData.user.id)
+    .is("waiver_accepted_at", null);
+  if (waiverError) {
+    console.error(`Recording the waiver for ${reg.id} failed:`, waiverError.message);
+    return { ok: false, error: "registrationFailed" };
+  }
+
   await rememberDetails(supabase, userData.user.id, {
     ...details,
     gender: input.gender === "undisclosed" ? null : details.gender,
@@ -371,12 +397,15 @@ export async function startRegistrationPaymentAction(
       // which refunds and disputes are matched by — attached to nothing.
       // The same call run twice at once gets the same PaymentIntent, so the
       // second save finding it already there is fine too.
+      // Nor over a sign-up whose ATH Móvil payment went in for review since
+      // (another tab): it must not gain a payable card form beside it.
       const previous = reg.payment_intent_id;
       const { data: saved, error: saveError } = await createAdminClient()
         .from("registrations")
         .update({ payment_intent_id: intent.id })
         .eq("id", reg.id)
         .eq("status", "pending")
+        .is("payment_submitted_at", null)
         .or(
           `payment_intent_id.eq.${intent.id},` +
             (previous ? `payment_intent_id.eq.${previous}` : "payment_intent_id.is.null"),
@@ -388,12 +417,15 @@ export async function startRegistrationPaymentAction(
         await stripe.paymentIntents.cancel(intent.id).catch(() => null);
         const { data: current } = await supabase
           .from("registrations")
-          .select("status, bib, amount, email, first_name, last_name")
+          .select("status, bib, amount, email, first_name, last_name, payment_submitted_at")
           .eq("id", reg.id)
           .maybeSingle();
         if (current?.status === "confirmed") {
           revalidatePath("/", "layout");
           return { ok: true, confirmed: confirmedSignUp(current) };
+        }
+        if (current?.payment_submitted_at) {
+          return { ok: false, error: "paymentUnderReview" };
         }
         // Another tab opened a different payment for it: start again from
         // what is on file now.

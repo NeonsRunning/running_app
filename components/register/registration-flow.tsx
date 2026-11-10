@@ -352,6 +352,13 @@ export function RegistrationFlow({
     });
   }
 
+  // On the payment step the figure that counts is what the server priced the
+  // sign-up at — the amount the card is charged — not what this page worked
+  // out from prices it loaded a while ago. They differ when the organizer
+  // changed a price or the tax in between.
+  const due = step === 4 && payment ? payment.amount : total;
+  const priceChanged = due !== total;
+
   function goNext() {
     if (step === 1) {
       // The pre-selected distance may be one with no spots left.
@@ -405,6 +412,7 @@ export function RegistrationFlow({
         donation,
         shipsByMail: wantsMail,
         mailingAddress: wantsMail ? mailingAddress : "",
+        waiverAccepted: waiver,
         locale,
       })
         .then((result) => {
@@ -456,7 +464,7 @@ export function RegistrationFlow({
         .pay()
         .then(async (outcome) => {
           if (outcome.status === "failed") {
-            if (outcome.message) fail(null, outcome.message);
+            fail(outcome.message ? null : "paymentIncomplete", outcome.message);
             return;
           }
           const result = await completeRegistrationPaymentAction(
@@ -1269,10 +1277,18 @@ export function RegistrationFlow({
                 <span className="text-[15px] font-extrabold tracking-[0.12em] uppercase">
                   {t("register.summary.total")}
                 </span>
-                <span className="font-display text-4xl font-black tracking-[-0.03em] text-neon-yellow">
-                  {fmt.money(total)}
+                <span className="font-display text-4xl font-black tracking-[-0.03em] text-neon-yellow tabular-nums">
+                  {fmt.money(due)}
                 </span>
               </div>
+              {priceChanged ? (
+                <p
+                  role="status"
+                  className="mt-3 text-[13px] leading-relaxed font-semibold text-neon-yellow"
+                >
+                  {t("register.summary.priceChanged", { total: fmt.money(due) })}
+                </p>
+              ) : null}
             </div>
 
             <div className="hidden px-5 py-7 sm:px-7 lg:block">
@@ -1340,8 +1356,8 @@ export function RegistrationFlow({
           <Eyebrow className="text-[9px]">
             {t("register.summary.total")}
           </Eyebrow>
-          <p className="font-display text-xl font-black text-neon-yellow">
-            {fmt.money(total)}
+          <p className="font-display text-xl font-black text-neon-yellow tabular-nums">
+            {fmt.money(due)}
           </p>
         </div>
         <div className="flex">
