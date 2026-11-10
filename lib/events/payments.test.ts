@@ -136,6 +136,48 @@ describe("settlePayment", () => {
     expect(scheduleConfirmationEmail).not.toHaveBeenCalled();
   });
 
+  // A sign-up confirmed by an approved ATH Móvil payment keeps the card
+  // payment that was open beside it. Paid afterwards, it is a second payment.
+  it("refunds a card payment for a sign-up that ATH Móvil already confirmed", async () => {
+    const row = {
+      id: "reg-1",
+      status: "confirmed",
+      payment_method: "ath_movil",
+      payment_intent_id: "pi_1",
+    };
+    rpc.mockResolvedValue({ data: row, error: null });
+    refundsCreate.mockResolvedValue(refunded());
+
+    expect(await settlePayment(intent())).toEqual({
+      ok: true,
+      registration: row,
+      refundFailed: false,
+    });
+    expect(refundsCreate).toHaveBeenCalledWith(
+      { payment_intent: "pi_1" },
+      { idempotencyKey: "refund-pi_1" },
+    );
+    expect(scheduleRefundEmail).toHaveBeenCalledWith(expect.anything(), "duplicate");
+    expect(scheduleConfirmationEmail).not.toHaveBeenCalled();
+  });
+
+  it("refunds a card payment for a sign-up ATH Móvil confirmed and that was cancelled since", async () => {
+    const row = {
+      id: "reg-1",
+      status: "cancelled",
+      payment_method: "ath_movil",
+      payment_intent_id: "pi_1",
+    };
+    rpc.mockResolvedValue({ data: row, error: null });
+    refundsCreate.mockResolvedValue(refunded());
+
+    expect(await settlePayment(intent())).toEqual({
+      ok: false,
+      error: "registrationCancelledRefunded",
+    });
+    expect(refundsCreate).toHaveBeenCalled();
+  });
+
   it("flags a duplicate whose refund failed, without failing the runner", async () => {
     const row = { id: "reg-1", status: "confirmed", payment_intent_id: "pi_other" };
     rpc.mockResolvedValue({ data: row, error: null });

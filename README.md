@@ -521,6 +521,13 @@ persistent bottom tab bar.
   `/runners/[id]` for an id that is not a uuid, so the old demo links keep
   working. Notifications have no table yet; `/notifications` shows its empty
   state.
+- Sign-up records the waiver: `startRegistrationPaymentAction` refuses a
+  sign-up without it and writes `waiver_accepted_at` and `waiver_version` on
+  the registration. The version is `WAIVER_VERSION` in `lib/legal.ts`; change
+  it whenever the waiver's text changes.
+- A live Stripe key (`sk_live_…`) outside a production build switches card
+  payments off and logs a warning, so a production `.env` copied to a laptop
+  cannot charge real cards. Use the test pair locally.
 - A card payment refunded in full, or lost to a chargeback, cancels the
   sign-up it paid for (`cancel_unpaid_registration()`, from the webhook). A
   partial refund leaves it confirmed.

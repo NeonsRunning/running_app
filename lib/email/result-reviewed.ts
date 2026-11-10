@@ -7,7 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/lib/supabase/database.types";
 import { hasBrevoEnv, sendEmail } from "./brevo";
 import { renderEmail } from "./layout";
-import { getEmailSettingOf } from "./recipient";
+import { DEFAULT_SETTINGS, getEmailSettingOf } from "./recipient";
 import { optionalEmailLinks } from "./unsubscribe";
 import { siteOrigin } from "@/lib/site-url";
 
@@ -45,7 +45,12 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
       .select("email, first_name, last_name")
       .eq("id", result.registration_id)
       .single(),
-    getEmailSettingOf(result.runner_id),
+    // A disqualification goes whatever the switches say, so it is not held
+    // up by failing to read them; anything else waits for a read that works.
+    getEmailSettingOf(result.runner_id).catch((err) => {
+      if (result.status === "disqualified") return DEFAULT_SETTINGS;
+      throw err;
+    }),
   ]);
   if (!event || !reg) throw new Error("Event or registration not found.");
   const disqualified = result.status === "disqualified";

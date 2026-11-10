@@ -434,6 +434,10 @@ export type Database = {
           disputed_at: string | null;
           /** Stripe's dispute status, e.g. "needs_response", "won", "lost". */
           dispute_status: string | null;
+          /** When the runner accepted the waiver at sign-up; null if never recorded. */
+          waiver_accepted_at: string | null;
+          /** Which waiver text they accepted: `WAIVER_VERSION` in lib/legal.ts. */
+          waiver_version: string | null;
         };
         Insert: never;
         /**
@@ -452,6 +456,8 @@ export type Database = {
           refunded_at?: string | null;
           disputed_at?: string | null;
           dispute_status?: string | null;
+          waiver_accepted_at?: string | null;
+          waiver_version?: string | null;
         };
         Relationships: [
           {

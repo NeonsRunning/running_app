@@ -303,6 +303,17 @@ export function PublishWizard({
       // Open the first step with an error, then move focus to its first
       // invalid control so the message is read out where it applies.
       const failed = Object.keys(result.fieldErrors ?? {});
+      // An error about the save itself — the session ran out, the connection
+      // dropped — is written on the review step only. "Save draft" is on
+      // every step, so say it where the organizer is looking too: a save
+      // that failed in silence is an afternoon's work lost.
+      if (result.error) {
+        toast({
+          title: t("publish.errors.saveFailedTitle"),
+          body: t(`publish.errors.${result.error}`),
+          tone: "danger",
+        });
+      }
       if (failed.length === 0) return;
       const first = Math.min(...failed.map((f) => FIELD_STEP[f] ?? REVIEW_STEP));
       setStep(first);

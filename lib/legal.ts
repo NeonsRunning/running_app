@@ -17,6 +17,15 @@ export type LegalDoc = {
   sections: { heading: string; paragraphs: string[] }[];
 };
 
+/**
+ * The waiver text a runner accepts at sign-up, as the date it was last
+ * changed. Written on every registration beside the time it was accepted
+ * (`registrations.waiver_version`), so a later dispute can be answered with
+ * the text that runner actually saw. Change it together with the waiver's
+ * `updated` below and in `content/legal.es.ts`.
+ */
+export const WAIVER_VERSION = "2026-10-23";
+
 export const LEGAL_DOCS: LegalDoc[] = [
   {
     slug: "terms",

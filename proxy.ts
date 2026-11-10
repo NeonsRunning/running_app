@@ -51,7 +51,9 @@ export async function proxy(request: NextRequest) {
   // session work: nothing renders on a redirect.
   if (first === DEFAULT_LOCALE) {
     const url = request.nextUrl.clone();
-    url.pathname = splitLocale(pathname).path;
+    // One leading slash only: `/es//example.com` must not come out as
+    // `//example.com`, which a browser reads as another site.
+    url.pathname = splitLocale(pathname).path.replace(/^\/+/, "/");
     return NextResponse.redirect(url, 308);
   }
 

@@ -104,15 +104,17 @@ export function PaymentFields({
       stripe={stripePromise}
       options={{ clientSecret, locale, appearance: APPEARANCE, fonts: FONTS }}
     >
-      <Fields returnUrl={returnUrl} handle={ref} />
+      <Fields clientSecret={clientSecret} returnUrl={returnUrl} handle={ref} />
     </Elements>
   );
 }
 
 function Fields({
+  clientSecret,
   returnUrl,
   handle,
 }: {
+  clientSecret: string;
   returnUrl: string;
   handle: Ref<PaymentHandle>;
 }) {
@@ -125,6 +127,17 @@ function Fields({
     () => ({
       async pay() {
         if (!stripe || !elements || !ready) return { status: "failed" };
+        // Pressed again after the card was charged — the confirmation that
+        // followed never came back, or the payment is still clearing.
+        // Confirming a second time would only make Stripe answer with an
+        // error, and tell a runner who has paid that they have not.
+        const current = await stripe
+          .retrievePaymentIntent(clientSecret)
+          .catch(() => null);
+        if (current?.paymentIntent?.status === "succeeded") return { status: "paid" };
+        if (current?.paymentIntent?.status === "processing") {
+          return { status: "processing" };
+        }
         const { error, paymentIntent } = await stripe.confirmPayment({
           elements,
           confirmParams: { return_url: returnUrl },
@@ -144,7 +157,7 @@ function Fields({
         return { status: "failed" };
       },
     }),
-    [stripe, elements, ready, returnUrl],
+    [stripe, elements, ready, clientSecret, returnUrl],
   );
 
   return (
