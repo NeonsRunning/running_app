@@ -952,6 +952,8 @@ export type Database = {
         Args: {
           p_query?: string;
           p_method?: Database["public"]["Enums"]["payment_method"];
+          p_from?: string;
+          p_to?: string;
           p_sort?: string;
           p_desc?: boolean;
           p_limit?: number;
@@ -978,6 +980,31 @@ export type Database = {
           paid_at: string;
           total_count: number;
           total_amount: number;
+        }[];
+      };
+      admin_payment_kpis: {
+        Args: {
+          p_query?: string;
+          p_method?: Database["public"]["Enums"]["payment_method"];
+          p_from?: string;
+          p_to?: string;
+        };
+        Returns: {
+          payments: number;
+          gross: number;
+          refunded: number;
+          refunds: number;
+          disputes_lost: number;
+          disputes_open: number;
+          disputes_open_count: number;
+          net: number;
+          service_fees: number;
+          sales_tax: number;
+          donations: number;
+          card_gross: number;
+          card_count: number;
+          ath_gross: number;
+          ath_count: number;
         }[];
       };
       removed_event_visible: {

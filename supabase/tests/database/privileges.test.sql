@@ -52,6 +52,7 @@ select set_eq(
     -- Each of these checks who is calling.
     'admin_list_events',
     'admin_list_payments',
+    'admin_payment_kpis',
     'admin_list_users',
     'admin_remove_event',
     'admin_restore_event',

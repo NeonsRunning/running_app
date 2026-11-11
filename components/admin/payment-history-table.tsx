@@ -1,3 +1,4 @@
+import { NavLink } from "@/components/admin/payment-history-nav";
 import { Link } from "@/components/i18n/link";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import type { Formatters } from "@/lib/i18n/format";
@@ -19,7 +20,7 @@ const STATE_TONE: Record<PaymentState, BadgeTone> = {
 /**
  * The payments on `/admin/payments/history`, one per row. A server
  * component: sorting is a link per column, so the order lives in the URL like
- * the search does. The table scrolls sideways inside its own box on a narrow
+ * the search does, and loads with the page's pending state. The table scrolls sideways inside its own box on a narrow
  * screen.
  */
 export function PaymentHistoryTable({
@@ -53,7 +54,7 @@ export function PaymentHistoryTable({
 
   return (
     <div className="overflow-x-auto border-2 border-line">
-      <table className="w-full min-w-[68rem] border-collapse">
+      <table className="w-full min-w-272 border-collapse">
         <caption className="sr-only">{t("adminPaymentHistory.title")}</caption>
         <thead>
           <tr className="border-b-2 border-line">
@@ -71,7 +72,7 @@ export function PaymentHistoryTable({
                   }`}
                 >
                   {col.sort ? (
-                    <Link
+                    <NavLink
                       href={sortHref(col.sort)}
                       className={`inline-flex items-center gap-1 hover:text-neon-lime ${
                         active ? "text-fg" : ""
@@ -81,7 +82,7 @@ export function PaymentHistoryTable({
                       <span aria-hidden="true" className="w-2">
                         {active ? (desc ? "↓" : "↑") : ""}
                       </span>
-                    </Link>
+                    </NavLink>
                   ) : (
                     col.label
                   )}
