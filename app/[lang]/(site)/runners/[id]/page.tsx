@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/misc";
 import { CopyTracking } from "@/components/profile/copy-tracking";
-import { FollowButton } from "@/components/profile/follow-button";
 import { MedalDelivery } from "@/components/profile/medal-delivery";
 import { ProfilePhoto } from "@/components/profile/profile-photo";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
@@ -327,9 +326,7 @@ export default async function RunnerProfilePage(
                   {t("account.settings")}
                 </Button>
               </>
-            ) : (
-              <FollowButton name={runner.name} block />
-            )}
+            ) : null}
             {/* The link would 404 for whoever it was shared with. */}
             {adminView ? null : (
               <ShareRow

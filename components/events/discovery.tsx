@@ -216,7 +216,11 @@ export function EventDiscovery({
           };
         }),
       )
-      .catch(() => setFailed(true))
+      // Only for the search it was loading more of: a page that fails after
+      // the filters changed says nothing about the results now on screen.
+      .catch(() => {
+        if (latestKey.current === key) setFailed(true);
+      })
       .finally(() => setLoadingMore(false));
   }
 

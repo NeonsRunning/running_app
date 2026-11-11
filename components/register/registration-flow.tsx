@@ -1,7 +1,7 @@
 "use client";
 
 import { Link } from "@/components/i18n/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
@@ -158,6 +158,7 @@ export function RegistrationFlow({
   existing = null,
   finishSeconds = null,
   athMovil = null,
+  paymentReturnFailed = false,
 }: {
   event: RunningEvent;
   initialRunner?: Runner;
@@ -171,9 +172,24 @@ export function RegistrationFlow({
   finishSeconds?: number | null;
   /** Set when an ATH Móvil payment is waiting for review, or was rejected. */
   athMovil?: AthMovilStatus;
+  /** Back from a payment page (a bank's, say) that did not go through. */
+  paymentReturnFailed?: boolean;
 }) {
   const { toast } = useToast();
   const t = useT();
+
+  // Said once, on arrival: the page opens on the first step again, and
+  // without this nothing tells the runner why.
+  useEffect(() => {
+    if (!paymentReturnFailed) return;
+    toast({
+      title: t("register.errors.paymentTitle"),
+      body: t("register.errors.paymentIncomplete"),
+      tone: "danger",
+    });
+    // `toast` and `t` are stable; this is about arriving, not about them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentReturnFailed]);
   const fmt = useFormat();
   const locale = useLocale();
 
@@ -464,7 +480,14 @@ export function RegistrationFlow({
         .pay()
         .then(async (outcome) => {
           if (outcome.status === "failed") {
-            fail(outcome.message ? null : "paymentIncomplete", outcome.message);
+            fail(
+              outcome.message
+                ? null
+                : outcome.unavailable
+                  ? "paymentsUnavailable"
+                  : "paymentIncomplete",
+              outcome.message,
+            );
             return;
           }
           const result = await completeRegistrationPaymentAction(
@@ -585,7 +608,9 @@ export function RegistrationFlow({
               key={s.n}
               type="button"
               onClick={() => s.n < step && setStep(s.n)}
-              disabled={s.n > step}
+              // Locked mid-request, like Back below: leaving the payment step
+              // while the card is being confirmed unmounts the form under it.
+              disabled={s.n > step || submitting}
               aria-current={active ? "step" : undefined}
               className={cn(
                 "flex flex-col items-start gap-1.5 border-r-2 border-line px-6 py-5 text-left last:border-r-0",

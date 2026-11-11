@@ -32,6 +32,12 @@ export type ProfileState = {
   /** A key under `settings.errors`. */
   error?: string;
   ok?: boolean;
+  /**
+   * What was typed, handed back with a refusal. React resets a form once its
+   * action has run, so without these one bad postal code would wipe the four
+   * fields beside it back to what is saved.
+   */
+  values?: Record<string, string>;
 };
 
 const LIMITS = { name: 80, city: 80, club: 80, bio: 280 } as const;
@@ -39,6 +45,16 @@ const LIMITS = { name: 80, city: 80, club: 80, bio: 280 } as const;
 function readText(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
+}
+
+/** The form's text fields as typed, for `ProfileState.values`. */
+function typed(formData: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [name, value] of formData.entries()) {
+    // React adds its own `$ACTION_…` fields to a server-action form.
+    if (typeof value === "string" && !name.startsWith("$")) values[name] = value;
+  }
+  return values;
 }
 
 /** Empty inputs clear the column rather than storing "". */
@@ -65,11 +81,11 @@ export async function updateProfileAction(
   if (city.length > LIMITS.city) fieldErrors.city = "cityTooLong";
   if (club.length > LIMITS.club) fieldErrors.club = "clubTooLong";
   if (bio.length > LIMITS.bio) fieldErrors.bio = "bioTooLong";
-  if (Object.keys(fieldErrors).length) return { fieldErrors };
+  if (Object.keys(fieldErrors).length) return { fieldErrors, values: typed(formData) };
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { error: "sessionExpired" };
+  if (!userData.user) return { error: "sessionExpired", values: typed(formData) };
 
   const { data, error } = await supabase
     .from("profiles")
@@ -85,7 +101,7 @@ export async function updateProfileAction(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { error: "saveFailed" };
+  if (error || !data) return { error: "saveFailed", values: typed(formData) };
 
   // The header renders the name and initials, so the whole tree is stale.
   revalidatePath("/", "layout");
@@ -179,11 +195,11 @@ export async function updateRaceDetailsAction(
     fieldErrors.emergencyName = "nameTooLong";
   if (emergencyPhone && !PHONE.test(emergencyPhone))
     fieldErrors.emergencyPhone = "phoneInvalid";
-  if (Object.keys(fieldErrors).length) return { fieldErrors };
+  if (Object.keys(fieldErrors).length) return { fieldErrors, values: typed(formData) };
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { error: "sessionExpired" };
+  if (!userData.user) return { error: "sessionExpired", values: typed(formData) };
 
   const { data, error } = await supabase
     .from("profile_private")
@@ -200,7 +216,7 @@ export async function updateRaceDetailsAction(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { error: "saveFailed" };
+  if (error || !data) return { error: "saveFailed", values: typed(formData) };
 
   revalidatePath("/[lang]/runners/[id]", "page");
   return { ok: true };
@@ -244,11 +260,11 @@ export async function updateMailingAddressAction(
     if (!POSTAL_CODE.test(postalCode))
       fieldErrors.addressPostalCode = "postalCodeInvalid";
   }
-  if (Object.keys(fieldErrors).length) return { fieldErrors };
+  if (Object.keys(fieldErrors).length) return { fieldErrors, values: typed(formData) };
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return { error: "sessionExpired" };
+  if (!userData.user) return { error: "sessionExpired", values: typed(formData) };
 
   const { data, error } = await supabase
     .from("profile_private")
@@ -273,7 +289,7 @@ export async function updateMailingAddressAction(
     .select("id")
     .maybeSingle();
 
-  if (error || !data) return { error: "saveFailed" };
+  if (error || !data) return { error: "saveFailed", values: typed(formData) };
 
   revalidatePath("/[lang]/runners/[id]/settings", "page");
   return { ok: true };

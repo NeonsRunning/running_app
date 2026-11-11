@@ -62,6 +62,18 @@ export function ShareRow({
         </button>
         <a
           href={`https://wa.me/?text=${encodeURIComponent(title)}`}
+          // The message needs the link, and the link needs the origin, which
+          // only the browser knows: put it in as the link is followed.
+          onClick={(e) => {
+            e.currentTarget.href = `https://wa.me/?text=${encodeURIComponent(
+              `${title} ${url()}`,
+            )}`;
+          }}
+          onAuxClick={(e) => {
+            e.currentTarget.href = `https://wa.me/?text=${encodeURIComponent(
+              `${title} ${url()}`,
+            )}`;
+          }}
           target="_blank"
           rel="noopener noreferrer"
           className={cls}
