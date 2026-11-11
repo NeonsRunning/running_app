@@ -15,6 +15,7 @@ import {
   EVIDENCE_MAX_BYTES,
   EVIDENCE_MAX_EDGE,
   formatFinishTime,
+  parseDistanceRun,
   parseFinishTime,
 } from "@/lib/results/evidence";
 import { submitRaceResultAction } from "@/lib/results/actions";
@@ -50,6 +51,8 @@ export function ResultSubmission({
   const [preview, setPreview] = useState<string | null>(null);
   const [time, setTime] = useState("");
   const [timeError, setTimeError] = useState<string>();
+  const [distance, setDistance] = useState("");
+  const [distanceError, setDistanceError] = useState<string>();
   const [fileError, setFileError] = useState(false);
   const [phase, setPhase] = useState<"converting" | "uploading" | "saving" | null>(null);
   const [replacing, setReplacing] = useState(false);
@@ -116,12 +119,14 @@ export function ResultSubmission({
       focusFirstInvalid();
       return;
     }
-    if (parseFinishTime(time) === null) {
-      setTimeError(t("raceResult.errors.timeInvalid"));
+    const timeOk = parseFinishTime(time) !== null;
+    const distanceOk = !distance.trim() || parseDistanceRun(distance) !== null;
+    setTimeError(timeOk ? undefined : t("raceResult.errors.timeInvalid"));
+    setDistanceError(distanceOk ? undefined : t("raceResult.errors.distanceInvalid"));
+    if (!timeOk || !distanceOk) {
       focusFirstInvalid();
       return;
     }
-    setTimeError(undefined);
 
     setPhase("converting");
     try {
@@ -143,7 +148,7 @@ export function ResultSubmission({
       // Thrown when the request never got an answer: the result may or may
       // not have been saved with this file as its evidence, so leave the
       // file rather than risk deleting what the organizer is about to open.
-      const result = await submitRaceResultAction(eventId, time, path).catch(
+      const result = await submitRaceResultAction(eventId, time, path, distance).catch(
         () => ({ ok: false, error: "submitFailed", unanswered: true }) as const,
       );
       if (!result.ok) {
@@ -155,6 +160,10 @@ export function ResultSubmission({
           setTimeError(t("raceResult.errors.timeInvalid"));
           return;
         }
+        if (result.error === "distanceInvalid") {
+          setDistanceError(t("raceResult.errors.distanceInvalid"));
+          return;
+        }
         return fail(result.error);
       }
 
@@ -164,6 +173,7 @@ export function ResultSubmission({
       });
       pick(undefined);
       setTime("");
+      setDistance("");
       setReplacing(false);
     } catch (e) {
       fail(e instanceof ImageConversionError ? e.code : "uploadFailed");
@@ -303,6 +313,30 @@ export function ResultSubmission({
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="0:25:41"
+                className="font-mono tabular-nums"
+              />
+            )}
+          </Field>
+
+          <Field
+            label={t("raceResult.distanceRun")}
+            hint={t("raceResult.distanceRunHint")}
+            error={distanceError}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                name="distance_run"
+                value={distance}
+                onChange={(e) => setDistance(e.target.value)}
+                onBlur={() => {
+                  // Show how "10,01 km" was read.
+                  const km = parseDistanceRun(distance);
+                  if (km !== null) setDistance(String(km));
+                }}
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="10.01"
                 className="font-mono tabular-nums"
               />
             )}

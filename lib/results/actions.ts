@@ -8,6 +8,7 @@ import {
   EVIDENCE_BUCKET,
   REVIEW_NOTE_MAX,
   isOwnEvidencePath,
+  parseDistanceRun,
   parseFinishTime,
 } from "./evidence";
 
@@ -27,6 +28,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RAISED = "P0001";
 
 const SUBMIT_ERRORS = new Set([
+  "distanceInvalid",
   "resultsClosed",
   "raceNotStarted",
   "notRegistered",
@@ -41,6 +43,7 @@ export type SubmitResult =
       error:
         | "sessionExpired"
         | "timeInvalid"
+        | "distanceInvalid"
         | "evidenceInvalid"
         | "resultsClosed"
         | "raceNotStarted"
@@ -52,19 +55,27 @@ export type SubmitResult =
 
 /**
  * Send a finish time with the screenshot already uploaded to `evidencePath`.
- * Sending again while it waits for review, or after a rejection, replaces
- * the earlier one, whose file is then deleted.
+ * `distanceRun` is the distance the runner's app recorded, optional: blank
+ * leaves pace over the category's distance. Sending again while it waits for
+ * review, or after a rejection, replaces the earlier one, whose file is then
+ * deleted.
  */
 export async function submitRaceResultAction(
   eventId: string,
   finishTime: string,
   evidencePath: string,
+  distanceRun = "",
 ): Promise<SubmitResult> {
   if (typeof eventId !== "string" || !UUID.test(eventId)) {
     return { ok: false, error: "resultsClosed" };
   }
   const seconds = typeof finishTime === "string" ? parseFinishTime(finishTime) : null;
   if (seconds === null) return { ok: false, error: "timeInvalid" };
+  if (typeof distanceRun !== "string") return { ok: false, error: "distanceInvalid" };
+  const distanceKm = distanceRun.trim() ? parseDistanceRun(distanceRun) : null;
+  if (distanceRun.trim() && distanceKm === null) {
+    return { ok: false, error: "distanceInvalid" };
+  }
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -85,6 +96,7 @@ export async function submitRaceResultAction(
     p_event_id: eventId,
     p_finish_seconds: seconds,
     p_evidence_path: evidencePath,
+    p_distance_run_km: distanceKm,
   });
 
   if (error || !data) {

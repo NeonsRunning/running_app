@@ -155,6 +155,13 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                   <p className="mt-3 font-display text-4xl font-black text-neon-yellow tabular-nums">
                     {formatFinishTime(row.finishSeconds)}
                   </p>
+                  {row.distanceRunKm !== null ? (
+                    <p className="mt-1 font-mono text-[13px] text-fg-muted tabular-nums">
+                      {t("resultReview.distanceRun", {
+                        distance: fmt.distance(row.distanceRunKm),
+                      })}
+                    </p>
+                  ) : null}
                   <p className="mt-2 font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
                     {t("resultReview.submitted", {
                       date: submitted.format(new Date(row.submittedAt)),

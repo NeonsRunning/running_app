@@ -8,7 +8,7 @@ import { findEvent } from "@/lib/events/queries";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters } from "@/lib/i18n/format";
 import { distanceLabel } from "@/lib/i18n/labels";
-import { formatFinishTime, formatPace } from "@/lib/results/evidence";
+import { formatFinishTime, resultPace } from "@/lib/results/evidence";
 import { listPublicEventResults, type PublicResultRow } from "@/lib/results/queries";
 import { NOINDEX } from "@/lib/seo";
 
@@ -139,7 +139,7 @@ export default async function EventResultsPage(
                             {formatFinishTime(r.finishSeconds)}
                           </td>
                           <td className="px-4 py-3 font-mono text-sm tabular-nums text-fg-dim">
-                            {formatPace(r.finishSeconds, r.distanceKm)}
+                            {resultPace(r.finishSeconds, r.distanceKm, r.distanceRunKm)}
                           </td>
                         </tr>
                       ))}

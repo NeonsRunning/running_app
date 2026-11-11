@@ -281,7 +281,7 @@ Una inscripción con el pago por ATH Móvil en revisión aparece como
 pase con el dorsal) o **Ver evento**.
 
 En el **Historial de carreras**, cada resultado muestra el tiempo oficial y el
-ritmo. **MP** marca una marca personal, y *Evidencia verificada por el
+ritmo (sobre la distancia recorrida, si la indicaste al enviarlo). **MP** marca una marca personal, y *Evidencia verificada por el
 organizador* indica que el organizador lo confirmó: aceptó tu captura o
 registró tu llegada por ti.
 
@@ -321,7 +321,11 @@ carrera o después.
    escribe solo los números: `2541` es 25:41 y `12541` es 1:25:41. También
    valen `.` o espacios como separadores, y las décimas (`25:41.3`) se
    redondean hacia arriba al segundo siguiente.
-3. Pulsa **Enviar a revisión**.
+3. Opcional: escribe la **Distancia recorrida (km)** que registró tu app, por
+   ejemplo `10.01` (también vale `10,01`). Si corriste más que la distancia
+   de la carrera, el ritmo se calcula con esta distancia y no con la de la
+   categoría. Si la dejas en blanco, se usa la de la categoría.
+4. Pulsa **Enviar a revisión**.
 
 ![Resultado enviado, en revisión](img/corredor/resultado-en-revision.png)
 

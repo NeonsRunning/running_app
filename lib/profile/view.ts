@@ -4,7 +4,7 @@ import type { Locale } from "@/lib/i18n/config";
 import { formatMediumDate } from "@/lib/i18n/format";
 import { distanceLabel } from "@/lib/i18n/labels";
 import { getTranslator } from "@/lib/i18n/server";
-import { formatFinishTime, formatPace } from "@/lib/results/evidence";
+import { formatFinishTime, resultPace } from "@/lib/results/evidence";
 import { listRunnerResults, type RunnerResultRow } from "@/lib/results/queries";
 import type { Distance, Runner } from "@/lib/types";
 import { getProfile, type Profile } from "./queries";
@@ -133,7 +133,7 @@ function racing(
       date: formatMediumDate(r.eventDate, locale),
       distance: r.distance,
       time: formatFinishTime(r.finishSeconds),
-      pace: formatPace(r.finishSeconds, r.distanceKm),
+      pace: resultPace(r.finishSeconds, r.distanceKm, r.distanceRunKm),
       selfReported: true,
       personalBest: bestIds.has(r.id),
       podium: false,

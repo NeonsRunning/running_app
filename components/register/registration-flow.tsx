@@ -19,7 +19,8 @@ import {
   AthMovilUnderReview,
 } from "@/components/register/ath-movil-payment";
 import { paymentCode } from "@/lib/ath-movil/config";
-import { formatFinishTime, formatPace } from "@/lib/results/evidence";
+import { formatFinishTime, resultPace } from "@/lib/results/evidence";
+import type { OwnFinish } from "@/lib/results/queries";
 import type { Translate } from "@/lib/i18n/translate";
 import type { Formatters } from "@/lib/i18n/format";
 import {
@@ -156,7 +157,7 @@ export function RegistrationFlow({
   initialShirtSize = null,
   initialMailingAddress = "",
   existing = null,
-  finishSeconds = null,
+  ownFinish = null,
   athMovil = null,
   paymentReturnFailed = false,
 }: {
@@ -168,8 +169,8 @@ export function RegistrationFlow({
   initialMailingAddress?: string;
   /** Set when the runner has already signed up: opens on the confirmation. */
   existing?: ConfirmedRegistration | null;
-  /** The runner's accepted finish time: opens on the finisher screen instead. */
-  finishSeconds?: number | null;
+  /** The runner's accepted finish: opens on the finisher screen instead. */
+  ownFinish?: OwnFinish | null;
   /** Set when an ATH Móvil payment is waiting for review, or was rejected. */
   athMovil?: AthMovilStatus;
   /** Back from a payment page (a bank's, say) that did not go through. */
@@ -524,14 +525,14 @@ export function RegistrationFlow({
     return <AthMovilUnderReview event={event} submission={review} />;
   }
 
-  if (done && confirmed && finishSeconds !== null) {
+  if (done && confirmed && ownFinish) {
     return (
       <Finished
         event={event}
         category={category}
         bib={confirmed.bib}
         name={confirmed.name}
-        finishSeconds={finishSeconds}
+        finish={ownFinish}
         t={t}
         fmt={fmt}
       />
@@ -1570,7 +1571,7 @@ function Finished({
   category,
   bib,
   name,
-  finishSeconds,
+  finish: { finishSeconds, distanceRunKm },
   t,
   fmt,
 }: {
@@ -1578,7 +1579,7 @@ function Finished({
   category: RaceCategory;
   bib: number;
   name: string;
-  finishSeconds: number;
+  finish: OwnFinish;
   t: Translate;
   fmt: Formatters;
 }) {
@@ -1655,7 +1656,7 @@ function Finished({
                 <Eyebrow>{t("register.finished.pace")}</Eyebrow>
               </dt>
               <dd className="mt-1.5 font-bold tabular-nums">
-                {formatPace(finishSeconds, category.distanceKm)}
+                {resultPace(finishSeconds, category.distanceKm, distanceRunKm)}
               </dd>
             </div>
             <div className="px-5 py-4">
@@ -1663,7 +1664,7 @@ function Finished({
                 <Eyebrow>{t("register.finished.distance")}</Eyebrow>
               </dt>
               <dd className="mt-1.5 font-bold tabular-nums">
-                {fmt.distance(category.distanceKm)}
+                {fmt.distance(distanceRunKm ?? category.distanceKm)}
               </dd>
             </div>
           </dl>
