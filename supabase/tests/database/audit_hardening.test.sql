@@ -89,7 +89,7 @@ insert into public.registrations (
   'stripe', 'pi_test_ana', now() - interval '1 day'
 );
 
-select plan(12);
+select plan(13);
 
 -- 1. Column grants ------------------------------------------------------------
 
@@ -177,6 +177,13 @@ select is(
    ) -> 'per_event' -> 0 ->> 'revenue')::numeric,
   26::numeric,
   'and counts revenue net of the fee and the refund'
+);
+
+select is(
+  (select revenue from public.event_signup_totals(
+     array['00000000-0000-4000-9000-0000000000e1'::uuid])),
+  26::numeric,
+  'the event''s own card shows the same figure'
 );
 
 reset role;

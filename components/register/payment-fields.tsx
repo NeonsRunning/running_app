@@ -32,7 +32,12 @@ export type PayOutcome =
   /** Some methods take a while to clear; the webhook confirms them later. */
   | { status: "processing" }
   /** Stripe's own message, already in the runner's language, when it has one. */
-  | { status: "failed"; message?: string };
+  | {
+      status: "failed";
+      message?: string;
+      /** The payment form never loaded: Stripe is blocked, or still loading. */
+      unavailable?: boolean;
+    };
 
 export type PaymentHandle = { pay: () => Promise<PayOutcome> };
 
@@ -126,7 +131,9 @@ function Fields({
     handle,
     () => ({
       async pay() {
-        if (!stripe || !elements || !ready) return { status: "failed" };
+        if (!stripe || !elements || !ready) {
+          return { status: "failed", unavailable: true };
+        }
         // Pressed again after the card was charged — the confirmation that
         // followed never came back, or the payment is still clearing.
         // Confirming a second time would only make Stripe answer with an

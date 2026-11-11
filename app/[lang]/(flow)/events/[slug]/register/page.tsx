@@ -67,6 +67,30 @@ export default async function RegisterPage(
     getOwnFinish(user.id, event.id),
   ]);
 
+  // Back from a payment page: Stripe adds the PaymentIntent and its client
+  // secret to the address. The sign-up was settled from our own records
+  // above, so drop them — out of the address bar and the history — keeping
+  // only whether the payment failed, to say so.
+  const query = await props.searchParams;
+  if (query.payment_intent || query.payment_intent_client_secret) {
+    const failed = !existing && query.redirect_status === "failed";
+    redirect(
+      localizePath(`/events/${slug}/register`, locale) +
+        (failed ? "?payment=failed" : ""),
+    );
+  }
+
+  // Registration closed, and this runner has nothing here to come back to:
+  // the race page says so, rather than three steps of a form that ends in a
+  // refusal. One who signed up, or whose payment is under review, stays.
+  if (
+    event.registrationStatus === "closed" &&
+    !existing &&
+    athMovil?.state !== "submitted"
+  ) {
+    redirect(localizePath(`/events/${slug}`, locale));
+  }
+
   // Open with what the runner already told us; they can change any of it.
   const [firstName = "", ...rest] = (profile?.name ?? "").split(/\s+/);
   const runner: Runner = {
@@ -94,6 +118,7 @@ export default async function RegisterPage(
       existing={existing}
       finishSeconds={existing ? finishSeconds : null}
       athMovil={athMovil}
+      paymentReturnFailed={!existing && query.payment === "failed"}
     />
   );
 }

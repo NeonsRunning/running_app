@@ -95,7 +95,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       */}
       <div
         data-modal-exempt
-        className="pointer-events-none fixed inset-x-4 bottom-4 z-90 flex flex-col items-center gap-2 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:items-end"
+        // On small screens a bar is fixed to the bottom edge — the tab bar, or
+        // a flow's Back/Continue — so the stack sits above it: an error that
+        // stays until dismissed must not cover the button that fixes it.
+        className="pointer-events-none fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-90 flex flex-col items-center gap-2 sm:inset-x-auto sm:right-6 sm:items-end lg:bottom-6"
       >
         {(["polite", "assertive"] as const).map((live) => (
           <div

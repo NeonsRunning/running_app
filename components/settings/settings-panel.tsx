@@ -450,7 +450,7 @@ function ProfileForm({
     // `toast` and `t` are stable for the life of the panel; re-running on
     // their identity would fire the toast twice.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state?.ok]);
+  }, [state]);
 
   const fieldError = (field: string) => {
     const key = state?.fieldErrors?.[field];
@@ -486,7 +486,7 @@ function ProfileForm({
               name="name"
               autoComplete="name"
               maxLength={80}
-              defaultValue={profile?.name ?? ""}
+              defaultValue={state?.values?.name ?? profile?.name ?? ""}
             />
           )}
         </Field>
@@ -507,7 +507,7 @@ function ProfileForm({
 
         <Field label={t("settings.city")} error={fieldError("city")} optional>
           {(p) => (
-            <Select {...p} name="city" defaultValue={profile?.city ?? ""}>
+            <Select {...p} name="city" defaultValue={state?.values?.city ?? profile?.city ?? ""}>
               <option value="">{t("settings.cityPlaceholder")}</option>
               {cities.map((city) => (
                 <option key={city} value={city}>
@@ -524,7 +524,7 @@ function ProfileForm({
               {...p}
               name="club"
               maxLength={80}
-              defaultValue={profile?.club ?? ""}
+              defaultValue={state?.values?.club ?? profile?.club ?? ""}
               placeholder={t("settings.clubPlaceholder")}
             />
           )}
@@ -542,7 +542,7 @@ function ProfileForm({
               {...p}
               name="bio"
               maxLength={280}
-              defaultValue={profile?.bio ?? ""}
+              defaultValue={state?.values?.bio ?? profile?.bio ?? ""}
             />
           )}
         </Field>
@@ -610,14 +610,14 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
               type="date"
               name="birthDate"
               autoComplete="bday"
-              defaultValue={details?.birthDate ?? ""}
+              defaultValue={state?.values?.birthDate ?? details?.birthDate ?? ""}
             />
           )}
         </Field>
 
         <Field label={t("settings.gender")}>
           {(p) => (
-            <Select {...p} name="gender" defaultValue={details?.gender ?? ""}>
+            <Select {...p} name="gender" defaultValue={state?.values?.gender ?? details?.gender ?? ""}>
               <option value="">{t("register.step2.genderUndisclosed")}</option>
               <option value="f">{t("register.step2.genderFemale")}</option>
               <option value="m">{t("register.step2.genderMale")}</option>
@@ -639,7 +639,7 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
               name="phone"
               autoComplete="tel"
               maxLength={20}
-              defaultValue={details?.phone ?? ""}
+              defaultValue={state?.values?.phone ?? details?.phone ?? ""}
             />
           )}
         </Field>
@@ -649,7 +649,7 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
             <Select
               {...p}
               name="shirtSize"
-              defaultValue={details?.shirtSize ?? ""}
+              defaultValue={state?.values?.shirtSize ?? details?.shirtSize ?? ""}
             >
               <option value="">{t("settings.shirtSizePlaceholder")}</option>
               {SHIRT_SIZES.map((size) => (
@@ -672,7 +672,7 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
               {...p}
               name="emergencyName"
               maxLength={80}
-              defaultValue={details?.emergencyContactName ?? ""}
+              defaultValue={state?.values?.emergencyName ?? details?.emergencyContactName ?? ""}
             />
           )}
         </Field>
@@ -688,7 +688,7 @@ function RaceDetailsForm({ details }: { details: ProfileDetails | null }) {
               inputMode="tel"
               name="emergencyPhone"
               maxLength={20}
-              defaultValue={details?.emergencyContactPhone ?? ""}
+              defaultValue={state?.values?.emergencyPhone ?? details?.emergencyContactPhone ?? ""}
             />
           )}
         </Field>
@@ -758,7 +758,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
               autoComplete="shipping address-line1"
               maxLength={ADDRESS_LIMITS.line}
               placeholder={t("settings.addressLine1Placeholder")}
-              defaultValue={address?.line1 ?? ""}
+              defaultValue={state?.values?.addressLine1 ?? address?.line1 ?? ""}
             />
           )}
         </Field>
@@ -776,7 +776,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
               autoComplete="shipping address-line2"
               maxLength={ADDRESS_LIMITS.line}
               placeholder={t("settings.addressLine2Placeholder")}
-              defaultValue={address?.line2 ?? ""}
+              defaultValue={state?.values?.addressLine2 ?? address?.line2 ?? ""}
             />
           )}
         </Field>
@@ -792,7 +792,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
               name="addressCity"
               autoComplete="shipping address-level2"
               maxLength={ADDRESS_LIMITS.city}
-              defaultValue={address?.city ?? ""}
+              defaultValue={state?.values?.addressCity ?? address?.city ?? ""}
             />
           )}
         </Field>
@@ -807,7 +807,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
               {...p}
               name="addressState"
               autoComplete="shipping address-level1"
-              defaultValue={address?.state ?? DEFAULT_STATE}
+              defaultValue={state?.values?.addressState ?? address?.state ?? DEFAULT_STATE}
             >
               {US_STATES.map(([code, name]) => (
                 <option key={code} value={code}>
@@ -831,7 +831,7 @@ function MailingAddressForm({ address }: { address: MailingAddress | null }) {
               autoComplete="shipping postal-code"
               maxLength={10}
               placeholder="00901"
-              defaultValue={address?.postalCode ?? ""}
+              defaultValue={state?.values?.addressPostalCode ?? address?.postalCode ?? ""}
             />
           )}
         </Field>
