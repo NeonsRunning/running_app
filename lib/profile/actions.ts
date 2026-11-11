@@ -391,7 +391,13 @@ export async function setEmailPreferenceAction(
   preference: string,
   on: boolean,
 ): Promise<ProfileState> {
-  if (!(preference in PREFERENCE_COLUMNS) || typeof on !== "boolean") {
+  // Own keys only: `in` also finds what every object inherits, so
+  // "constructor" or "toString" would be called as if it were a preference.
+  if (
+    typeof preference !== "string" ||
+    !Object.hasOwn(PREFERENCE_COLUMNS, preference) ||
+    typeof on !== "boolean"
+  ) {
     return { error: "saveFailed" };
   }
   const values = PREFERENCE_COLUMNS[preference as keyof typeof PREFERENCE_COLUMNS](on);

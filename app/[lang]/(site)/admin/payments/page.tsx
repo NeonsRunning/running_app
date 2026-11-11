@@ -26,7 +26,7 @@ export default async function AdminPaymentsPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
+    <div className="mx-auto max-w-275 px-4 py-10 sm:px-6 lg:px-10 lg:py-14">
       <header className="pb-8">
         <Eyebrow>{t("adminPayments.eyebrow")}</Eyebrow>
         <h1 className="mt-3 font-display text-4xl font-black uppercase sm:text-5xl">

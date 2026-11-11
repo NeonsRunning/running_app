@@ -23,12 +23,22 @@ export type ReviewResult =
  * Approve: the runner gets their bib and the confirmation email. Reject: the
  * spot is released, the runner is emailed, and can pay again from the
  * register page.
+ *
+ * `submittedAt` is the submission the reviewer was shown: a payment rejected
+ * and sent again since — another reference, maybe another amount — must not
+ * be approved unseen. It comes back as `alreadyReviewed`.
  */
 export async function reviewAthMovilPaymentAction(
   registrationId: string,
   approve: boolean,
+  submittedAt: string,
 ): Promise<ReviewResult> {
-  if (typeof registrationId !== "string" || typeof approve !== "boolean") {
+  if (
+    typeof registrationId !== "string" ||
+    typeof approve !== "boolean" ||
+    typeof submittedAt !== "string" ||
+    Number.isNaN(Date.parse(submittedAt))
+  ) {
     return { ok: false, error: "reviewFailed" };
   }
 
@@ -36,6 +46,7 @@ export async function reviewAthMovilPaymentAction(
   const { data, error } = await supabase.rpc("review_ath_movil_payment", {
     p_registration_id: registrationId,
     p_approve: approve,
+    p_submitted_at: submittedAt,
   });
 
   if (error || !data) {

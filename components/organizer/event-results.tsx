@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
-import { SectionHeading } from "@/components/ui/misc";
+import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel } from "@/lib/i18n/labels";
@@ -20,6 +20,9 @@ import { focusKey, focusSoon, neighbourOf } from "./row-focus";
  * optional note, and the runner can try again. A reviewed card leaves the
  * queue at once.
  */
+/** Results to review shown at once. */
+const PAGE_SIZE = 10;
+
 export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
   const t = useT();
   const fmt = useFormat();
@@ -38,6 +41,16 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
     setPrevInitial(initial);
     setRows(initial);
   }
+  const [page, setPage] = useState(1);
+
+  // A page at a time: a race's results run to thousands of rows, each with
+  // its buttons and a link to its evidence. Clamped, so a shorter list after
+  // a search or a review never leaves the list on a page that is gone.
+  const pageCount = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const from = (current - 1) * PAGE_SIZE;
+  const visible = rows.slice(from, from + PAGE_SIZE);
+
   const [busy, setBusy] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [note, setNote] = useState("");
@@ -98,8 +111,9 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
           {t("resultReview.empty")}
         </p>
       ) : (
+        <>
         <ul className="mt-6 grid gap-4 lg:grid-cols-2">
-          {rows.map((row) => (
+          {visible.map((row) => (
             <li key={row.id} className="flex flex-col border-2 border-line sm:flex-row">
               <div className="shrink-0 border-b-2 border-line bg-carbon sm:w-56 sm:border-r-2 sm:border-b-0">
                 {row.evidenceUrl ? (
@@ -235,6 +249,24 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
             </li>
           ))}
         </ul>
+        {pageCount > 1 ? (
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-mono text-xs text-fg-dim tabular-nums">
+              {t("common.pageRange", {
+                from: fmt.number(from + 1),
+                to: fmt.number(from + visible.length),
+                total: fmt.number(rows.length),
+              })}
+            </p>
+            <Pagination
+              page={current}
+              pageCount={pageCount}
+              onChange={setPage}
+              label={t("resultReview.title")}
+            />
+          </div>
+        ) : null}
+        </>
       )}
     </section>
   );

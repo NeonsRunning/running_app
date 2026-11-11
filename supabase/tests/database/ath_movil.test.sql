@@ -97,7 +97,7 @@ $$;
 grant execute on function tests.ana_details() to authenticated;
 -- End of fixtures.
 
-select plan(9);
+select plan(10);
 
 -- Ana signs up and says she paid with ATH Móvil.
 select tests.act_as('00000000-0000-4000-8000-000000000003');
@@ -150,9 +150,19 @@ where id = '00000000-0000-4000-9000-0000000000a1';
 select tests.act_as('00000000-0000-4000-8000-000000000001');
 set local role authenticated;
 
+select throws_ok(
+  $$ select public.review_ath_movil_payment(
+       current_setting('tests.ana_reg')::uuid, true, '2000-01-01T00:00:00Z') $$,
+  'P0001',
+  'registrationMissing',
+  'a payment sent again since the reviewer loaded it is not approved unseen'
+);
+
 select is(
   (select status::text from public.review_ath_movil_payment(
-     current_setting('tests.ana_reg')::uuid, true)),
+     current_setting('tests.ana_reg')::uuid, true,
+     (select payment_submitted_at from public.registrations
+      where id = current_setting('tests.ana_reg')::uuid))),
   'confirmed',
   'the organizer approves a payment into an account they own'
 );

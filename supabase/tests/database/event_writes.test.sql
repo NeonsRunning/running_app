@@ -97,7 +97,7 @@ $$;
 grant execute on function tests.ana_details() to authenticated;
 -- End of fixtures.
 
-select plan(9);
+select plan(12);
 
 -- Olga, the organizer of Neon Night 10K.
 select tests.act_as('00000000-0000-4000-8000-000000000001');
@@ -153,6 +153,45 @@ select is(
   (select status::text from public.events where id = '00000000-0000-4000-9000-0000000000e1'),
   'published',
   'a published event stays published'
+);
+
+-- The slug: fixed once published, the name's while still a draft.
+select is(
+  (select s.slug
+   from public.events e,
+        lateral public.save_event(
+          e.id, 'another-slug-test', to_jsonb(e),
+          (select jsonb_agg(to_jsonb(c)) from public.event_categories c where c.event_id = e.id)
+        ) s
+   where e.id = '00000000-0000-4000-9000-0000000000e1'),
+  'neon-night-10k-test',
+  'a published event keeps its slug, whatever the save asks for'
+);
+
+select lives_ok(
+  $$ select set_config(
+       'tests.draft',
+       (select d.id::text
+        from public.events e,
+             lateral public.save_event(
+               null, 'first-draft-test',
+               to_jsonb(e) || '{"status": "draft", "name": "First Draft"}', '[]'::jsonb
+             ) d
+        where e.id = '00000000-0000-4000-9000-0000000000e1'),
+       true) $$,
+  'the organizer saves a draft'
+);
+
+select is(
+  (select s.slug
+   from public.events d,
+        lateral public.save_event(
+          d.id, 'renamed-draft-test',
+          to_jsonb(d) || '{"name": "Renamed Draft"}', '[]'::jsonb
+        ) s
+   where d.id = current_setting('tests.draft')::uuid),
+  'renamed-draft-test',
+  'a draft takes the slug of the save: it follows a rename'
 );
 
 reset role;

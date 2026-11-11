@@ -854,12 +854,22 @@ export type Database = {
         Args: { p_key: string; p_limit: number; p_window: string };
         Returns: boolean;
       };
+      /** Service role only: evidence files older than a day that no result names. */
+      orphaned_evidence: {
+        Args: { p_limit?: number };
+        Returns: string[];
+      };
       can_review_ath_movil_payment: {
         Args: { p_registration_id: string };
         Returns: boolean;
       };
       review_ath_movil_payment: {
-        Args: { p_registration_id: string; p_approve: boolean };
+        Args: {
+          p_registration_id: string;
+          p_approve: boolean;
+          /** The submission the reviewer was shown; refused if sent again since. */
+          p_submitted_at?: string;
+        };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
       };
       submit_race_result: {

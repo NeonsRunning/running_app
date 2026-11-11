@@ -359,7 +359,7 @@ export function EventDiscovery({
           onChange={(e) => {
             setMaxPrice(Number(e.target.value));
           }}
-          className="mt-4 w-full accent-[#FFF200]"
+          className="mt-4 w-full accent-neon-yellow"
         />
       </div>
 
@@ -647,7 +647,7 @@ function MapView({ events }: { events: RunningEvent[] }) {
                       ? "fill-neon-yellow/10 stroke-neon-yellow/70"
                     : hosting.has(name)
                       ? "fill-neon-lime/15 stroke-neon-lime/60"
-                        : "fill-neon-lime/[0.04] stroke-neon-lime/25",
+                        : "fill-neon-lime/4 stroke-neon-lime/25",
                 )}
               >
                 <title>{name}</title>

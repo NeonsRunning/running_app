@@ -593,12 +593,15 @@ export async function saveEventAction(
     charges_sales_tax: chargesSalesTax,
   };
 
-  // A slug is chosen once, from the first saved name, and kept: links to a
-  // published race must not break when it is renamed.
-  const base = existing?.slug ?? slugify(name);
+  // A draft's slug follows its name; the save that publishes it fixes it,
+  // and from then on it is kept: links to a published race must not break
+  // when it is renamed. `save_event()` applies the same rule to what it is
+  // given here.
+  const slugFixed = existing ? existing.status !== "draft" : false;
+  const base = slugFixed && existing ? existing.slug : slugify(name);
 
   for (let n = 1; n <= 20; n++) {
-    const slug = existing || n === 1 ? base : `${base}-${n}`;
+    const slug = slugFixed || n === 1 ? base : `${base}-${n}`;
 
     const { data, error } = await supabase.rpc("save_event", {
       p_id: id,
@@ -652,7 +655,7 @@ export async function saveEventAction(
     // Someone else's race has this slug: try the next suffix. Anything else
     // will not change on retry.
     if (
-      !existing &&
+      !slugFixed &&
       error?.code === UNIQUE_VIOLATION &&
       error.message.includes("events_slug_key")
     )

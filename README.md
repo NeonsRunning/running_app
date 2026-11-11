@@ -444,8 +444,8 @@ lib/email/*.ts          one module per email: who, what, when
 
 ### Scheduled jobs
 
-Two routes need calling on a schedule, each with
-`Authorization: Bearer $CRON_SECRET` (set `CRON_SECRET`; without it both
+Three routes need calling on a schedule, each with
+`Authorization: Bearer $CRON_SECRET` (set `CRON_SECRET`; without it all
 refuse every call):
 
 - `GET /api/cron/race-reminders` — **hourly.** Emails every confirmed runner
@@ -461,7 +461,11 @@ refuse every call):
   have sent it, and a runner told twice is worse than a row to check — so it
   is among those rows too, with a `last_error` starting "Unconfirmed".
 
-The database calls both routes itself, with `pg_cron` and `pg_net`
+- `GET /api/cron/evidence-sweep` — **daily.** Deletes finish-time evidence
+  that no result points at and that is more than a day old: uploads never
+  submitted, and the files of results that went with a removed sign-up.
+
+The database calls these routes itself, with `pg_cron` and `pg_net`
 (`supabase/migrations/20261125120000_schedule_cron_routes.sql`), since
 Vercel's Hobby plan allows cron jobs at most once a day. It reads where to
 call and the secret from Supabase Vault; set both once per environment, in

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient as createBareClient } from "@supabase/supabase-js";
 import { siteOrigin } from "@/lib/site-url";
 import { redirect } from "next/navigation";
@@ -16,7 +17,12 @@ import { supabaseEnv } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
 import { authErrorKey } from "./errors";
 import { isRecoverySession } from "./session";
-import { SELF_PROFILE_PATH, isEmailLinkType, safeNextPath } from "./routes";
+import {
+  SELF_PROFILE_PATH,
+  VERIFY_EMAIL_COOKIE,
+  isEmailLinkType,
+  safeNextPath,
+} from "./routes";
 
 /**
  * Auth server actions.
@@ -203,9 +209,14 @@ export async function signUpAction(
   // waiting for a message no one is going to send, so take them straight in.
   if (data.session) redirect(localizePath(SELF_PROFILE_PATH, locale));
 
-  redirect(
-    `${localizePath("/verify-email", locale)}?email=${encodeURIComponent(email)}`,
-  );
+  (await cookies()).set(VERIFY_EMAIL_COOKIE, email, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60,
+    path: "/",
+  });
+  redirect(localizePath("/verify-email", locale));
 }
 
 /* -------------------------------------------------------------------------- */

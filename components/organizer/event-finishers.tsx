@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
-import { SectionHeading } from "@/components/ui/misc";
+import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel } from "@/lib/i18n/labels";
@@ -25,6 +25,9 @@ import { focusKey, focusSoon } from "./row-focus";
  * the list, with the reason; only a platform admin can reinstate one. A
  * sent-back result leaves the list when the runner sends new evidence.
  */
+/** Finishers shown at once. */
+const PAGE_SIZE = 10;
+
 export function EventFinishers({
   initial,
   isAdmin,
@@ -50,6 +53,7 @@ export function EventFinishers({
     setRows(initial);
   }
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [busy, setBusy] = useState<string | null>(null);
   const [disqualifying, setDisqualifying] = useState<string | null>(null);
   const [reason, setReason] = useState("");
@@ -60,6 +64,14 @@ export function EventFinishers({
     if (!q) return rows;
     return rows.filter((r) => `${r.bib} ${r.runnerName}`.toLowerCase().includes(q));
   }, [rows, query]);
+
+  // A page at a time: a race's results run to thousands of rows, each with
+  // its buttons and a link to its evidence. Clamped, so a shorter list after
+  // a search or a review never leaves the list on a page that is gone.
+  const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+  const current = Math.min(page, pageCount);
+  const from = (current - 1) * PAGE_SIZE;
+  const visible = shown.slice(from, from + PAGE_SIZE);
   const disqualifiedCount = rows.filter((r) => r.status === "disqualified").length;
   const rejectedCount = rows.filter((r) => r.status === "rejected").length;
 
@@ -165,7 +177,10 @@ export function EventFinishers({
           <Input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
             placeholder={t("resultFinishers.searchPlaceholder")}
             aria-label={t("resultFinishers.searchAria")}
           />
@@ -181,8 +196,9 @@ export function EventFinishers({
           {t("resultFinishers.noMatches")}
         </p>
       ) : (
+        <>
         <ul className="mt-6 border-t-2 border-line">
-          {shown.map((row) => (
+          {visible.map((row) => (
             <li key={row.id} className="border-b-2 border-line py-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -354,6 +370,24 @@ export function EventFinishers({
             </li>
           ))}
         </ul>
+        {pageCount > 1 ? (
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-mono text-xs text-fg-dim tabular-nums">
+              {t("common.pageRange", {
+                from: fmt.number(from + 1),
+                to: fmt.number(from + visible.length),
+                total: fmt.number(shown.length),
+              })}
+            </p>
+            <Pagination
+              page={current}
+              pageCount={pageCount}
+              onChange={setPage}
+              label={t("resultFinishers.title")}
+            />
+          </div>
+        ) : null}
+        </>
       )}
     </section>
   );
