@@ -1809,6 +1809,7 @@
       "difficultyRequired": "Elige una dificultad.",
       "aidStationsFormat": "Escribe un avituallamiento por línea, así: 3 — Agua, geles.",
       "scheduleFormat": "Escribe un punto por línea, así: 6:00 PM — Salida.",
+      "listTooLong": "Esa lista es demasiado larga: hasta 60 líneas y 6,000 caracteres.",
       "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo y luego publica.",
       "notOrganizer": "Solo las cuentas de organizador pueden publicar eventos. Contacta al equipo para pedir acceso.",
       "saveFailedTitle": "No se guardaron tus cambios",

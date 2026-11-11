@@ -35,7 +35,9 @@ export async function listAdminEvents(
     p_query: query.trim() || undefined,
     p_removed: removed,
   });
-  if (error || !data) return [];
+  // Thrown rather than shown as "no events".
+  if (error) throw new Error(`Admin events failed to load: ${error.message}`);
+  if (!data) return [];
 
   const today = puertoRicoToday();
   return data.map((r) => ({

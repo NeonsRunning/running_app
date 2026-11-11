@@ -65,9 +65,12 @@ export async function sendContactMessageAction(input: {
 
   // Each message is an email from the Brevo account that also sends payment
   // confirmations and refund notices; a flood must not use up its quota.
+  // The address is counted with the caller's IP, not alone: a count anyone
+  // can fill by typing someone else's address would shut that person out.
+  const ip = await clientIp();
   const allowed = await withinLimits([
-    { action: "contact:ip", who: await clientIp(), limit: LIMITS.contactPerIp },
-    { action: "contact:email", who: email, limit: LIMITS.contactPerEmail },
+    { action: "contact:ip", who: ip, limit: LIMITS.contactPerIp },
+    { action: "contact:email-ip", who: `${email}|${ip}`, limit: LIMITS.contactPerEmail },
   ]);
   if (!allowed) return { ok: false, error: "rateLimited" };
 

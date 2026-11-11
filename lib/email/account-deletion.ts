@@ -16,9 +16,9 @@ import { getRecipient } from "./recipient";
  * The email says what the account still holds, so the team can tell at a
  * glance whether anything has to be refunded or kept before deleting.
  *
- * Sent once per request: the update that sets `team_notified_at` while it is
- * still null wins, and a failed send gives the claim back, so the request can
- * be found (`team_notified_at is null`) and sent again. Awaited by the
+ * Sent once per request, near enough: `team_notified_at` is written when the
+ * email has gone, so a send that failed or never finished leaves the request
+ * to be found (`team_notified_at is null`) and sent again. Awaited by the
  * caller, like the contact form: it goes to us, not to the runner.
  *
  * Resolves true once the team has been told, by this call or an earlier one.
@@ -33,15 +33,18 @@ export async function notifyTeamOfDeletionRequest(userId: string): Promise<boole
   }
 
   const admin = createAdminClient();
-  const { data: claimed } = await admin
+  // `team_notified_at` is written only once the email has gone, below. It
+  // used to be written first, as a claim, and handed back on failure — but a
+  // function cut off between the two (a timeout, a deploy) left the request
+  // marked "told" for good, with nobody told. Two requests a moment apart can
+  // now both send; a second copy in the team's own inbox is the cheaper
+  // mistake.
+  const { data: request } = await admin
     .from("account_deletion_requests")
-    .update({ team_notified_at: new Date().toISOString() })
+    .select("requested_at, team_notified_at")
     .eq("user_id", userId)
-    .is("team_notified_at", null)
-    .select("requested_at")
     .maybeSingle();
-  // Already told, or being told by a request a moment ago.
-  if (!claimed) return true;
+  if (!request || request.team_notified_at) return true;
 
   try {
     const today = puertoRicoToday();
@@ -75,7 +78,7 @@ export async function notifyTeamOfDeletionRequest(userId: string): Promise<boole
     const t = await getTranslator(DEFAULT_LOCALE);
     const k = (key: string) => `emails.accountDeletion.${key}`;
     const name = recipient.name || recipient.email || userId;
-    const requestedAt = formatRequestedAt(claimed.requested_at);
+    const requestedAt = formatRequestedAt(request.requested_at);
 
     await sendEmail({
       to: { email: inbox },
@@ -103,13 +106,17 @@ export async function notifyTeamOfDeletionRequest(userId: string): Promise<boole
       }),
       tags: ["account-deletion-request"],
     });
+    const { error: markError } = await admin
+      .from("account_deletion_requests")
+      .update({ team_notified_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("team_notified_at", null);
+    if (markError) {
+      // Sent, but still listed as not told: the worst it costs is a second copy.
+      console.error(`Marking the deletion request of ${userId} as sent failed:`, markError.message);
+    }
     return true;
   } catch (err) {
-    // Give the claim back so the request shows up as not yet sent.
-    await admin
-      .from("account_deletion_requests")
-      .update({ team_notified_at: null })
-      .eq("user_id", userId);
     logCritical("DELETION_REQUEST_NOT_EMAILED", "Emailing the team failed; it can be sent again.", {
       user: userId,
       error: err instanceof Error ? err.message : String(err),

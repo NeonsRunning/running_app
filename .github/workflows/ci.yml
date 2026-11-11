@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The migration check compares against the base branch.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -26,6 +29,9 @@ jobs:
       - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npm run check:i18n
+      # Migration names, and on a pull request that none was added before
+      # the newest one already on the base branch.
+      - run: npm run check:migrations -- ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
       - run: npm test
       # No Supabase, Stripe or Brevo variables: the app builds signed out,
       # with payments and email reporting themselves unavailable.

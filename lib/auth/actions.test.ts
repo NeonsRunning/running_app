@@ -113,6 +113,18 @@ describe("signUpAction", () => {
     });
   });
 
+  // The address counted alone is a count anyone who knows it can fill,
+  // shutting its owner out of signing up.
+  it("counts the address only together with the caller's IP", async () => {
+    signUp.mockResolvedValue({ data: { user: null, session: null }, error: null });
+    await signUpAction(undefined, form(fields)).catch(() => {});
+
+    expect(counted()).toEqual([
+      "auth:signup:ip 203.0.113.9",
+      "auth:signup:email-ip ana@example.com|203.0.113.9",
+    ]);
+  });
+
   it("sends a new address to the inbox screen", async () => {
     signUp.mockResolvedValue({
       data: { user: { identities: [{ id: "1" }] }, session: null },

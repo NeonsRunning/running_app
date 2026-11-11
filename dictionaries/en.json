@@ -1809,6 +1809,7 @@
       "difficultyRequired": "Choose a difficulty.",
       "aidStationsFormat": "Write one station per line, as: 3 — Water, gels.",
       "scheduleFormat": "Write one item per line, as: 6:00 PM — Race start.",
+      "listTooLong": "That list is too long: up to 60 lines and 6,000 characters.",
       "sessionExpired": "Your session expired. Log in again, then publish.",
       "notOrganizer": "Only organizer accounts can publish events. Contact the team to request access.",
       "saveFailedTitle": "Your changes weren’t saved",

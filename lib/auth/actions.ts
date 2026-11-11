@@ -69,11 +69,18 @@ function readText(formData: FormData, name: string): string {
  * Whether another Supabase email (confirmation, password reset) may go to
  * this address from this caller. Supabase limits sends project-wide; this
  * keeps one caller from spending that allowance on one inbox.
+ *
+ * The address is counted together with the caller's IP, never on its own,
+ * for the reason `passwordAttemptAllowed` gives: a count per address alone
+ * is one anybody who knows the address can fill — every call is counted,
+ * even from an IP already over its own limit — and its owner is then told
+ * "too many attempts" when they sign up or ask for their link again.
  */
 async function authEmailAllowed(action: string, email: string): Promise<boolean> {
+  const ip = await clientIp();
   return withinLimits([
-    { action: `${action}:ip`, who: await clientIp(), limit: LIMITS.authEmailPerIp },
-    { action: `${action}:email`, who: email, limit: LIMITS.authEmailPerEmail },
+    { action: `${action}:ip`, who: ip, limit: LIMITS.authEmailPerIp },
+    { action: `${action}:email-ip`, who: `${email}|${ip}`, limit: LIMITS.authEmailPerEmail },
   ]);
 }
 

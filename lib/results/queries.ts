@@ -145,7 +145,10 @@ export async function listEventResultSubmissions(
       .order("id")
       .range(from, to),
   );
-  if (error) return [];
+  // Thrown rather than shown as "nothing to review".
+  if (error) {
+    throw new Error(`Result submissions of ${eventId} failed to load: ${error.message}`);
+  }
 
   const urls = await signEvidence(data.map((r) => r.evidence_path));
   return data.map((r) => ({
@@ -197,7 +200,9 @@ export async function listEventFinishers(
       .order("id")
       .range(from, to),
   );
-  if (error) return [];
+  if (error) {
+    throw new Error(`Finishers of ${eventId} failed to load: ${error.message}`);
+  }
 
   const urls = await signEvidence(data.map((r) => r.evidence_path));
   const rows: EventFinisherRow[] = data.map((r) => ({
