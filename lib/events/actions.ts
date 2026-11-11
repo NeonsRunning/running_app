@@ -140,6 +140,14 @@ function lines(value: string): string[] {
     .filter(Boolean);
 }
 
+/** The most lines, and characters, an aid-station list or a schedule takes. */
+const MAX_LIST_LINES = 60;
+const MAX_LIST_LENGTH = 6000;
+
+function tooLong(value: string): boolean {
+  return value.length > MAX_LIST_LENGTH || lines(value).length > MAX_LIST_LINES;
+}
+
 /** "3 — Water, electrolyte" per line. Null if any line does not parse. */
 function parseAidStations(value: string): Omit<AidStation, "label">[] | null {
   const out: Omit<AidStation, "label">[] = [];
@@ -499,6 +507,12 @@ export async function saveEventAction(
   if (cutoff.length > LIMITS.cutoff) fieldErrors.cutoff = "tooLong";
   if (!aidStations) fieldErrors.aid_stations = "aidStationsFormat";
   if (!schedule) fieldErrors.schedule = "scheduleFormat";
+  // Both ride along on every listing card of the event, so neither may grow
+  // without limit. The table checks the same (events_lists_size).
+  if (tooLong(readText(formData, "aid_stations"))) {
+    fieldErrors.aid_stations = "listTooLong";
+  }
+  if (tooLong(readText(formData, "schedule"))) fieldErrors.schedule = "listTooLong";
   if (parking.length > LIMITS.notes) fieldErrors.parking = "tooLong";
   if (directions.length > LIMITS.notes) fieldErrors.directions = "tooLong";
 

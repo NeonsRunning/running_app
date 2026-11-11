@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "check:i18n": "node scripts/check-dictionaries.mjs",
+    "check:migrations": "node scripts/check-migrations.mjs",
     "test": "vitest run",
     "test:db": "supabase test db",
     "db:push": "supabase db push",

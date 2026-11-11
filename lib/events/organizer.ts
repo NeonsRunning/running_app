@@ -188,8 +188,12 @@ export async function getOrganizerEvents(
     // A total order, so consecutive pages never repeat or skip an event.
     .order("id")
     .range(offset, offset + EVENTS_PAGE_SIZE - 1);
-  if (error || !data) return { events: [], total: 0 };
-  const events = data as EventRow[];
+  // A failed read is an error, not "no events": an organizer shown an empty
+  // dashboard has no way to tell their races are still there. The same goes
+  // for every read below — zero revenue and "nothing to review" are answers,
+  // and must only be given when they are true.
+  if (error) throw new Error(`Organizer events failed to load: ${error.message}`);
+  const events = (data ?? []) as EventRow[];
 
   // Added up in the database: one row per event, not one per runner.
   const regs = new Map<string, { registered: number; revenue: number }>();
@@ -199,7 +203,7 @@ export async function getOrganizerEvents(
   const kept = new Set<string>();
   if (events.length) {
     const ids = events.map((e) => e.id);
-    const [{ data: rows }, { data: held }] = await Promise.all([
+    const [{ data: rows, error: totalsError }, { data: held, error: heldError }] = await Promise.all([
       supabase.rpc("event_signup_totals", { p_event_ids: ids }),
       selectAll((from, to) =>
         supabase
@@ -211,6 +215,8 @@ export async function getOrganizerEvents(
           .range(from, to),
       ),
     ]);
+    const failed = totalsError ?? heldError;
+    if (failed) throw new Error(`Organizer event totals failed to load: ${failed.message}`);
     for (const r of rows ?? []) {
       regs.set(r.event_id, { registered: Number(r.registered), revenue: Number(r.revenue) });
     }
@@ -251,7 +257,7 @@ export async function getOrganizerDashboard(
   // load a page at a time through `getOrganizerEvents()`.
   // Paged: past the API's 1000-row cap the rest would be left out of every
   // total.
-  const { data: eventData } = await selectAll((from, to) =>
+  const { data: eventData, error: eventsError } = await selectAll((from, to) =>
     supabase
       .from("events")
       .select(
@@ -261,6 +267,9 @@ export async function getOrganizerDashboard(
       .order("id")
       .range(from, to),
   );
+  if (eventsError) {
+    throw new Error(`Organizer dashboard failed to load: ${eventsError.message}`);
+  }
   const events = eventData as SummaryRow[];
 
   const today = todayIso();
@@ -290,7 +299,12 @@ export async function getOrganizerDashboard(
           p_since: since.toISOString(),
           p_today: today,
         })
-        .then(({ data }) => (data as OrganizerSummary | null) ?? EMPTY_SUMMARY)
+        .then(({ data, error }) => {
+          if (error) {
+            throw new Error(`Organizer dashboard totals failed to load: ${error.message}`);
+          }
+          return (data as OrganizerSummary | null) ?? EMPTY_SUMMARY;
+        })
     : EMPTY_SUMMARY;
 
   /* Per event ------------------------------------------------------------- */
@@ -781,7 +795,10 @@ export async function getCancelledRegistrations(
       .order("id")
       .range(from, to),
   );
-  if (error) return [];
+  // This is the list of refunds owed: empty must mean there are none.
+  if (error) {
+    throw new Error(`Cancelled registrations of ${eventId} failed to load: ${error.message}`);
+  }
 
   return data.map((r) => ({
     id: r.id,

@@ -97,7 +97,7 @@ $$;
 grant execute on function tests.ana_details() to authenticated;
 -- End of fixtures.
 
-select plan(8);
+select plan(9);
 
 -- Ana signs up and says she paid with ATH Móvil.
 select tests.act_as('00000000-0000-4000-8000-000000000003');
@@ -203,6 +203,15 @@ select throws_ok(
   'P0001',
   'referenceUsed',
   'a reference already used on another sign-up is refused, whatever its case'
+);
+
+select throws_ok(
+  $$ select public.submit_ath_movil_payment(
+       (public.register_for_event('00000000-0000-4000-9000-0000000000c1', tests.ana_details())).id,
+       ' 00REF 12345 ') $$,
+  'P0001',
+  'referenceUsed',
+  'nor however it is spaced, punctuated or zero-padded'
 );
 
 reset role;

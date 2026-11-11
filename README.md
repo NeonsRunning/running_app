@@ -61,9 +61,8 @@ supabase/     SQL migrations
 proxy.ts      locale routing and Supabase token refresh
 ```
 
-`lib/data.ts` is the only data source. Every page reads through the accessors at
-the bottom of that file, so replacing the fixtures with a real API is a
-one-layer change.
+`lib/data.ts` holds what is left of the demo fixtures (see Notes); everything
+else reads from Supabase through the query modules under `lib/`.
 
 ## Design system
 
@@ -164,7 +163,7 @@ lib/auth/session.ts      getUser, requireAccount, the Session the UI renders
 lib/auth/routes.ts       which paths need a session
 lib/auth/errors.ts       Supabase error codes -> dictionary keys
 lib/profile/queries.ts   reading profiles
-lib/profile/actions.ts   editing a profile, switching on the organizer tools
+lib/profile/actions.ts   editing a profile, email switches, data export, deletion
 lib/profile/view.ts      one runner page shape, from a profile or a fixture
 ```
 
@@ -237,7 +236,8 @@ same for local development, but the hosted project keeps its own:
 Sign-up puts `full_name` on the user's metadata, where the `handle_new_user`
 trigger reads it to seed the profile row that `toSession()` projects onto the
 header and the profile's settings. The account type is the trigger's to set — always
-`runner` — and settings can promote a runner to an organizer later.
+`runner`. Nothing in the app can change it: the team makes a runner an
+organizer in the database (`update profiles set account_type = 'organizer'`).
 
 Sign-up refuses an address that already has a confirmed account and says so
 (Supabase returns a decoy user, detectable only by an empty `identities` array),
@@ -314,6 +314,23 @@ copying an older one silently drops whatever was added since.
 npm run db:functions               # every function and the migration that defines it now
 npm run db:functions save_event    # just one
 ```
+
+### Adding a migration
+
+Name it by hand, one step after the newest file in `supabase/migrations`. The
+versions run ahead of the calendar, so `supabase migration new` — which
+stamps today's date — makes a file that sorts before migrations already
+applied: `db push` refuses it, and pushed anyway it runs in a different order
+in production than in CI. `npm run check:migrations -- origin/main` fails on
+one, and CI runs it on every pull request.
+
+A column added to `registrations` needs its own
+`grant select (<column>) on public.registrations to authenticated`. Clients
+read that table through a column list (it leaves out who reviewed a payment
+or cancelled a sign-up), so a new column is invisible to them until granted;
+`supabase/tests/database/privileges.test.sql` fails until it is. The same
+test lists every function each role may call — a new function has to be
+added there on purpose, or revoked.
 
 Prices are worked out twice, in `register_for_event()` (what is charged) and
 `lib/events/pricing.ts` (what the form shows). `supabase/tests/database/pricing.test.sql`
