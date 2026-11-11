@@ -472,8 +472,28 @@ administrador puede deshacerlo.**
 
 ![Descalificar un resultado](img/organizador/descalificar.png)
 
-> **🛠 Nota técnica:** `reviewRaceResultAction` y
-> `disqualifyRaceResultAction` (`lib/results/actions.ts`).
+### Marcar la llegada de un corredor sin evidencia
+
+Si un corredor no logra enviar su captura (la app de su reloj no la da, la
+subida falla, su teléfono no coopera), puedes registrar su llegada tú. Está
+disponible desde el día de la carrera en eventos con **Evidencia de llegada**
+activa.
+
+1. En **Inscripciones**, busca al corredor y pulsa **Marcar llegada**.
+2. Escribe su **Tiempo final** (`h:mm:ss`, `mm:ss` o solo números, como
+   `12541` para 1:25:41) y confirma.
+
+El resultado queda **aceptado al momento**: aparece en su perfil y en la
+clasificación con la medalla, y el corredor recibe un correo. Si tenía una
+captura **en revisión** o **devuelta**, tu tiempo la reemplaza. No se puede
+marcar sobre un resultado ya aceptado o descalificado. En **Resultados
+revisados** aparece como *Registrado por el organizador — sin evidencia*, y
+se puede descalificar como cualquier otro.
+
+> **🛠 Nota técnica:** `reviewRaceResultAction`,
+> `recordRaceResultAction` (función `record_race_result()`, con
+> `evidence_path` nulo) y `disqualifyRaceResultAction`
+> (`lib/results/actions.ts`).
 > `reinstateRaceResultAction` (**Restablecer**) solo está disponible para
 > administradores. Las capturas están en el bucket privado `race-evidence`;
 > el organizador las ve mediante URLs firmadas.

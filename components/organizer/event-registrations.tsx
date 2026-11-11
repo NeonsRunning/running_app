@@ -19,6 +19,8 @@ import {
   markMedalPickedUpAction,
   markShipmentShippedAction,
 } from "@/lib/events/shipment";
+import { recordRaceResultAction } from "@/lib/results/actions";
+import { formatFinishTime, parseFinishTime } from "@/lib/results/evidence";
 import { cn } from "@/lib/cn";
 import { MAX_TRACKING_LENGTH } from "@/lib/events/vocabulary";
 import { focusKey, focusSoon, neighbourOf } from "./row-focus";
@@ -76,11 +78,14 @@ const shipmentToMail = (row: EventRegistrationRow) => {
  * way, which emails them; its tracking number can be changed afterwards
  * without emailing again. A kit that left ahead of its medal is marked again
  * when the medal goes. "Shipments to mail" narrows the list to the ones ready.
+ * A runner who cannot get finish evidence in is marked finished here, with
+ * the time they give: the result is accepted at once, as a reviewed one.
  */
 export function EventRegistrations({
   rows: initial,
   eventId,
   inPerson,
+  recordsResults,
   categories,
   slug,
 }: {
@@ -89,6 +94,8 @@ export function EventRegistrations({
   eventId: string;
   /** Runners gather in one place, so the station is offered. */
   inPerson: boolean;
+  /** The event takes results and race day has come: finishes can be recorded. */
+  recordsResults: boolean;
   /** Category id → its distance name, for the Distance column. */
   categories: Record<string, string>;
   /** Names the CSV file. */
@@ -133,6 +140,11 @@ export function EventRegistrations({
   const [handingOut, setHandingOut] = useState<EventRegistrationRow | null>(
     null,
   );
+  // Finishes recorded here, by registration id, likewise.
+  const [finished, setFinished] = useState<ReadonlySet<string>>(new Set());
+  const [recording, setRecording] = useState<EventRegistrationRow | null>(null);
+  const [finishTime, setFinishTime] = useState("");
+  const [finishTimeError, setFinishTimeError] = useState<string>();
   const tableRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -146,6 +158,7 @@ export function EventRegistrations({
     setRemoved(new Set());
     setShipped(new Map());
     setPickedUp(new Map());
+    setFinished(new Set());
   }
 
   const rows = useMemo(
@@ -155,23 +168,30 @@ export function EventRegistrations({
         .map((r) => {
           const sent = shipped.get(r.id);
           const handedOver = pickedUp.get(r.id);
+          // Recorded only while the event takes results, so the medal is
+          // earned by the accepted result.
+          const done = finished.has(r.id);
+          const medal =
+            done && r.medal
+              ? { ...r.medal, finished: true, canHandOut: true }
+              : r.medal;
           return {
             ...r,
+            ...(done ? { hasAcceptedResult: true, hasPendingResult: false } : {}),
             ...(sent
               ? { shippedAt: sent.shippedAt, shippingTracking: sent.tracking }
               : {}),
-            ...((sent || handedOver) && r.medal
-              ? {
-                  medal: {
-                    ...r.medal,
+            medal:
+              (sent || handedOver) && medal
+                ? {
+                    ...medal,
                     ...(sent ? { shippedAt: sent.medalShippedAt } : {}),
                     ...(handedOver ? { pickedUpAt: handedOver } : {}),
-                  },
-                }
-              : {}),
+                  }
+                : medal,
           };
         }),
-    [initial, removed, shipped, pickedUp],
+    [initial, removed, shipped, pickedUp, finished],
   );
 
   // Whether this race tracks medals, or did when some went out.
@@ -464,6 +484,57 @@ export function EventRegistrations({
     );
   }
 
+  function openRecording(row: EventRegistrationRow) {
+    setFinishTime("");
+    setFinishTimeError(undefined);
+    setRecording(row);
+  }
+
+  async function record(row: EventRegistrationRow) {
+    if (parseFinishTime(finishTime) === null) {
+      setFinishTimeError(t("recordResult.errors.timeInvalid"));
+      return;
+    }
+    setBusy(row.id);
+    const result = await recordRaceResultAction(row.id, finishTime).catch(
+      () => ({ ok: false, error: "recordFailed" }) as const,
+    );
+    setBusy(null);
+
+    if (!result.ok && result.error === "timeInvalid") {
+      setFinishTimeError(t("recordResult.errors.timeInvalid"));
+      return;
+    }
+    if (result.ok) {
+      setFinished((ids) => new Set(ids).add(row.id));
+      setRecording(null);
+      // A note takes the button's place: land on the runner instead.
+      focusSoon(focusKey(`name-${row.id}`));
+    } else if (
+      result.error === "resultAlreadyAccepted" ||
+      result.error === "resultDisqualified" ||
+      result.error === "registrationMissing"
+    ) {
+      // Settled elsewhere meanwhile; the revalidated list shows how.
+      setRecording(null);
+    }
+    toast(
+      result.ok
+        ? {
+            title: t("recordResult.recordedTitle"),
+            body: t("recordResult.recordedBody", {
+              name: row.runnerName,
+              time: formatFinishTime(result.finishSeconds),
+            }),
+          }
+        : {
+            title: t("recordResult.errors.title"),
+            body: t(`recordResult.errors.${result.error}`),
+            tone: "danger",
+          },
+    );
+  }
+
   function actions(row: EventRegistrationRow) {
     return (
       <div className="flex flex-col gap-2 md:items-end">
@@ -492,6 +563,19 @@ export function EventRegistrations({
     }
     return (
       <div className="flex flex-wrap gap-2 md:justify-end">
+        {recordsResults ? (
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy !== null}
+            aria-label={t("recordResult.markFinishedAria", {
+              name: row.runnerName,
+            })}
+            onClick={() => openRecording(row)}
+          >
+            {t("recordResult.markFinished")}
+          </Button>
+        ) : null}
         {/* Only ATH Móvil was confirmed by hand; Stripe confirmed card payments. */}
         {row.paymentMethod === "ath_movil" ? (
           <Button
@@ -868,6 +952,69 @@ export function EventRegistrations({
         })}
         confirmLabel={t("eventRegistrations.medal.markPickedUp")}
       />
+
+      <Modal
+        open={recording !== null}
+        onClose={() => setRecording(null)}
+        title={t("recordResult.title", { name: recording?.runnerName ?? "" })}
+        description={t(
+          recording?.hasPendingResult
+            ? "recordResult.descriptionPending"
+            : "recordResult.description",
+          { name: recording?.runnerName ?? "" },
+        )}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setRecording(null)}>
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="submit"
+              form="record-result"
+              disabled={busy !== null}
+              aria-busy={busy !== null}
+            >
+              {busy !== null ? t("common.saving") : t("recordResult.markFinished")}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id="record-result"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (recording) void record(recording);
+          }}
+        >
+          <Field
+            label={t("recordResult.finishTime")}
+            hint={t("raceResult.finishTimeHint")}
+            error={finishTimeError}
+          >
+            {(p) => (
+              <Input
+                {...p}
+                name="finish_time"
+                value={finishTime}
+                onChange={(e) => {
+                  setFinishTime(e.target.value);
+                  if (finishTimeError) setFinishTimeError(undefined);
+                }}
+                onBlur={() => {
+                  // Show how a loose entry ("12541", "1.25.41") was read.
+                  const seconds = parseFinishTime(finishTime);
+                  if (seconds !== null) setFinishTime(formatFinishTime(seconds));
+                }}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="0:25:41"
+                className="font-mono tabular-nums"
+              />
+            )}
+          </Field>
+        </form>
+      </Modal>
 
       <Modal
         open={shipping !== null}

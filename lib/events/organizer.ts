@@ -546,6 +546,8 @@ export type EventRegistrationRow = {
   hasAcceptedResult: boolean;
   /** A disqualified finish keeps the sign-up too, as the record. */
   hasDisqualifiedResult: boolean;
+  /** Evidence the runner sent is waiting for review. */
+  hasPendingResult: boolean;
   /** The finisher medal, on races that mail medals; null on the rest. */
   medal: MedalShipping | null;
 };
@@ -633,6 +635,7 @@ export async function getEventRegistrations(
     paidAt: r.paid_at ?? r.created_at,
     hasAcceptedResult: r.result?.status === "accepted",
     hasDisqualifiedResult: r.result?.status === "disqualified",
+    hasPendingResult: r.result?.status === "pending",
     // A medal handed over before the race stopped mailing them stays on record.
     medal:
       medals.mailsMedals || r.medal_shipped_at || r.medal_picked_up_at

@@ -32,15 +32,35 @@ export function isOwnEvidencePath(path: string, runnerId: string): boolean {
 /** Under 7 days, as `race_results` checks: a multi-day ultra still fits. */
 const MAX_SECONDS = 7 * 24 * 3600;
 
+/** h:mm:ss or mm:ss with colons, spaces allowed around them, optional fraction. */
+const COLON_TIME = /^(?:(\d{1,3})\s*:\s*)?([0-5]?\d)\s*:\s*([0-5]\d)(?:[.,](\d+))?$/;
+/** The same with `.`, `;` or a space between the parts (no fraction then). */
+const OTHER_SEP_TIME = /^(?:(\d{1,3})\s*[.;\s]\s*)?([0-5]?\d)\s*[.;\s]\s*([0-5]\d)$/;
+/** Digits only, read from the right: ss, mm, then up to three of h. */
+const DIGITS_TIME = /^(\d{0,3}?)(\d{1,2})(\d{2})$/;
+
 /**
- * A finish time as typed: "25:41" (mm:ss) or "1:02:33" (h:mm:ss). Seconds,
- * or null if it does not read as a time.
+ * A finish time as typed. Seconds, or null if it does not read as a time.
+ *
+ * - "25:41" (mm:ss) or "1:02:33" (h:mm:ss), the form the hint asks for;
+ * - other separators — "1.02.33", "1;02;33", "1 02 33" — and full-width
+ *   colons from some keyboards;
+ * - digits only, which is all a phone's number keypad can type:
+ *   "2541" is 25:41 and "12541" is 1:25:41;
+ * - a fraction of a second, as chip results show: "25:41.3" counts as 25:42,
+ *   rounded up the way road race times are.
  */
 export function parseFinishTime(value: string): number | null {
-  const match = /^(?:(\d{1,3}):)?([0-5]?\d):([0-5]\d)$/.exec(value.trim());
+  // NFKC folds full-width digits and colons ("１：０２") into ASCII.
+  const text = value.normalize("NFKC").trim();
+  const match = text.includes(":")
+    ? COLON_TIME.exec(text)
+    : (OTHER_SEP_TIME.exec(text) ?? DIGITS_TIME.exec(text));
   if (!match) return null;
-  const [, h, m, s] = match;
-  const seconds = Number(h ?? 0) * 3600 + Number(m) * 60 + Number(s);
+  const [, h, m, s, fraction] = match;
+  if (Number(m) > 59 || Number(s) > 59) return null;
+  const roundUp = fraction && /[1-9]/.test(fraction) ? 1 : 0;
+  const seconds = Number(h || 0) * 3600 + Number(m) * 60 + Number(s) + roundUp;
   return seconds > 0 && seconds < MAX_SECONDS ? seconds : null;
 }
 

@@ -65,6 +65,7 @@ select set_eq(
     'mark_shipment_shipped',
     'organizer_dashboard_summary',
     'own_storage_object_count',
+    'record_race_result',
     'register_for_event',
     'reinstate_race_result',
     'remove_registration',

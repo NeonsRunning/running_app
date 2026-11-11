@@ -690,6 +690,17 @@
       "cta": "View your profile",
       "footer": "You’re receiving this because you sent a result for {event} on NEONS RUNNING."
     },
+    "resultRecorded": {
+      "subject": "Your result for {event} is official",
+      "preheader": "The organizer recorded your finish. It’s now on your profile.",
+      "heading": "Nice run, {name}!",
+      "intro": "The organizer of {event} recorded your finish time. It’s now on your NEONS RUNNING profile — no screenshot needed.",
+      "race": "Race",
+      "time": "Finish time",
+      "next": "Share your profile with friends and keep the streak going.",
+      "cta": "View your profile",
+      "footer": "You’re receiving this because the organizer of {event} recorded your result on NEONS RUNNING."
+    },
     "resultRejected": {
       "subject": "Your result for {event} needs another look",
       "preheader": "Your finish time wasn’t accepted yet. You can send new evidence.",
@@ -1962,7 +1973,7 @@
     "evidenceHint": "JPG, PNG, WebP or HEIC. Make sure the distance, time and date are visible. Only you and the organizer can see it.",
     "evidenceAlt": "Your finish evidence",
     "finishTime": "Finish time",
-    "finishTimeHint": "As h:mm:ss, or mm:ss for under an hour.",
+    "finishTimeHint": "As h:mm:ss, or mm:ss for under an hour. Numbers alone work too: 12541 is 1:25:41.",
     "submit": "Send for review",
     "cancel": "Cancel",
     "replace": "Replace evidence",
@@ -1987,7 +1998,7 @@
     "errors": {
       "title": "Couldn’t send your result",
       "evidenceRequired": "Choose a screenshot of your run first.",
-      "timeInvalid": "Enter your time as h:mm:ss, or mm:ss — for example 0:25:41.",
+      "timeInvalid": "Enter your time as h:mm:ss or mm:ss — for example 0:25:41, or just 2541.",
       "imageType": "Use an image: JPG, PNG, WebP or HEIC.",
       "imageTooLarge": "That image is too large — pick a smaller screenshot.",
       "imageUnreadable": "Couldn’t read that image. Try another screenshot, or save it as JPG first.",
@@ -2064,6 +2075,7 @@
     "disqualifiedBody": "{name}’s result and medal are off their profile.",
     "reinstatedTitle": "Result reinstated",
     "reinstatedBody": "{name}’s result and medal are back on their profile.",
+    "recorded": "Recorded by the organizer — no evidence",
     "errors": {
       "title": "Couldn’t save the change",
       "notAllowed": "Only this event’s organizer or an admin can do this.",
@@ -2071,6 +2083,27 @@
       "reasonRequired": "Enter the reason the runner will see.",
       "disqualifyFailed": "Something went wrong — try again in a moment.",
       "reinstateFailed": "Something went wrong — try again in a moment."
+    }
+  },
+  "recordResult": {
+    "markFinished": "Mark finished",
+    "markFinishedAria": "Mark {name} as finished",
+    "title": "Mark {name} as finished",
+    "description": "For a runner who can’t send finish evidence. Enter the time they finished in: the result is accepted right away, goes on their profile and the leaderboard with the medal, and they’re emailed.",
+    "descriptionPending": "{name} sent evidence that’s waiting for review — recording a time here replaces it. The result is accepted right away, goes on their profile and the leaderboard with the medal, and they’re emailed.",
+    "finishTime": "Finish time",
+    "recordedTitle": "Finish recorded",
+    "recordedBody": "{name} finished in {time}. It’s on their profile now.",
+    "errors": {
+      "title": "Couldn’t record the finish",
+      "timeInvalid": "Enter the time as h:mm:ss or mm:ss — for example 0:25:41, or just 2541.",
+      "notAllowed": "Only this event’s organizer or an admin can do this.",
+      "registrationMissing": "This runner’s sign-up was removed or is no longer paid — reload to see it.",
+      "resultsClosed": "This event isn’t taking results.",
+      "raceNotStarted": "Finishes can be recorded from race day.",
+      "resultAlreadyAccepted": "This runner already has an accepted result.",
+      "resultDisqualified": "This runner’s result was disqualified.",
+      "recordFailed": "Something went wrong — try again in a moment."
     }
   },
   "eventRegistrations": {

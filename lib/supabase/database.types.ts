@@ -566,8 +566,8 @@ export type Database = {
           category_id: string;
           runner_id: string;
           finish_seconds: number;
-          /** Object path in the private race-evidence bucket. */
-          evidence_path: string;
+          /** Object path in the private race-evidence bucket; null on a result the organizer recorded. */
+          evidence_path: string | null;
           status: Database["public"]["Enums"]["result_status"];
           /** The organizer's reason, on a rejection. */
           review_note: string | null;
@@ -891,6 +891,10 @@ export type Database = {
       };
       disqualify_race_result: {
         Args: { p_result_id: string; p_reason: string };
+        Returns: Database["public"]["Tables"]["race_results"]["Row"];
+      };
+      record_race_result: {
+        Args: { p_registration_id: string; p_finish_seconds: number };
         Returns: Database["public"]["Tables"]["race_results"]["Row"];
       };
       reinstate_race_result: {

@@ -23,7 +23,9 @@ import { focusKey, focusSoon } from "./row-focus";
  * from here with a reason they see: the result and the medal leave their
  * profile, and they cannot send evidence again. Disqualified rows stay in
  * the list, with the reason; only a platform admin can reinstate one. A
- * sent-back result leaves the list when the runner sends new evidence.
+ * sent-back result leaves the list when the runner sends new evidence. A
+ * finish the organizer recorded without evidence says so in place of the
+ * evidence link.
  */
 /** Finishers shown at once. */
 const PAGE_SIZE = 10;
@@ -261,7 +263,11 @@ export function EventFinishers({
               </div>
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
-                {row.evidenceUrl ? (
+                {row.recorded ? (
+                  <span className="text-[12px] text-fg-dim">
+                    {t("resultFinishers.recorded")}
+                  </span>
+                ) : row.evidenceUrl ? (
                   <a
                     href={row.evidenceUrl}
                     target="_blank"
