@@ -948,6 +948,38 @@ export type Database = {
           total_count: number;
         }[];
       };
+      admin_list_payments: {
+        Args: {
+          p_query?: string;
+          p_method?: Database["public"]["Enums"]["payment_method"];
+          p_sort?: string;
+          p_desc?: boolean;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          id: string;
+          event_id: string;
+          event_name: string;
+          event_slug: string;
+          runner_id: string;
+          first_name: string;
+          last_name: string;
+          email: string;
+          bib: number | null;
+          status: Database["public"]["Enums"]["registration_status"];
+          payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          amount: number;
+          amount_refunded: number;
+          refunded_at: string | null;
+          dispute_status: string | null;
+          payment_reference: string | null;
+          payment_intent_id: string | null;
+          paid_at: string;
+          total_count: number;
+          total_amount: number;
+        }[];
+      };
       removed_event_visible: {
         Args: { p_event_id: string };
         Returns: boolean;

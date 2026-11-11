@@ -36,6 +36,9 @@ export default async function AdminPaymentsPage() {
           {t("adminPayments.body")}
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
+          <Button href="/admin/payments/history" variant="outline" size="sm">
+            {t("adminPayments.viewHistory")}
+          </Button>
           <Button href="/admin/payments/accounts" variant="outline" size="sm">
             {t("adminPayments.manageAccounts")}
           </Button>
