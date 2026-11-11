@@ -295,6 +295,8 @@
       "raceCategories": "Categorías",
       "countdown": "Cuenta regresiva",
       "days": "DÍAS",
+      "countdownToClose": "El evento cierra en",
+      "eventCloses": "El evento cierra el {date}.",
       "registrationCloses": "La inscripción cierra el {date} a las 11:59 p. m.",
       "soldOut": "Agotado"
     },
