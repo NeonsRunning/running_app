@@ -20,6 +20,7 @@ pedirlo desde la app.
 | Tarea | Dónde |
 | --- | --- |
 | [Revisar pagos de ATH Móvil de todos los eventos](#42-revisión-de-pagos) | **Revisión de Pagos** (`/admin/payments`) |
+| [Consultar todos los pagos del sitio](#todos-los-pagos) | **Ver Todos los Pagos** (`/admin/payments/history`) |
 | [Gestionar las cuentas de ATH Móvil](#43-cuentas-de-ath-móvil) | **Administrar cuentas de ATH Móvil** (`/admin/payments/accounts`) |
 | [Editar, retirar o restaurar eventos](#44-moderación-de-eventos) | **Moderación de Eventos** (`/admin/events`) |
 | [Gestionar cualquier evento como su organizador](#45-gestionar-cualquier-evento) | Página del evento |
@@ -101,6 +102,36 @@ verás *"Alguien ya revisó este pago"*.
 > `reviewAthMovilPaymentAction` (`lib/ath-movil/review.ts`). Los
 > administradores **no** reciben el correo *Pago por ATH Móvil por revisar*;
 > revisan desde esta cola.
+
+### Todos los pagos
+
+**Para qué sirve:** comprobar cualquier pago hecho en el sitio, por ejemplo
+cuando un corredor pregunta si su pago se recibió.
+
+**Dónde:** **Revisión de Pagos** → **Ver Todos los Pagos**
+(`/admin/payments/history`).
+
+La tabla muestra cada inscripción pagada, con tarjeta o ATH Móvil, incluso
+las que luego se reembolsaron, se disputaron o se cancelaron. Las
+inscripciones que nunca se pagaron no aparecen. Cada fila tiene la fecha y
+hora del pago, el corredor, el evento y su número, el método, la referencia
+(la de ATH Móvil o el identificador `pi_…` de Stripe), el monto con lo
+reembolsado y el estado: **Pagado**, **Reembolso parcial**, **Reembolsado**,
+**Cancelado** o **En disputa**.
+
+- **Buscar:** por nombre o correo del corredor, evento, número, referencia
+  de ATH Móvil o identificador de Stripe.
+- **Método:** todos, solo **Tarjeta** o solo **ATH Móvil**.
+- **Ordenar por:** fecha, monto, corredor o evento, en cualquier sentido.
+  También se ordena pulsando el encabezado de la columna.
+
+Arriba de la tabla aparecen cuántos pagos coinciden y su total. La lista
+muestra 50 pagos por página, y la búsqueda, el filtro y el orden quedan en
+la dirección, así que una lista filtrada se puede compartir.
+
+> **🛠 Nota técnica:** la lista viene de `admin_list_payments()`, que
+> comprueba el rol. Un pago es una fila de `registrations` con `paid_at`;
+> cancelar la inscripción lo conserva y devolverla a revisión lo borra.
 
 ## 4.3 Cuentas de ATH Móvil
 
