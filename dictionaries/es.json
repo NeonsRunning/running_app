@@ -690,6 +690,17 @@
       "cta": "Ver tu perfil",
       "footer": "Recibes este correo porque enviaste un resultado para {event} en NEONS RUNNING."
     },
+    "resultRecorded": {
+      "subject": "Tu resultado de {event} es oficial",
+      "preheader": "El organizador registró tu llegada. Ya aparece en tu perfil.",
+      "heading": "¡Buena carrera, {name}!",
+      "intro": "El organizador de {event} registró tu tiempo final. Ya aparece en tu perfil de NEONS RUNNING — sin necesidad de captura.",
+      "race": "Carrera",
+      "time": "Tiempo final",
+      "next": "Comparte tu perfil con tus amistades y sigue sumando carreras.",
+      "cta": "Ver tu perfil",
+      "footer": "Recibes este correo porque el organizador de {event} registró tu resultado en NEONS RUNNING."
+    },
     "resultRejected": {
       "subject": "Tu resultado de {event} necesita revisión",
       "preheader": "Tu tiempo aún no fue aceptado. Puedes enviar nueva evidencia.",
@@ -1962,7 +1973,7 @@
     "evidenceHint": "JPG, PNG, WebP o HEIC. Asegúrate de que se vean la distancia, el tiempo y la fecha. Solo tú y el organizador pueden verla.",
     "evidenceAlt": "Tu evidencia de llegada",
     "finishTime": "Tiempo final",
-    "finishTimeHint": "Como h:mm:ss, o mm:ss si es menos de una hora.",
+    "finishTimeHint": "Como h:mm:ss, o mm:ss si es menos de una hora. También puedes escribir solo números: 12541 es 1:25:41.",
     "submit": "Enviar a revisión",
     "cancel": "Cancelar",
     "replace": "Reemplazar evidencia",
@@ -1987,7 +1998,7 @@
     "errors": {
       "title": "No se pudo enviar tu resultado",
       "evidenceRequired": "Primero elige una captura de tu carrera.",
-      "timeInvalid": "Escribe tu tiempo como h:mm:ss, o mm:ss — por ejemplo 0:25:41.",
+      "timeInvalid": "Escribe tu tiempo como h:mm:ss o mm:ss — por ejemplo 0:25:41, o solo 2541.",
       "imageType": "Usa una imagen: JPG, PNG, WebP o HEIC.",
       "imageTooLarge": "Esa imagen es demasiado grande — elige una captura más pequeña.",
       "imageUnreadable": "No se pudo leer esa imagen. Prueba otra captura, o guárdala como JPG primero.",
@@ -2064,6 +2075,7 @@
     "disqualifiedBody": "El resultado y la medalla de {name} ya no están en su perfil.",
     "reinstatedTitle": "Resultado restablecido",
     "reinstatedBody": "El resultado y la medalla de {name} están de vuelta en su perfil.",
+    "recorded": "Registrado por el organizador — sin evidencia",
     "errors": {
       "title": "No se pudo guardar el cambio",
       "notAllowed": "Solo el organizador de este evento o un administrador puede hacerlo.",
@@ -2071,6 +2083,27 @@
       "reasonRequired": "Escribe el motivo que verá el corredor.",
       "disqualifyFailed": "Algo salió mal — inténtalo de nuevo en un momento.",
       "reinstateFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    }
+  },
+  "recordResult": {
+    "markFinished": "Marcar llegada",
+    "markFinishedAria": "Marcar que {name} terminó",
+    "title": "Marcar que {name} terminó",
+    "description": "Para un corredor que no puede enviar evidencia de llegada. Escribe su tiempo final: el resultado se acepta de inmediato, aparece en su perfil y en la clasificación con la medalla, y recibe un correo.",
+    "descriptionPending": "{name} envió evidencia que espera revisión — registrar un tiempo aquí la reemplaza. El resultado se acepta de inmediato, aparece en su perfil y en la clasificación con la medalla, y recibe un correo.",
+    "finishTime": "Tiempo final",
+    "recordedTitle": "Llegada registrada",
+    "recordedBody": "{name} terminó en {time}. Ya aparece en su perfil.",
+    "errors": {
+      "title": "No se pudo registrar la llegada",
+      "timeInvalid": "Escribe el tiempo como h:mm:ss o mm:ss — por ejemplo 0:25:41, o solo 2541.",
+      "notAllowed": "Solo el organizador de este evento o un administrador puede hacer esto.",
+      "registrationMissing": "La inscripción de este corredor se eliminó o ya no está pagada — recarga para verlo.",
+      "resultsClosed": "Este evento no está recibiendo resultados.",
+      "raceNotStarted": "Las llegadas se pueden registrar desde el día de la carrera.",
+      "resultAlreadyAccepted": "Este corredor ya tiene un resultado aceptado.",
+      "resultDisqualified": "El resultado de este corredor fue descalificado.",
+      "recordFailed": "Algo salió mal — inténtalo de nuevo en un momento."
     }
   },
   "eventRegistrations": {

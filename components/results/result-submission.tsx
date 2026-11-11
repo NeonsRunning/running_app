@@ -295,6 +295,11 @@ export function ResultSubmission({
                 name="finish_time"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
+                onBlur={() => {
+                  // Show how a loose entry ("12541", "1.25.41") was read.
+                  const seconds = parseFinishTime(time);
+                  if (seconds !== null) setTime(formatFinishTime(seconds));
+                }}
                 inputMode="numeric"
                 autoComplete="off"
                 placeholder="0:25:41"

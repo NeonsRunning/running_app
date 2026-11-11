@@ -16,7 +16,9 @@ import { siteOrigin } from "@/lib/site-url";
  * finish time they sent. Accepted: it is on their profile, with the event's
  * medal. Sent back: the reviewer's note, if any, and a link to send new
  * evidence from the race page. Disqualified later: the reason, and that the
- * result and medal are off their profile.
+ * result and medal are off their profile. Recorded by the organizer, with no
+ * evidence from the runner: the same as accepted, worded for a result the
+ * runner never sent.
  *
  * `review_race_result()` answers a pending result once, and
  * `disqualify_race_result()` an accepted one, so no claim is needed. Written
@@ -61,9 +63,13 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
   const { locale } = settings;
 
   const accepted = result.status === "accepted";
-  const template = accepted
-    ? "resultAccepted"
-    : disqualified
+  // The organizer recorded it: the runner sent nothing, so the copy says so.
+  const recorded = accepted && result.evidence_path === null;
+  const template = recorded
+    ? "resultRecorded"
+    : accepted
+      ? "resultAccepted"
+      : disqualified
       ? "resultDisqualified"
       : "resultRejected";
   const t = await getTranslator(locale);
@@ -113,7 +119,11 @@ async function sendResultReviewedEmail(result: Result, origin: string) {
       manage: optional?.manage,
     }),
     tags: [
-      accepted ? "result-accepted" : disqualified ? "result-disqualified" : "result-rejected",
+      recorded
+        ? "result-recorded"
+        : accepted
+          ? "result-accepted"
+          : disqualified ? "result-disqualified" : "result-rejected",
     ],
     listUnsubscribe: optional?.listUnsubscribe,
   });

@@ -415,7 +415,7 @@ nothing is sent and everything else works as before.
 | `ath-movil-rejected` | Runner | Their ATH Móvil payment is rejected |
 | `payment-refunded` | Runner | A card payment is refunded because it could not become a registration |
 | `registration-changed` | Runner | Their sign-up is removed, or an ATH Móvil confirmation is undone |
-| `result-reviewed` | Runner | Their finish time is accepted or sent back |
+| `result-reviewed` | Runner | Their finish time is accepted or sent back, or the organizer records their finish without evidence |
 | `race-reminder` | Runner | The day before the race (see below) |
 | `shipment-shipped` | Runner | The organizer marks their shipment shipped, kit and medal together (tracking number optional); again if a medal follows its kit |
 | `review-requested` | Organizer | A runner sends an ATH Móvil payment or a finish time to review |
@@ -463,7 +463,8 @@ refuse every call):
 
 - `GET /api/cron/evidence-sweep` — **daily.** Deletes finish-time evidence
   that no result points at and that is more than a day old: uploads never
-  submitted, and the files of results that went with a removed sign-up.
+  submitted, the files of results that went with a removed sign-up, and
+  evidence replaced when the organizer records a runner's finish.
 
 The database calls these routes itself, with `pg_cron` and `pg_net`
 (`supabase/migrations/20261125120000_schedule_cron_routes.sql`), since

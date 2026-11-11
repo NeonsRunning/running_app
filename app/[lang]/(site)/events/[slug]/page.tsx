@@ -295,6 +295,7 @@ export default async function EventDetailPage(
             rows={registrations}
             eventId={event.id}
             inPerson={hasInPersonCheckIn(event)}
+            recordsResults={Boolean(event.acceptsResults) && raceDay}
             categories={categoryNames}
             slug={event.slug}
           />

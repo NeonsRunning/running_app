@@ -282,7 +282,8 @@ pase con el dorsal) o **Ver evento**.
 
 En el **Historial de carreras**, cada resultado muestra el tiempo oficial y el
 ritmo. **MP** marca una marca personal, y *Evidencia verificada por el
-organizador* indica que el resultado vino de una captura aceptada.
+organizador* indica que el organizador lo confirmó: aceptó tu captura o
+registró tu llegada por ti.
 
 ![Historial de carreras con un resultado verificado](img/corredor/historial.png)
 
@@ -316,7 +317,10 @@ carrera o después.
    Run Club o la app de tu reloj). Deben verse la **distancia**, el **tiempo**
    y la **fecha**.
 2. Escribe tu **Tiempo final** como `h:mm:ss`, o `mm:ss` si es menos de una
-   hora (por ejemplo `0:25:41`).
+   hora (por ejemplo `0:25:41`). Si el teclado del teléfono no tiene `:`,
+   escribe solo los números: `2541` es 25:41 y `12541` es 1:25:41. También
+   valen `.` o espacios como separadores, y las décimas (`25:41.3`) se
+   redondean hacia arriba al segundo siguiente.
 3. Pulsa **Enviar a revisión**.
 
 ![Resultado enviado, en revisión](img/corredor/resultado-en-revision.png)
@@ -332,6 +336,10 @@ Mientras está en revisión puedes pulsar **Reemplazar evidencia** para subir ot
 | **Descalificado** | El organizador lo descalificó y explicó el motivo. | Contáctanos si crees que es un error. |
 
 ![Sección Resultados pendientes del perfil](img/corredor/resultados-pendientes.png)
+
+Si no logras enviar la captura, pídele al organizador que **marque tu
+llegada**: escribe tu tiempo por ti y el resultado queda aceptado al momento,
+con la medalla, sin captura. Recibes el mismo correo de resultado oficial.
 
 La captura **solo la ven tú y el organizador**. Los resultados oficiales de
 cada carrera son públicos en `/events/<carrera>/results`.
@@ -451,7 +459,7 @@ Estas partes se ven en la aplicación pero **todavía no funcionan del todo**:
 | **Tu pago para … está en revisión de nuevo** | El organizador devolvió tu inscripción a pendiente | No |
 | **Tu inscripción en … fue cancelada** | El organizador quitó tu inscripción | No |
 | **Te reembolsamos tu pago para …** | La app cobró la tarjeta pero no pudo confirmar la inscripción (por ejemplo, la carrera se llenó mientras pagabas) y devolvió el pago completo automáticamente | No |
-| **Tu resultado de … es oficial** / **necesita revisión** / **fue descalificado** | El organizador revisó tu resultado | Sí — Resultados publicados |
+| **Tu resultado de … es oficial** / **necesita revisión** / **fue descalificado** | El organizador revisó tu resultado o registró tu llegada | Sí — Resultados publicados |
 | **Tu envío de … va en camino** | El organizador marcó tu envío | No |
 
 Cada correo opcional trae al pie el enlace **Elige qué correos recibes**, que

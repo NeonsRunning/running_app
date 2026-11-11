@@ -12,12 +12,14 @@ import {
 } from "./evidence";
 
 /**
- * Sending and reviewing finish evidence, and disqualifying a result.
+ * Sending and reviewing finish evidence, recording a finish without it, and
+ * disqualifying a result.
  *
  * Errors come back as keys under `raceResult.errors` (the runner's side) and
  * `resultReview.errors` (the organizer's). Who may do what is decided by
- * `submit_race_result()`, `review_race_result()`, `disqualify_race_result()`
- * and `reinstate_race_result()`; the checks here are for the message.
+ * `submit_race_result()`, `review_race_result()`, `record_race_result()`,
+ * `disqualify_race_result()` and `reinstate_race_result()`; the checks here
+ * are for the message.
  */
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -94,7 +96,7 @@ export async function submitRaceResultAction(
   }
 
   // Best effort: a leftover file costs storage, not correctness.
-  if (previous && previous.evidence_path !== evidencePath) {
+  if (previous?.evidence_path && previous.evidence_path !== evidencePath) {
     await supabase.storage.from(EVIDENCE_BUCKET).remove([previous.evidence_path]);
   }
 
@@ -170,6 +172,74 @@ export async function reviewRaceResultAction(
   await scheduleResultReviewedEmail(data);
   revalidatePath("/", "layout");
   return { ok: true };
+}
+
+const RECORD_ERRORS = new Set([
+  "notAllowed",
+  "registrationMissing",
+  "resultsClosed",
+  "raceNotStarted",
+  "timeInvalid",
+  "resultAlreadyAccepted",
+  "resultDisqualified",
+]);
+
+export type RecordResult =
+  | { ok: true; finishSeconds: number }
+  /** A key under `recordResult.errors`. */
+  | {
+      ok: false;
+      error:
+        | "notAllowed"
+        | "registrationMissing"
+        | "resultsClosed"
+        | "raceNotStarted"
+        | "timeInvalid"
+        | "resultAlreadyAccepted"
+        | "resultDisqualified"
+        | "recordFailed";
+    };
+
+/**
+ * The organizer, or an admin, records a paid runner's finish without
+ * evidence — for a runner who cannot get a screenshot in. It is accepted at
+ * once: on their profile and the leaderboard, with the medal, and they are
+ * emailed as for any accepted result. Evidence they sent that was waiting,
+ * or sent back, is replaced; the daily sweep deletes the file.
+ */
+export async function recordRaceResultAction(
+  registrationId: string,
+  finishTime: string,
+): Promise<RecordResult> {
+  if (typeof registrationId !== "string" || !UUID.test(registrationId)) {
+    return { ok: false, error: "recordFailed" };
+  }
+  const seconds = typeof finishTime === "string" ? parseFinishTime(finishTime) : null;
+  if (seconds === null) return { ok: false, error: "timeInvalid" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("record_race_result", {
+    p_registration_id: registrationId,
+    p_finish_seconds: seconds,
+  });
+
+  if (error || !data) {
+    const key = error?.code === RAISED ? error.message : "";
+    if (RECORD_ERRORS.has(key)) {
+      // An accepted or disqualified result arrived meanwhile: the refreshed
+      // list shows which.
+      if (key === "resultAlreadyAccepted" || key === "resultDisqualified") {
+        revalidatePath("/", "layout");
+      }
+      return { ok: false, error: key as "notAllowed" };
+    }
+    console.error(`Recording a result for ${registrationId} failed:`, error?.message);
+    return { ok: false, error: "recordFailed" };
+  }
+
+  await scheduleResultReviewedEmail(data);
+  revalidatePath("/", "layout");
+  return { ok: true, finishSeconds: data.finish_seconds };
 }
 
 export type DisqualifyResult =

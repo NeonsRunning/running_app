@@ -26,7 +26,11 @@ const SIGNED_URL_SECONDS = 60 * 60;
  * hundred paths per request: a big race's finishers, all in one request
  * body, would be one the storage API might refuse whole.
  */
-async function signEvidence(paths: string[]): Promise<Map<string, string>> {
+async function signEvidence(
+  all: (string | null)[],
+): Promise<Map<string | null, string>> {
+  // A result the organizer recorded has no evidence to sign.
+  const paths = all.filter((p): p is string => p !== null);
   if (paths.length === 0) return new Map();
   const supabase = await createClient();
   const signed = await Promise.all(
@@ -175,6 +179,8 @@ export type EventFinisherRow = ResultSubmissionRow & {
   reviewedAt: string | null;
   disqualificationReason: string | null;
   disqualifiedAt: string | null;
+  /** The organizer recorded it without evidence (`record_race_result()`). */
+  recorded: boolean;
 };
 
 /**
@@ -221,6 +227,7 @@ export async function listEventFinishers(
     reviewedAt: r.reviewed_at,
     disqualificationReason: r.disqualification_reason,
     disqualifiedAt: r.disqualified_at,
+    recorded: r.evidence_path === null,
   }));
   // A rejected time was never a finish, so it does not rank among them.
   return rows.sort(
