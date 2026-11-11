@@ -566,6 +566,8 @@ export type Database = {
           category_id: string;
           runner_id: string;
           finish_seconds: number;
+          /** The distance the runner's app recorded, if given; pace uses it over the category's. */
+          distance_run_km: number | null;
           /** Object path in the private race-evidence bucket; null on a result the organizer recorded. */
           evidence_path: string | null;
           status: Database["public"]["Enums"]["result_status"];
@@ -745,6 +747,7 @@ export type Database = {
           distance_km: number;
           finish_seconds: number;
           place: number;
+          distance_run_km: number | null;
         }[];
       };
       /** Published events with any result `public_event_results()` lists. */
@@ -877,6 +880,7 @@ export type Database = {
           p_event_id: string;
           p_finish_seconds: number;
           p_evidence_path: string;
+          p_distance_run_km?: number | null;
         };
         Returns: Database["public"]["Tables"]["race_results"]["Row"];
       };

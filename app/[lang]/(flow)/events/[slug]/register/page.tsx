@@ -60,7 +60,7 @@ export default async function RegisterPage(
   // Back from a payment that redirected, or one the payment step never heard
   // back about: confirm it first, so the page opens on the bib.
   await reconcilePendingPayment(user.id, event.id);
-  const [details, existing, athMovil, finishSeconds] = await Promise.all([
+  const [details, existing, athMovil, finish] = await Promise.all([
     getProfileDetails(user.id),
     getOwnRegistration(user.id, event.id),
     getAthMovilStatus(user.id, event.id),
@@ -116,7 +116,7 @@ export default async function RegisterPage(
           : ""
       }
       existing={existing}
-      finishSeconds={existing ? finishSeconds : null}
+      ownFinish={existing ? finish : null}
       athMovil={athMovil}
       paymentReturnFailed={!existing && query.payment === "failed"}
     />

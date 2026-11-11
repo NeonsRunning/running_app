@@ -47,6 +47,11 @@ async function signEvidence(
   );
 }
 
+/** A `numeric` column, which PostgREST may hand back as a string. */
+function kmOrNull(value: number | string | null): number | null {
+  return value === null ? null : Number(value);
+}
+
 /* -------------------------------------------------------------------------- */
 /* The runner's own submission for one event                                  */
 /* -------------------------------------------------------------------------- */
@@ -54,6 +59,8 @@ async function signEvidence(
 export type OwnResult = {
   status: ResultStatus;
   finishSeconds: number;
+  /** The distance the runner's app recorded, if they gave it. */
+  distanceRunKm: number | null;
   reviewNote: string | null;
   /** Why it was disqualified, once it is. */
   disqualificationReason: string | null;
@@ -72,7 +79,7 @@ export async function getOwnResult(
   const { data } = await supabase
     .from("race_results")
     .select(
-      "status, finish_seconds, review_note, disqualification_reason, submitted_at, evidence_path",
+      "status, finish_seconds, distance_run_km, review_note, disqualification_reason, submitted_at, evidence_path",
     )
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
@@ -83,6 +90,7 @@ export async function getOwnResult(
   return {
     status: data.status,
     finishSeconds: data.finish_seconds,
+    distanceRunKm: kmOrNull(data.distance_run_km),
     reviewNote: data.review_note,
     disqualificationReason: data.disqualification_reason,
     submittedAt: data.submitted_at,
@@ -90,26 +98,34 @@ export async function getOwnResult(
   };
 }
 
+export type OwnFinish = {
+  finishSeconds: number;
+  /** The distance the runner's app recorded, if they gave it. */
+  distanceRunKm: number | null;
+};
+
 /**
- * The caller's accepted finish time for an event, in seconds, or null while
- * they have no result the organizer accepted. Skips the evidence link
- * `getOwnResult` signs, which the finisher screen does not show.
+ * The caller's accepted finish for an event, or null while they have no
+ * result the organizer accepted. Skips the evidence link `getOwnResult`
+ * signs, which the finisher screen does not show.
  */
 export async function getOwnFinish(
   runnerId: string,
   eventId: string,
-): Promise<number | null> {
+): Promise<OwnFinish | null> {
   if (!hasSupabaseEnv()) return null;
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("race_results")
-    .select("finish_seconds")
+    .select("finish_seconds, distance_run_km")
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
     .eq("status", "accepted")
     .maybeSingle();
-  return data?.finish_seconds ?? null;
+  return data
+    ? { finishSeconds: data.finish_seconds, distanceRunKm: kmOrNull(data.distance_run_km) }
+    : null;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -122,6 +138,8 @@ export type ResultSubmissionRow = {
   bib: string;
   distance: Distance;
   finishSeconds: number;
+  /** The distance the runner's app recorded, if they gave it. */
+  distanceRunKm: number | null;
   submittedAt: string;
   /** Null if the file could not be signed; the row still shows. */
   evidenceUrl: string | null;
@@ -141,7 +159,7 @@ export async function listEventResultSubmissions(
     supabase
       .from("race_results")
       .select(
-        "id, finish_seconds, submitted_at, evidence_path, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
+        "id, finish_seconds, distance_run_km, submitted_at, evidence_path, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
       )
       .eq("event_id", eventId)
       .eq("status", "pending")
@@ -163,6 +181,7 @@ export async function listEventResultSubmissions(
     bib: r.registration?.bib == null ? "" : String(r.registration.bib),
     distance: r.category?.distance ?? "5K",
     finishSeconds: r.finish_seconds,
+    distanceRunKm: kmOrNull(r.distance_run_km),
     submittedAt: r.submitted_at,
     evidenceUrl: urls.get(r.evidence_path) ?? null,
   }));
@@ -198,7 +217,7 @@ export async function listEventFinishers(
     supabase
       .from("race_results")
       .select(
-        "id, status, finish_seconds, submitted_at, reviewed_at, review_note, evidence_path, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
+        "id, status, finish_seconds, distance_run_km, submitted_at, reviewed_at, review_note, evidence_path, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
       )
       .eq("event_id", eventId)
       .in("status", ["accepted", "rejected", "disqualified"])
@@ -221,6 +240,7 @@ export async function listEventFinishers(
     bib: r.registration?.bib == null ? "" : String(r.registration.bib),
     distance: r.category?.distance ?? "5K",
     finishSeconds: r.finish_seconds,
+    distanceRunKm: kmOrNull(r.distance_run_km),
     submittedAt: r.submitted_at,
     evidenceUrl: urls.get(r.evidence_path) ?? null,
     reviewNote: r.review_note,
@@ -250,6 +270,8 @@ export type PublicResultRow = {
   distance: Distance;
   distanceKm: number;
   finishSeconds: number;
+  /** The distance the runner's app recorded, if they gave it. */
+  distanceRunKm: number | null;
 };
 
 /**
@@ -287,6 +309,7 @@ export const listPublicEventResults = cache(async function listPublicEventResult
     distance: r.distance,
     distanceKm: Number(r.distance_km),
     finishSeconds: r.finish_seconds,
+    distanceRunKm: kmOrNull(r.distance_run_km),
   }));
 });
 
@@ -348,6 +371,8 @@ export type RunnerResultRow = {
   distance: Distance;
   distanceKm: number;
   finishSeconds: number;
+  /** The distance the runner's app recorded, if they gave it. */
+  distanceRunKm: number | null;
   reviewNote: string | null;
   disqualificationReason: string | null;
   submittedAt: string;
@@ -369,7 +394,7 @@ export async function listRunnerResults(
   let query = supabase
     .from("race_results")
     .select(
-      "id, status, finish_seconds, review_note, disqualification_reason, submitted_at, reviewed_at, event:events!race_results_event_id_fkey (name, slug, status, event_date, medal_image_path), category:event_categories!race_results_category_id_fkey (distance, distance_km)",
+      "id, status, finish_seconds, distance_run_km, review_note, disqualification_reason, submitted_at, reviewed_at, event:events!race_results_event_id_fkey (name, slug, status, event_date, medal_image_path), category:event_categories!race_results_category_id_fkey (distance, distance_km)",
     )
     .eq("runner_id", runnerId);
   // An organizer looking at a runner would otherwise see the pending ones
@@ -394,6 +419,7 @@ export async function listRunnerResults(
               distance: r.category.distance,
               distanceKm: Number(r.category.distance_km),
               finishSeconds: r.finish_seconds,
+              distanceRunKm: kmOrNull(r.distance_run_km),
               reviewNote: r.review_note,
               disqualificationReason: r.disqualification_reason,
               submittedAt: r.submitted_at,

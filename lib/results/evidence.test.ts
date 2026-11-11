@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatFinishTime, parseFinishTime } from "./evidence";
+import {
+  formatFinishTime,
+  parseDistanceRun,
+  parseFinishTime,
+  resultPace,
+} from "./evidence";
 
 describe("parseFinishTime", () => {
   it.each([
@@ -68,5 +73,37 @@ describe("parseFinishTime", () => {
     for (const seconds of [1, 59, 60, 1541, 3600, 3753, 86399]) {
       expect(parseFinishTime(formatFinishTime(seconds))).toBe(seconds);
     }
+  });
+});
+
+describe("parseDistanceRun", () => {
+  it.each([
+    ["10.01", 10.01],
+    ["10,01", 10.01],
+    [" 10.01 km ", 10.01],
+    ["10.01KM", 10.01],
+    ["5", 5],
+    ["21.0975", 21.1],
+    ["１０．０１", 10.01],
+  ])("reads %j as %d", (input, km) => {
+    expect(parseDistanceRun(input)).toBe(km);
+  });
+
+  it.each(["", "0", "0.001", "501", "-5", "ten", "10.01.2"])(
+    "rejects %j",
+    (input) => {
+      expect(parseDistanceRun(input)).toBeNull();
+    },
+  );
+});
+
+describe("resultPace", () => {
+  it("is over the distance run when the runner gave one", () => {
+    // A 5K sent as the 10.01 km run it was part of.
+    expect(resultPace(3573, 5, 10.01)).toBe("5:57 / km");
+  });
+
+  it("is over the category's distance otherwise", () => {
+    expect(resultPace(3573, 5, null)).toBe("11:55 / km");
   });
 });

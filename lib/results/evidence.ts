@@ -80,6 +80,35 @@ export function formatPace(seconds: number, km: number): string {
   return `${Math.floor(perKm / 60)}:${String(perKm % 60).padStart(2, "0")} / km`;
 }
 
+/** The longest distance a runner can give, as `race_results` checks. */
+const MAX_DISTANCE_KM = 500;
+
+/**
+ * The distance a runner's app recorded, as typed: "10.01", "10,01" (a comma
+ * for the decimal, as Spanish keyboards type it) or "10.01 km". In km,
+ * rounded to hundredths, or null if it does not read as one. A blank field
+ * is for the caller to tell apart: it means the runner gave none.
+ */
+export function parseDistanceRun(value: string): number | null {
+  const text = value.normalize("NFKC").trim().replace(/\s*km$/i, "").replace(",", ".");
+  if (!/^\d{1,3}(?:\.\d+)?$/.test(text)) return null;
+  const km = Math.round(Number(text) * 100) / 100;
+  return km > 0 && km <= MAX_DISTANCE_KM ? km : null;
+}
+
+/**
+ * The pace a result shows: over the distance the runner's app recorded if
+ * they gave it, else over the category's. A virtual 5K run as a 10K reads
+ * at the pace the runner actually ran.
+ */
+export function resultPace(
+  seconds: number,
+  categoryKm: number,
+  distanceRunKm: number | null,
+): string {
+  return formatPace(seconds, distanceRunKm ?? categoryKm);
+}
+
 /**
  * Today on the island, ISO. Results open on the race's first day there,
  * which is what `submit_race_result()` checks too.

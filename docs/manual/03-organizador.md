@@ -450,7 +450,9 @@ su resultado recibes el correo *"Resultado por revisar"*.
 ![Sección Resultados por revisar](img/organizador/resultados-por-revisar.png)
 
 1. Abre la captura (tócala para verla en tamaño completo) y comprueba que la
-   **distancia**, la **fecha** y el **tiempo** coinciden con el evento.
+   **distancia**, la **fecha** y el **tiempo** coinciden con el evento. Si
+   el corredor indicó la distancia que registró su app, aparece bajo el
+   tiempo (por ejemplo *10,01 km recorridos*): compárala con la captura.
 2. Si todo cuadra, pulsa **Aceptar**. El resultado y la medalla aparecen en
    el perfil del corredor y este recibe un correo.
 3. Si no cuadra, pulsa **Rechazar**, escribe una **Nota para el corredor**
