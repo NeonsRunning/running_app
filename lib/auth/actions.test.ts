@@ -12,6 +12,7 @@ const clientIp = vi.fn<() => Promise<string>>();
 const signInWithPassword = vi.fn();
 const resetPasswordForEmail = vi.fn();
 const signUp = vi.fn();
+const setCookie = vi.fn();
 
 vi.mock("@/lib/rate-limit", () => ({
   LIMITS: new Proxy({}, { get: () => ({ limit: 1, window: "1 hour" }) }),
@@ -23,6 +24,7 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/site-url", () => ({ siteOrigin: async () => "https://example.test" }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/headers", () => ({ cookies: async () => ({ set: setCookie }) }));
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
     throw Object.assign(new Error("NEXT_REDIRECT"), { to });
@@ -132,8 +134,14 @@ describe("signUpAction", () => {
     });
 
     await expect(signUpAction(undefined, form(fields))).rejects.toMatchObject({
-      to: expect.stringContaining("/verify-email?email=ana%40example.com"),
+      to: "/verify-email",
     });
+    // The address goes along in a cookie script cannot read, not in the URL.
+    expect(setCookie).toHaveBeenCalledWith(
+      "verify_email",
+      "ana@example.com",
+      expect.objectContaining({ httpOnly: true, sameSite: "lax", maxAge: 3600 }),
+    );
   });
 });
 

@@ -77,7 +77,7 @@ export function EventPayments({
   async function review(row: EventPaymentRow, approve: boolean) {
     setBusy(row.id);
     setConfirmingReject(null);
-    const result = await reviewAthMovilPaymentAction(row.id, approve).catch(
+    const result = await reviewAthMovilPaymentAction(row.id, approve, row.submittedAt).catch(
       () => ({ ok: false, error: "reviewFailed" }) as const,
     );
     setBusy(null);
@@ -223,7 +223,7 @@ export function EventPayments({
           {/* Table on wide screens. */}
           <div
             ref={tableRef}
-            className="hidden max-h-[34rem] overflow-auto md:block"
+            className="hidden max-h-136 overflow-auto md:block"
           >
             <table className="w-full border-collapse">
               <caption className="sr-only">{t("eventPayments.title")}</caption>
@@ -291,7 +291,7 @@ export function EventPayments({
           </div>
 
           {/* Cards on phones — seven columns cannot shrink honestly. */}
-          <ul ref={listRef} className="max-h-[34rem] overflow-y-auto md:hidden">
+          <ul ref={listRef} className="max-h-136 overflow-y-auto md:hidden">
             {visible.map((row) => (
               <li
                 key={row.id}

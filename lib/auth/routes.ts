@@ -39,6 +39,14 @@ const PROTECTED = [
 const GUEST_ONLY = ["/login", "/signup", "/forgot-password"] as const;
 
 /**
+ * Carries the address a runner just signed up with to the "check your inbox"
+ * screen, which names it and can resend to it. A cookie the page cannot read
+ * from script, gone in an hour — it used to ride in the URL, where it stayed
+ * in the browser's history and in access logs.
+ */
+export const VERIFY_EMAIL_COOKIE = "verify_email";
+
+/**
  * How long after following a recovery link the session may set a new password
  * without the old one. The link itself is good for 30 minutes; this leaves
  * time to pick a password once it has been opened.

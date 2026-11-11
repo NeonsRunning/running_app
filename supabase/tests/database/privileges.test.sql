@@ -93,7 +93,7 @@ select ok(
         'confirm_registration_payment', 'cancel_unpaid_registration',
         'hit_rate_limit', 'call_cron_route', 'purge_abandoned_registrations',
         'purge_rate_limits', 'purge_sent_emails', 'can_manage_event',
-        'medal_earned', 'next_handle', 'ath_reference_key'
+        'medal_earned', 'next_handle', 'ath_reference_key', 'orphaned_evidence'
       )
       and has_function_privilege(r.role, p.oid, 'EXECUTE')
   ),

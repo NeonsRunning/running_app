@@ -43,7 +43,7 @@ export function AthMovilReview({
   async function review(row: AthMovilSubmissionRow, approve: boolean) {
     setBusy(row.id);
     setConfirmingReject(null);
-    const result = await reviewAthMovilPaymentAction(row.id, approve).catch(
+    const result = await reviewAthMovilPaymentAction(row.id, approve, row.submittedAt).catch(
       () => ({ ok: false, error: "reviewFailed" }) as const,
     );
     setBusy(null);

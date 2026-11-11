@@ -34,6 +34,21 @@ describe("sendEmail", () => {
     expect(body.headers).toBeUndefined();
   });
 
+  // Names and subjects carry text people typed, and become headers.
+  it("keeps a subject and a display name on one line", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 201 }));
+    await sendEmail({
+      ...email,
+      to: { email: "ana@example.test", name: "Ana\r\nBcc: x@example.test" },
+      replyTo: { email: "beto@example.test", name: "Beto\nRivera" },
+      subject: "Message from Ana\r\nBcc: x@example.test",
+    });
+    const body = sentBody();
+    expect(body.subject).toBe("Message from Ana Bcc: x@example.test");
+    expect(body.to[0].name).toBe("Ana Bcc: x@example.test");
+    expect(body.replyTo).toEqual({ email: "beto@example.test", name: "Beto Rivera" });
+  });
+
   it("adds List-Unsubscribe, and the one-click header when it applies", async () => {
     fetchMock.mockResolvedValue(new Response("{}", { status: 201 }));
     await sendEmail({

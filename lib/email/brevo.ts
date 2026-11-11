@@ -93,9 +93,9 @@ export async function sendEmail(email: Email): Promise<void> {
           email: senderEmail,
           name: process.env.BREVO_SENDER_NAME || "NEONS RUNNING",
         },
-        to: [email.to],
-        replyTo: email.replyTo,
-        subject: email.subject,
+        to: [header(email.to)],
+        replyTo: email.replyTo ? header(email.replyTo) : undefined,
+        subject: oneLine(email.subject),
         htmlContent: email.html,
         textContent: email.text,
         tags: email.tags,
@@ -114,6 +114,19 @@ export async function sendEmail(email: Email): Promise<void> {
   if (!response.ok) {
     throw new Error(`Brevo answered ${response.status}: ${await response.text()}`);
   }
+}
+
+/**
+ * A subject or a display name, on one line. Both become message headers, and
+ * both carry text people typed — a profile name, the contact form's name. A
+ * line break in one must not be able to start a header of its own.
+ */
+function oneLine(value: string): string {
+  return value.replace(/[\r\n\t\u2028\u2029]+/g, " ").trim();
+}
+
+function header<T extends { email: string; name?: string }>(party: T): T {
+  return party.name === undefined ? party : { ...party, name: oneLine(party.name) };
 }
 
 function isTimeout(err: unknown): boolean {
