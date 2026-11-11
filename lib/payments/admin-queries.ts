@@ -41,6 +41,9 @@ export type AdminPaymentRow = {
 export type AdminPaymentsFilter = {
   query: string;
   method: PaymentMethod | null;
+  /** Island dates, YYYY-MM-DD, both ends included; null leaves that end open. */
+  from: string | null;
+  to: string | null;
   sort: PaymentSort;
   desc: boolean;
   page: number;
@@ -77,6 +80,8 @@ export async function listAdminPayments(
   const { data, error } = await supabase.rpc("admin_list_payments", {
     p_query: filter.query.trim() || undefined,
     p_method: filter.method ?? undefined,
+    p_from: filter.from ?? undefined,
+    p_to: filter.to ?? undefined,
     p_sort: filter.sort,
     p_desc: filter.desc,
     p_limit: ADMIN_PAYMENTS_PAGE_SIZE,
@@ -104,5 +109,71 @@ export async function listAdminPayments(
     })),
     total: Number(data[0]?.total_count ?? 0),
     totalAmount: Number(data[0]?.total_amount ?? 0),
+  };
+}
+
+/** The money in every payment that matches; see `admin_payment_kpis()`. */
+export type AdminPaymentKpis = {
+  payments: number;
+  gross: number;
+  refunded: number;
+  refunds: number;
+  disputesLost: number;
+  disputesOpen: number;
+  disputesOpenCount: number;
+  net: number;
+  serviceFees: number;
+  salesTax: number;
+  donations: number;
+  cardGross: number;
+  cardCount: number;
+  athGross: number;
+  athCount: number;
+};
+
+const NO_KPIS: AdminPaymentKpis = {
+  payments: 0, gross: 0, refunded: 0, refunds: 0, disputesLost: 0,
+  disputesOpen: 0, disputesOpenCount: 0, net: 0, serviceFees: 0,
+  salesTax: 0, donations: 0, cardGross: 0, cardCount: 0, athGross: 0,
+  athCount: 0,
+};
+
+/**
+ * The figures above the list, over the same search, method and dates.
+ * Throws on a failed read, like `listAdminPayments()`: zeros would look
+ * like a month with no money.
+ */
+export async function getAdminPaymentKpis(
+  filter: Pick<AdminPaymentsFilter, "query" | "method" | "from" | "to">,
+): Promise<AdminPaymentKpis> {
+  if (!hasSupabaseEnv()) return NO_KPIS;
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_payment_kpis", {
+    p_query: filter.query.trim() || undefined,
+    p_method: filter.method ?? undefined,
+    p_from: filter.from ?? undefined,
+    p_to: filter.to ?? undefined,
+  });
+  if (error) throw new Error(`admin_payment_kpis failed: ${error.message}`);
+  const r = data[0];
+  if (!r) return NO_KPIS;
+
+  return {
+    payments: Number(r.payments),
+    gross: Number(r.gross),
+    refunded: Number(r.refunded),
+    refunds: Number(r.refunds),
+    disputesLost: Number(r.disputes_lost),
+    disputesOpen: Number(r.disputes_open),
+    disputesOpenCount: Number(r.disputes_open_count),
+    net: Number(r.net),
+    serviceFees: Number(r.service_fees),
+    salesTax: Number(r.sales_tax),
+    donations: Number(r.donations),
+    cardGross: Number(r.card_gross),
+    cardCount: Number(r.card_count),
+    athGross: Number(r.ath_gross),
+    athCount: Number(r.ath_count),
   };
 }

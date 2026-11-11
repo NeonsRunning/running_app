@@ -1932,7 +1932,7 @@
     "metaTitle": "All payments",
     "eyebrow": "Admin · Payments",
     "title": "All payments",
-    "body": "Every registration paid on the site, by card or ATH Móvil, including ones since refunded, disputed or cancelled. Search for a runner, an event, a bib or a payment reference; filter by method; and sort by any column.",
+    "body": "Every registration paid on the site, by card or ATH Móvil, including ones since refunded, disputed or cancelled, and the money in them. Pick a date range, search for a runner, an event, a bib or a payment reference, filter by method, and sort by any column. The figures follow every filter.",
     "backToPayments": "Back to Payments",
     "searchLabel": "Search",
     "searchPlaceholder": "Name, email, event, bib or reference…",
@@ -1959,9 +1959,6 @@
     "clearFilters": "Clear Filters",
     "pastTheEnd": "This page has no payments.",
     "firstPage": "Go to First Page",
-    "pagesLabel": "Pages",
-    "previous": "Previous",
-    "next": "Next",
     "columnPaid": "Paid",
     "columnRunner": "Runner",
     "columnEvent": "Event",
@@ -1977,7 +1974,45 @@
       "refunded": "Refunded",
       "cancelled": "Cancelled",
       "disputed": "Disputed"
-    }
+    },
+    "range": {
+      "presetsLabel": "Date range",
+      "presets": {
+        "last7": "Last 7 Days",
+        "last30": "Last 30 Days",
+        "thisMonth": "This Month",
+        "lastMonth": "Last Month",
+        "thisYear": "This Year"
+      },
+      "allTime": "All Time",
+      "from": "From",
+      "to": "To",
+      "between": "{from} – {to}",
+      "since": "Since {from}",
+      "until": "Until {to}"
+    },
+    "kpis": {
+      "heading": "Totals",
+      "net": "Net revenue",
+      "netDetail": "After refunds and lost chargebacks, before Stripe fees",
+      "gross": "Gross collected",
+      "grossDetail": "{count} payments · average {average}",
+      "refunded": "Refunded",
+      "refundedDetail": "{count} refunds · {share}% of gross",
+      "disputes": "Open disputes",
+      "disputesDetail": "{count} open · {lost} lost",
+      "serviceFees": "Service fees",
+      "serviceFeesDetail": "Platform revenue, on payments kept",
+      "salesTax": "Sales tax (IVU)",
+      "salesTaxDetail": "Collected on payments kept",
+      "donations": "Donations",
+      "donationsDetail": "Runners’ gifts, on payments kept",
+      "byMethod": "Card · ATH Móvil",
+      "byMethodDetail": "Card {card} ({cardCount}) · ATH Móvil {ath} ({athCount})"
+    },
+    "applying": "Applying…",
+    "loading": "Updating results…",
+    "pageOf": "Page {page} of {pages}"
   },
   "eventPayments": {
     "title": "Pending payments",

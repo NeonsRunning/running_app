@@ -1932,7 +1932,7 @@
     "metaTitle": "Todos los pagos",
     "eyebrow": "Admin · Pagos",
     "title": "Todos los pagos",
-    "body": "Cada inscripción pagada en el sitio, con tarjeta o ATH Móvil, incluso las que luego se reembolsaron, se disputaron o se cancelaron. Busca un corredor, un evento, un número de corredor o una referencia de pago; filtra por método; y ordena por cualquier columna.",
+    "body": "Cada inscripción pagada en el sitio, con tarjeta o ATH Móvil, incluso las que luego se reembolsaron, se disputaron o se cancelaron, y el dinero que representan. Elige un rango de fechas, busca un corredor, un evento, un número o una referencia de pago, filtra por método y ordena por cualquier columna. Las cifras siguen todos los filtros.",
     "backToPayments": "Volver a Pagos",
     "searchLabel": "Buscar",
     "searchPlaceholder": "Nombre, correo, evento, número o referencia…",
@@ -1959,9 +1959,6 @@
     "clearFilters": "Borrar Filtros",
     "pastTheEnd": "Esta página no tiene pagos.",
     "firstPage": "Ir a la Primera Página",
-    "pagesLabel": "Páginas",
-    "previous": "Anterior",
-    "next": "Siguiente",
     "columnPaid": "Pagado",
     "columnRunner": "Corredor",
     "columnEvent": "Evento",
@@ -1977,7 +1974,45 @@
       "refunded": "Reembolsado",
       "cancelled": "Cancelado",
       "disputed": "En disputa"
-    }
+    },
+    "range": {
+      "presetsLabel": "Rango de fechas",
+      "presets": {
+        "last7": "Últimos 7 Días",
+        "last30": "Últimos 30 Días",
+        "thisMonth": "Este Mes",
+        "lastMonth": "Mes Pasado",
+        "thisYear": "Este Año"
+      },
+      "allTime": "Todo",
+      "from": "Desde",
+      "to": "Hasta",
+      "between": "{from} – {to}",
+      "since": "Desde el {from}",
+      "until": "Hasta el {to}"
+    },
+    "kpis": {
+      "heading": "Totales",
+      "net": "Ingreso neto",
+      "netDetail": "Tras reembolsos y contracargos perdidos, antes de las comisiones de Stripe",
+      "gross": "Total cobrado",
+      "grossDetail": "{count} pagos · promedio {average}",
+      "refunded": "Reembolsado",
+      "refundedDetail": "{count} reembolsos · {share}% del total",
+      "disputes": "Disputas abiertas",
+      "disputesDetail": "{count} abiertas · {lost} perdido",
+      "serviceFees": "Cargos por servicio",
+      "serviceFeesDetail": "Ingreso de la plataforma, en pagos conservados",
+      "salesTax": "IVU",
+      "salesTaxDetail": "Cobrado en pagos conservados",
+      "donations": "Donativos",
+      "donationsDetail": "Aportes de los corredores, en pagos conservados",
+      "byMethod": "Tarjeta · ATH Móvil",
+      "byMethodDetail": "Tarjeta {card} ({cardCount}) · ATH Móvil {ath} ({athCount})"
+    },
+    "applying": "Aplicando…",
+    "loading": "Actualizando resultados…",
+    "pageOf": "Página {page} de {pages}"
   },
   "eventPayments": {
     "title": "Pagos pendientes",

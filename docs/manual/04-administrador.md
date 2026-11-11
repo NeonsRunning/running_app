@@ -119,18 +119,34 @@ hora del pago, el corredor, el evento y su número, el método, la referencia
 reembolsado y el estado: **Pagado**, **Reembolso parcial**, **Reembolsado**,
 **Cancelado** o **En disputa**.
 
+- **Fechas:** **Últimos 7 Días**, **Últimos 30 Días**, **Este Mes**, **Mes
+  Pasado**, **Este Año** o **Todo**, o un rango propio con **Desde** y
+  **Hasta**. Las fechas son de Puerto Rico y ambos días cuentan completos.
 - **Buscar:** por nombre o correo del corredor, evento, número, referencia
   de ATH Móvil o identificador de Stripe.
 - **Método:** todos, solo **Tarjeta** o solo **ATH Móvil**.
 - **Ordenar por:** fecha, monto, corredor o evento, en cualquier sentido.
   También se ordena pulsando el encabezado de la columna.
 
-Arriba de la tabla aparecen cuántos pagos coinciden y su total. La lista
+Sobre la tabla, las cifras del rango y los filtros elegidos:
+
+| Cifra | Qué es |
+| --- | --- |
+| **Ingreso neto** | Total cobrado menos reembolsos y contracargos perdidos. No descuenta las comisiones de Stripe, que la app no guarda. |
+| **Total cobrado** | Todo lo que pagaron los corredores, con el número de pagos y el promedio. |
+| **Reembolsado** | Lo devuelto por Stripe, en total o en parte, y qué porcentaje del total es. |
+| **Disputas abiertas** | Contracargos aún sin decidir (se responden en Stripe), y lo perdido en los ya decididos. El recuadro se marca en rojo si hay alguna abierta. |
+| **Cargos por servicio** | El ingreso de la plataforma, solo en pagos conservados (no reembolsados del todo ni perdidos en una disputa). |
+| **IVU** y **Donativos** | Igual, solo en pagos conservados. |
+| **Tarjeta · ATH Móvil** | Qué parte del total llegó por cada método, con montos y cantidad. |
+
+Arriba de la tabla aparecen además cuántos pagos coinciden y su total. La lista
 muestra 50 pagos por página, y la búsqueda, el filtro y el orden quedan en
 la dirección, así que una lista filtrada se puede compartir.
 
-> **🛠 Nota técnica:** la lista viene de `admin_list_payments()`, que
-> comprueba el rol. Un pago es una fila de `registrations` con `paid_at`;
+> **🛠 Nota técnica:** la lista viene de `admin_list_payments()` y las
+> cifras de `admin_payment_kpis()`; las dos comprueban el rol y filtran con
+> `admin_payment_matches()`, así que nunca cubren pagos distintos. Un pago es una fila de `registrations` con `paid_at`;
 > cancelar la inscripción lo conserva y devolverla a revisión lo borra.
 
 ## 4.3 Cuentas de ATH Móvil

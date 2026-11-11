@@ -58,6 +58,8 @@ const DYNAMIC_PREFIXES = [
   "adminPayments.errors.",
   "adminPaymentHistory.state.",
   "adminPaymentHistory.sortOptions.",
+  "adminPaymentHistory.range.presets.",
+  "adminPaymentHistory.kpis.",
   // ATH Móvil account errors, as keys from the actions and the form.
   "adminAccounts.errors.",
   // Removal errors arrive from the server as keys; blockers are picked by code.
