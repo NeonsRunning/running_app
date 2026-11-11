@@ -135,7 +135,9 @@ export default async function EventDetailPage(
   const showPayments =
     pendingPayments !== null &&
     (Boolean(event.athMovil) || pendingPayments.length > 0);
-  const days = daysUntil(event.date);
+  // Once a multi-day event is under way, the countdown runs to its last day.
+  const underway = raceDay && Boolean(event.endDate) && !event.finished;
+  const days = daysUntil(underway ? event.endDate! : event.date);
   // Marked sold out, the race reads as full whatever was signed up here.
   const taken = event.soldOut ? event.capacity : event.registered;
   const spotsLeft = openSpots(event.capacity, taken);
@@ -418,18 +420,34 @@ export default async function EventDetailPage(
             {/* Nothing to count down to once the race has been run. */}
             {event.finished ? null : (
               <div className="px-5 py-7 sm:px-7">
-                <Eyebrow>{t("events.detail.countdown")}</Eyebrow>
+                <Eyebrow>
+                  {t(
+                    underway
+                      ? "events.detail.countdownToClose"
+                      : "events.detail.countdown",
+                  )}
+                </Eyebrow>
                 <p className="mt-3 font-display text-5xl leading-none font-black tracking-[-0.03em]">
                   {fmt.number(days)}
                   <span className="ml-2 align-middle text-lg font-bold tracking-widest text-fg-dim">
                     {t("events.detail.days")}
                   </span>
                 </p>
-                <p className="mt-3 text-[13px] text-fg-dim">
-                  {t("events.detail.registrationCloses", {
-                    date: event.registrationCloses,
-                  })}
-                </p>
+                {underway ? (
+                  <p className="mt-3 text-[13px] text-fg-dim">
+                    {t("events.detail.eventCloses", {
+                      date: fmt.longDate(event.endDate!),
+                    })}
+                  </p>
+                ) : null}
+                {/* Sign-ups can stay open into the event itself. */}
+                {!underway || canRegister ? (
+                  <p className="mt-3 text-[13px] text-fg-dim">
+                    {t("events.detail.registrationCloses", {
+                      date: event.registrationCloses,
+                    })}
+                  </p>
+                ) : null}
               </div>
             )}
           </div>
