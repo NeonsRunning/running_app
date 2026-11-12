@@ -580,6 +580,11 @@ export type Database = {
           disqualified_by: string | null;
           /** Why the result was disqualified; shown to the runner. */
           disqualification_reason: string | null;
+          /** When a platform admin last corrected it (`admin_correct_race_result()`). */
+          corrected_at: string | null;
+          corrected_by: string | null;
+          /** An admin removed the screenshot: not to be read as a result the organizer recorded. */
+          evidence_removed_at: string | null;
         };
         Insert: never;
         Update: never;
@@ -610,6 +615,33 @@ export type Database = {
             columns: ["runner_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      race_result_corrections: {
+        Row: {
+          id: string;
+          result_id: string;
+          corrected_at: string;
+          corrected_by: string | null;
+          reason: string;
+          old_finish_seconds: number;
+          new_finish_seconds: number;
+          old_distance_run_km: number | null;
+          new_distance_run_km: number | null;
+          /** The path only; the file itself is deleted once replaced or removed. */
+          old_evidence_path: string | null;
+          new_evidence_path: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "race_result_corrections_result_id_fkey";
+            columns: ["result_id"];
+            isOneToOne: false;
+            referencedRelation: "race_results";
             referencedColumns: ["id"];
           },
         ];
@@ -904,6 +936,18 @@ export type Database = {
       reinstate_race_result: {
         Args: { p_result_id: string };
         Returns: Database["public"]["Tables"]["race_results"]["Row"];
+      };
+      admin_correct_race_result: {
+        Args: {
+          p_result_id: string;
+          p_version: string;
+          p_finish_seconds: number;
+          p_distance_run_km: number | null;
+          p_evidence_path: string | null;
+          p_remove_evidence: boolean;
+          p_reason: string;
+        };
+        Returns: Database["public"]["Tables"]["race_result_corrections"]["Row"];
       };
       admin_remove_event: {
         Args: { p_event_id: string; p_reason: string };

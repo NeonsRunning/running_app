@@ -58,6 +58,7 @@ propios eventos**; el administrador las puede hacer en **cualquier** evento.
 | Aceptar o rechazar resultados | — | — | 🔒 | ✅ |
 | Descalificar un resultado | — | — | 🔒 | ✅ |
 | Restablecer un resultado descalificado | — | — | — | ✅ |
+| Corregir un resultado (tiempo, distancia o captura) | — | — | — | ✅ |
 
 ² Solo los pagos enviados a una cuenta de ATH Móvil de la que es dueño.
 
@@ -73,7 +74,7 @@ propios eventos**; el administrador las puede hacer en **cualquier** evento.
 | Reembolsos | — | — | — ⁴ | — ⁴ |
 
 ³ No hay pantalla en la app: lo hace el equipo técnico en la base de datos
-(ver [4.7](04-administrador.md#47-tareas-fuera-de-la-app-equipo-técnico)).
+(ver [4.8](04-administrador.md#48-tareas-fuera-de-la-app-equipo-técnico)).
 ⁴ Se hacen fuera de la app, en Stripe o en ATH Móvil Business.
 
 > **🛠 Nota técnica:** cómo se aplica cada columna.

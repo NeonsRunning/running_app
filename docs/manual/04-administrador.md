@@ -12,7 +12,7 @@ la cuenta ya tenía: un administrador sigue siendo corredor y puede ser también
 organizador.
 
 **¿Cómo se obtiene?** Lo asigna el equipo técnico directamente en la base de
-datos (ver [4.7](#47-tareas-fuera-de-la-app-equipo-técnico)). No hay forma de
+datos (ver [4.8](#48-tareas-fuera-de-la-app-equipo-técnico)). No hay forma de
 pedirlo desde la app.
 
 ## Resumen: qué puede hacer un administrador
@@ -25,8 +25,9 @@ pedirlo desde la app.
 | [Editar, retirar o restaurar eventos](#44-moderación-de-eventos) | **Moderación de Eventos** (`/admin/events`) |
 | [Gestionar cualquier evento como su organizador](#45-gestionar-cualquier-evento) | Página del evento |
 | [Restablecer un resultado descalificado](#46-restablecer-un-resultado-descalificado) | Página del evento → **Resultados revisados** |
+| [Corregir un resultado (tiempo, distancia o captura)](#47-corregir-un-resultado) | Perfil del corredor → **Historial de carreras**, o página del evento → **Resultados revisados** |
 | [Consultar los usuarios y sus perfiles](#usuarios) | **Usuarios** (`/admin/users`) |
-| [Tareas fuera de la app](#47-tareas-fuera-de-la-app-equipo-técnico) | Base de datos, Stripe, correo del equipo |
+| [Tareas fuera de la app](#48-tareas-fuera-de-la-app-equipo-técnico) | Base de datos, Stripe, correo del equipo |
 
 > **🛠 Nota técnica:** ser administrador es tener una fila en
 > `public.platform_admins`. La base de datos lo comprueba con
@@ -291,7 +292,46 @@ deshacerlo (por ejemplo, si el corredor demuestra que fue un error).
 > (`lib/results/actions.ts`). El botón solo se muestra cuando el componente
 > recibe `isAdmin`.
 
-## 4.7 Tareas fuera de la app (equipo técnico)
+## 4.7 Corregir un resultado
+
+Si se aceptó un resultado por error (una captura equivocada, un tiempo mal
+leído, una distancia mal escrita), un administrador puede corregirlo sin
+descalificarlo. El resultado y la medalla se quedan en el perfil.
+
+1. Abre el **Historial de carreras** en el perfil del corredor, o
+   **Resultados revisados** en la página del evento. Ahí también aparecen
+   los resultados descalificados.
+2. Pulsa **Editar resultado** en la carrera que quieres corregir.
+3. En **Captura**, elige una opción:
+   - **Mantenerla**: no cambia.
+   - **Eliminarla**: la captura se borra y el resultado se queda sin
+     evidencia.
+   - **Subir una nueva**: elige la captura correcta; reemplaza a la actual.
+4. Corrige el **Tiempo final** y la **Distancia corrida (km)** si hace falta.
+   Si dejas la distancia en blanco, el ritmo se calcula con la distancia de
+   la carrera (por ejemplo, 10K).
+5. Escribe el **Motivo**. Es obligatorio y queda guardado con la corrección.
+   El corredor no lo ve.
+6. Pulsa **Guardar corrección**.
+
+El perfil, los récords personales y la tabla de resultados del evento se
+actualizan enseguida. **No se le envía correo al corredor.** En **Resultados
+revisados**, el resultado muestra *Corregido por un administrador* con la
+fecha y, si quitaste la captura, *Captura eliminada por un administrador*.
+
+Si otra persona cambió el resultado mientras lo editabas, la app no guarda
+tus cambios: recarga la página y vuelve a intentarlo.
+
+> **🛠 Nota técnica:** `correctRaceResultAction` y
+> `prepareEvidenceUploadAction` (`lib/results/corrections.ts`), que llaman a
+> `public.admin_correct_race_result()`. Cada corrección queda en
+> `public.race_result_corrections` (valores anteriores y nuevos, quién la
+> hizo y por qué). La captura reemplazada o eliminada se borra del bucket
+> `race-evidence` al guardar; si eso falla, la limpieza diaria
+> (`/api/cron/evidence-sweep`) la borra. Una captura nueva se sube con una
+> URL firmada a la carpeta del corredor.
+
+## 4.8 Tareas fuera de la app (equipo técnico)
 
 Estas tareas no tienen pantalla en la app. Se hacen en la base de datos
 (Supabase → SQL Editor), en Stripe o en la bandeja del equipo. Las consultas
