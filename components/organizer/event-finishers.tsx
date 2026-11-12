@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
+import { CorrectResultButton } from "@/components/results/correct-result";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel } from "@/lib/i18n/labels";
 import {
@@ -25,7 +26,8 @@ import { focusKey, focusSoon } from "./row-focus";
  * the list, with the reason; only a platform admin can reinstate one. A
  * sent-back result leaves the list when the runner sends new evidence. A
  * finish the organizer recorded without evidence says so in place of the
- * evidence link.
+ * evidence link. An admin can also correct an accepted or disqualified
+ * result's time, distance and screenshot (`CorrectResultButton`).
  */
 /** Finishers shown at once. */
 const PAGE_SIZE = 10;
@@ -33,9 +35,12 @@ const PAGE_SIZE = 10;
 export function EventFinishers({
   initial,
   isAdmin,
+  eventName,
 }: {
   initial: EventFinisherRow[];
   isAdmin: boolean;
+  /** For the correction dialog's heading. */
+  eventName: string;
 }) {
   const t = useT();
   const fmt = useFormat();
@@ -224,6 +229,13 @@ export function EventFinishers({
                       })}
                     </p>
                   ) : null}
+                  {row.correctedAt ? (
+                    <p className="mt-2 text-[12px] text-fg-dim">
+                      {t("resultCorrection.corrected", {
+                        date: when.format(new Date(row.correctedAt)),
+                      })}
+                    </p>
+                  ) : null}
                   {row.status === "rejected" ? (
                     <p className="mt-2 max-w-[60ch] text-[14px] text-fg-muted">
                       {row.reviewNote
@@ -267,6 +279,10 @@ export function EventFinishers({
                   <span className="text-[12px] text-fg-dim">
                     {t("resultFinishers.recorded")}
                   </span>
+                ) : row.evidenceRemoved ? (
+                  <span className="text-[12px] text-fg-dim">
+                    {t("resultCorrection.removedShown")}
+                  </span>
                 ) : row.evidenceUrl ? (
                   <a
                     href={row.evidenceUrl}
@@ -298,6 +314,23 @@ export function EventFinishers({
                   >
                     {t("resultFinishers.disqualify")}
                   </Button>
+                ) : null}
+
+                {isAdmin && row.status !== "rejected" && disqualifying !== row.id ? (
+                  <CorrectResultButton
+                    result={{
+                      id: row.id,
+                      runnerName: row.runnerName,
+                      eventName,
+                      distance: row.distance,
+                      finishSeconds: row.finishSeconds,
+                      distanceRunKm: row.distanceRunKm,
+                      evidenceUrl: row.evidenceUrl,
+                      recorded: row.recorded,
+                      evidenceRemoved: row.evidenceRemoved,
+                      version: row.version,
+                    }}
+                  />
                 ) : null}
 
                 {row.status === "disqualified" && isAdmin ? (

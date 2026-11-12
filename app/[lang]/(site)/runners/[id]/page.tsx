@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/ui/misc";
 import { CopyTracking } from "@/components/profile/copy-tracking";
 import { MedalDelivery } from "@/components/profile/medal-delivery";
 import { ProfilePhoto } from "@/components/profile/profile-photo";
+import { CorrectResultButton } from "@/components/results/correct-result";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
 import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
@@ -27,8 +28,8 @@ import { formatMailingAddress } from "@/lib/profile/address";
 import { getProfileDetails } from "@/lib/profile/queries";
 import { getRunnerView, type RunnerView } from "@/lib/profile/view";
 import { formatFinishTime } from "@/lib/results/evidence";
-import { listRunnerResults } from "@/lib/results/queries";
-import { getUser, requireUser } from "@/lib/auth/session";
+import { listCorrectableResults, listRunnerResults } from "@/lib/results/queries";
+import { getUser, isPlatformAdmin, requireUser } from "@/lib/auth/session";
 import { SELF_ID, SELF_PROFILE_PATH } from "@/lib/auth/routes";
 import { getLocale, getT } from "@/lib/i18n/server";
 import { createFormatters, type Formatters } from "@/lib/i18n/format";
@@ -240,6 +241,12 @@ export default async function RunnerProfilePage(
   const settingsAddress = details?.mailingAddress
     ? formatMailingAddress(details.mailingAddress)
     : "";
+  // A platform admin can correct any result in the race history: the
+  // evidence and version behind each, read only for them.
+  const correctable =
+    viewerId !== null && runner.results.length > 0 && (await isPlatformAdmin())
+      ? await listCorrectableResults(runner.id, runner.name)
+      : new Map();
   // Accepted ones are already in the race history.
   const pendingResults = ownResults.filter((r) => r.status !== "accepted");
   const recommended = isSelf
@@ -685,12 +692,15 @@ export default async function RunnerProfilePage(
                             : null}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {r.personalBest ? (
                           <Badge tone="lime">{t("runner.pb")}</Badge>
                         ) : null}
                         {r.podium ? (
                           <Badge tone="yellow">{t("runner.podium")}</Badge>
+                        ) : null}
+                        {r.resultId && correctable.has(r.resultId) ? (
+                          <CorrectResultButton result={correctable.get(r.resultId)!} />
                         ) : null}
                         {/* A reported result has no results table behind it,
                             and a removed event has no page at all. */}

@@ -127,6 +127,7 @@ function racing(
       fresh: now - Date.parse(`${r.eventDate}T12:00:00Z`) < FRESH_FOR_MS,
     })),
     results: rows.map((r) => ({
+      resultId: r.id,
       eventName: r.eventName,
       eventSlug: r.eventSlug,
       eventRemoved: r.eventRemoved,

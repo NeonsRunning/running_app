@@ -291,7 +291,7 @@ export default async function EventDetailPage(
       {/* ---------------------------------------------------------------- */}
       {finishers && (showResults || finishers.length > 0) ? (
         <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
-          <EventFinishers initial={finishers} isAdmin={isAdmin} />
+          <EventFinishers initial={finishers} isAdmin={isAdmin} eventName={event.name} />
         </div>
       ) : null}
 

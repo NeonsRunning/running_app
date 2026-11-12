@@ -191,6 +191,89 @@ export async function listEventResultSubmissions(
 /* The organizer's finishers                                                  */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* What an admin corrects                                                     */
+/* -------------------------------------------------------------------------- */
+
+/** A reviewed result as the correction dialog shows it to an admin. */
+export type CorrectableResult = {
+  id: string;
+  /** Whose result, and for which race: the dialog's heading. */
+  runnerName: string;
+  eventName: string;
+  distance: Distance;
+  finishSeconds: number;
+  /** The distance the runner's app recorded, if they gave it. */
+  distanceRunKm: number | null;
+  /** Null when there is no screenshot, or it could not be signed. */
+  evidenceUrl: string | null;
+  /** The organizer recorded it without evidence (`record_race_result()`). */
+  recorded: boolean;
+  /** An admin removed the screenshot. */
+  evidenceRemoved: boolean;
+  /** What `admin_correct_race_result()` checks nothing changed since. */
+  version: string;
+};
+
+type CorrectableColumns = {
+  submitted_at: string;
+  reviewed_at: string | null;
+  corrected_at: string | null;
+  evidence_path: string | null;
+  evidence_removed_at: string | null;
+};
+
+/** As `admin_correct_race_result()` reads it. */
+function versionOf(r: CorrectableColumns): string {
+  return r.corrected_at ?? r.reviewed_at ?? r.submitted_at;
+}
+
+/** No screenshot, and not because an admin took it away. */
+function wasRecorded(r: CorrectableColumns): boolean {
+  return r.evidence_path === null && r.evidence_removed_at === null;
+}
+
+/**
+ * A runner's accepted results, by id, as an admin corrects them from the
+ * profile's race history. Empty for anyone else: only an admin reads
+ * another runner's evidence.
+ */
+export async function listCorrectableResults(
+  runnerId: string,
+  runnerName: string,
+): Promise<Map<string, CorrectableResult>> {
+  if (!hasSupabaseEnv()) return new Map();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("race_results")
+    .select(
+      "id, finish_seconds, distance_run_km, evidence_path, evidence_removed_at, submitted_at, reviewed_at, corrected_at, event:events!race_results_event_id_fkey (name), category:event_categories!race_results_category_id_fkey (distance)",
+    )
+    .eq("runner_id", runnerId)
+    .eq("status", "accepted");
+  if (error || !data) return new Map();
+
+  const urls = await signEvidence(data.map((r) => r.evidence_path));
+  return new Map(
+    data.map((r) => [
+      r.id,
+      {
+        id: r.id,
+        runnerName,
+        eventName: r.event?.name ?? "",
+        distance: r.category?.distance ?? "5K",
+        finishSeconds: r.finish_seconds,
+        distanceRunKm: kmOrNull(r.distance_run_km),
+        evidenceUrl: urls.get(r.evidence_path) ?? null,
+        recorded: wasRecorded(r),
+        evidenceRemoved: r.evidence_removed_at !== null,
+        version: versionOf(r),
+      },
+    ]),
+  );
+}
+
 export type EventFinisherRow = ResultSubmissionRow & {
   status: "accepted" | "rejected" | "disqualified";
   /** The organizer's note, on a rejection. */
@@ -200,6 +283,12 @@ export type EventFinisherRow = ResultSubmissionRow & {
   disqualifiedAt: string | null;
   /** The organizer recorded it without evidence (`record_race_result()`). */
   recorded: boolean;
+  /** An admin removed the screenshot. */
+  evidenceRemoved: boolean;
+  /** When an admin last corrected it. */
+  correctedAt: string | null;
+  /** See `CorrectableResult.version`. */
+  version: string;
 };
 
 /**
@@ -217,7 +306,7 @@ export async function listEventFinishers(
     supabase
       .from("race_results")
       .select(
-        "id, status, finish_seconds, distance_run_km, submitted_at, reviewed_at, review_note, evidence_path, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
+        "id, status, finish_seconds, distance_run_km, submitted_at, reviewed_at, corrected_at, review_note, evidence_path, evidence_removed_at, disqualification_reason, disqualified_at, registration:registrations!race_results_registration_id_fkey (first_name, last_name, bib), category:event_categories!race_results_category_id_fkey (distance)",
       )
       .eq("event_id", eventId)
       .in("status", ["accepted", "rejected", "disqualified"])
@@ -247,7 +336,10 @@ export async function listEventFinishers(
     reviewedAt: r.reviewed_at,
     disqualificationReason: r.disqualification_reason,
     disqualifiedAt: r.disqualified_at,
-    recorded: r.evidence_path === null,
+    recorded: wasRecorded(r),
+    evidenceRemoved: r.evidence_removed_at !== null,
+    correctedAt: r.corrected_at,
+    version: versionOf(r),
   }));
   // A rejected time was never a finish, so it does not rank among them.
   return rows.sort(

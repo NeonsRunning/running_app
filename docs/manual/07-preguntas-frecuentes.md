@@ -75,7 +75,7 @@ los que muestra la app.
 | --- | --- |
 | *"Hay un pago por ATH Móvil de este evento pendiente de revisión"* al retirar | Aprueba o rechaza ese pago en **Revisión de Pagos** y vuelve a intentarlo. |
 | *"Escribe el nombre del evento exactamente como aparece"* | Copia el nombre tal cual, con mayúsculas y acentos. |
-| *"Esa cuenta no es de organizador"* al asignar un dueño | Activa primero el rol de organizador de esa persona (ver [4.7](04-administrador.md#47-tareas-fuera-de-la-app-equipo-técnico)). |
+| *"Esa cuenta no es de organizador"* al asignar un dueño | Activa primero el rol de organizador de esa persona (ver [4.8](04-administrador.md#48-tareas-fuera-de-la-app-equipo-técnico)). |
 | *"Otra cuenta ya usa este path"* | Cada cuenta de ATH Móvil necesita un path único. |
 | Un corredor pide cancelar su inscripción | Desde la página del evento, **Inscripciones** → **Eliminar**, y haz el reembolso en Stripe o en ATH Móvil Business. |
 | Un pago con tarjeta fue reembolsado en Stripe pero el corredor sigue inscrito | Solo un reembolso **total** cancela la inscripción sola. Si fue parcial, o si el corredor ya tiene un resultado revisado, decide a mano. |

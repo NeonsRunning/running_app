@@ -180,6 +180,8 @@ export type IncludedIcon =
   | "photos";
 
 export type RaceResult = {
+  /** The `race_results` row, on a real profile: what an admin corrects. */
+  resultId?: string;
   eventName: string;
   eventSlug: string;
   /** Taken down by a platform admin: there is no event page to link to. */
