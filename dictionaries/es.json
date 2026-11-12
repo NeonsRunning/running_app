@@ -213,7 +213,9 @@
       "runners": "{count} corredores",
       "start": "Salida {time}",
       "from": "DESDE",
-      "register": "Inscribirse"
+      "register": "Inscribirse",
+      "new": "Evento nuevo",
+      "endingSoon": "Termina pronto"
     },
     "save": {
       "saveAria": "Guardar {name}",

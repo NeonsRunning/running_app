@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { registrationStatus, spotsLeft } from "./availability";
+import { isEndingSoon, isNewEvent, registrationStatus, spotsLeft } from "./availability";
 
 const TODAY = "2026-11-24";
 const dates = { registration_closes: "2026-12-01", registration_opens: null };
@@ -64,5 +64,53 @@ describe("spotsLeft", () => {
   it("never goes below zero", () => {
     expect(spotsLeft(100, 40)).toBe(60);
     expect(spotsLeft(50, 60)).toBe(0);
+  });
+});
+
+describe("isNewEvent", () => {
+  const now = Date.parse("2026-11-12T12:00:00Z");
+  const daysAgo = (d: number) => new Date(now - d * 86_400_000).toISOString();
+
+  it("is new for the first two weeks after creation", () => {
+    expect(isNewEvent(daysAgo(0), now)).toBe(true);
+    expect(isNewEvent(daysAgo(13.9), now)).toBe(true);
+  });
+
+  it("is no longer new once two weeks have passed", () => {
+    expect(isNewEvent(daysAgo(14), now)).toBe(false);
+    expect(isNewEvent(daysAgo(30), now)).toBe(false);
+  });
+});
+
+describe("isEndingSoon", () => {
+  const today = "2026-11-12";
+  const race = {
+    event_date: "2026-12-20",
+    end_date: null,
+    registration_closes: "2026-12-15",
+  };
+
+  it("is ending soon when open sign-ups close within two weeks", () => {
+    expect(isEndingSoon({ ...race, registration_closes: "2026-11-12" }, "open", today)).toBe(true);
+    expect(isEndingSoon({ ...race, registration_closes: "2026-11-25" }, "almost-full", today)).toBe(true);
+    expect(isEndingSoon({ ...race, registration_closes: "2026-11-26" }, "open", today)).toBe(false);
+  });
+
+  it("ignores the closing date once sign-ups are not open", () => {
+    const closing = { ...race, registration_closes: "2026-11-20" };
+    expect(isEndingSoon(closing, "full", today)).toBe(false);
+    expect(isEndingSoon(closing, "opening-soon", today)).toBe(false);
+    expect(isEndingSoon({ ...race, registration_closes: "2026-11-11" }, "closed", today)).toBe(false);
+  });
+
+  it("is ending soon when a multi-day event under way ends within two weeks", () => {
+    const underway = { event_date: "2026-11-01", end_date: "2026-11-20", registration_closes: "2026-11-05" };
+    expect(isEndingSoon(underway, "closed", today)).toBe(true);
+    expect(isEndingSoon({ ...underway, end_date: "2026-11-30" }, "closed", today)).toBe(false);
+  });
+
+  it("waits for a multi-day event to start", () => {
+    const upcoming = { event_date: "2026-11-15", end_date: "2026-11-20", registration_closes: "2026-12-31" };
+    expect(isEndingSoon(upcoming, "open", today)).toBe(false);
   });
 });

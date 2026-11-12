@@ -1,4 +1,4 @@
-import { puertoRicoToday } from "@/lib/dates";
+import { daysBetween, puertoRicoToday } from "@/lib/dates";
 import type { RegistrationStatus } from "@/lib/types";
 
 /**
@@ -42,4 +42,47 @@ export function registrationStatus(
 /** Spots still open, never below zero: a cap can be lowered under the field. */
 export function spotsLeft(capacity: number, registered: number): number {
   return Math.max(0, capacity - registered);
+}
+
+/** How long a race wears the "New event" badge after it was created. */
+export const NEW_EVENT_DAYS = 14;
+
+/** Created within the last `NEW_EVENT_DAYS` days. */
+export function isNewEvent(
+  createdAt: string,
+  now: number = Date.now(),
+): boolean {
+  const age = now - Date.parse(createdAt);
+  return age >= 0 && age < NEW_EVENT_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/** How long before its end a race wears the "Ending soon" badge. */
+export const ENDING_SOON_DAYS = 14;
+
+/**
+ * Ending soon: sign-ups still open close within `ENDING_SOON_DAYS` days, or
+ * a multi-day event already under way reaches its last day within them.
+ * Days count on the island, the last one included.
+ */
+export function isEndingSoon(
+  event: {
+    event_date: string;
+    end_date: string | null;
+    registration_closes: string;
+  },
+  status: RegistrationStatus,
+  today: string = puertoRicoToday(),
+): boolean {
+  const soon = (date: string) => {
+    const left = daysBetween(today, date);
+    return left >= 0 && left < ENDING_SOON_DAYS;
+  };
+  const signUpsClosing =
+    (status === "open" || status === "almost-full") &&
+    soon(event.registration_closes);
+  const underway =
+    event.end_date !== null &&
+    event.end_date > event.event_date &&
+    event.event_date <= today;
+  return signUpsClosing || (underway && soon(event.end_date!));
 }
