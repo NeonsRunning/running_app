@@ -14,6 +14,13 @@ describe("registrationStatus", () => {
     expect(registrationStatus(dates, 90, 100, [cat(90, 100)], TODAY)).toBe("almost-full");
   });
 
+  it("is open rather than almost full while the spots left are hidden", () => {
+    const hidden = { ...dates, show_spots_left: false };
+    expect(registrationStatus(hidden, 90, 100, [cat(90, 100)], TODAY)).toBe("open");
+    // Full still reads as full: registration is refused either way.
+    expect(registrationStatus(hidden, 100, 100, [cat(100, 100)], TODAY)).toBe("full");
+  });
+
   it("is full once the event's own cap is reached, whatever the categories", () => {
     expect(
       registrationStatus(dates, 50, 50, [cat(30, 100), cat(20, 100)], TODAY),

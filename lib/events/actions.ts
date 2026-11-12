@@ -462,6 +462,7 @@ export async function saveEventAction(
   const offersMail = formData.get("offers_mail") === "on";
   const acceptsResults = formData.get("accepts_results") === "on";
   const mailsMedals = formData.get("mails_medals") === "on";
+  const showSpotsLeft = formData.get("show_spots_left") === "on";
   const chargesSalesTax = formData.get("charges_sales_tax") === "on";
   const donationRecipient = readText(formData, "donation_recipient");
   const shirtPrice = readDecimal(readText(formData, "shirt_price"));
@@ -590,6 +591,7 @@ export async function saveEventAction(
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
     sold_out: soldOut,
+    show_spots_left: showSpotsLeft,
     charges_sales_tax: chargesSalesTax,
   };
 

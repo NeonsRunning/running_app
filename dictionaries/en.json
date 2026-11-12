@@ -1879,6 +1879,10 @@
       "title": "Sold out",
       "detail": "Closes sign-ups and shows the event as sold out, whatever the count says. Turn this on to list a race you already ran: past dates are only accepted on a sold-out event."
     },
+    "showSpotsLeft": {
+      "title": "Show available spots",
+      "detail": "Runners see how many spots are left. Turn off to hide the count and capacity bar."
+    },
     "results": {
       "title": "Finish evidence",
       "detail": "From race day, registered runners can send a screenshot of their run (Strava, Nike Run Club, a watch app) with their finish time. You accept or reject each one from the event page; accepted runners get the result and this medal on their profile."

@@ -183,6 +183,7 @@ export function PublishWizard({
   const [acceptsResults, setAcceptsResults] = useState(initial.acceptsResults);
   const [mailsMedals, setMailsMedals] = useState(initial.mailsMedals);
   const [soldOut, setSoldOut] = useState(initial.soldOut);
+  const [showSpotsLeft, setShowSpotsLeft] = useState(initial.showSpotsLeft);
   const [chargesSalesTax, setChargesSalesTax] = useState(initial.chargesSalesTax);
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
@@ -1101,6 +1102,17 @@ export function PublishWizard({
                   />
                 )}
               </Field>
+            </div>
+
+            {/* Beside the limit it shows or hides. */}
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="show_spots_left"
+                checked={showSpotsLeft}
+                onChange={setShowSpotsLeft}
+                title={t("publish.showSpotsLeft.title")}
+                detail={t("publish.showSpotsLeft.detail")}
+              />
             </div>
 
             {/* Where ATH Móvil payments go. A retired account stays listed

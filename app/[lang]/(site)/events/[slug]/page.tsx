@@ -20,6 +20,7 @@ import { SaveButton } from "@/components/events/saved-events";
 import { ShareRow } from "@/components/events/share-row";
 import { listEventAthMovilSubmissions } from "@/lib/ath-movil/queries";
 import { getUser, isPlatformAdmin } from "@/lib/auth/session";
+import { cn } from "@/lib/cn";
 import { daysUntil } from "@/lib/data";
 import { spotsLeft as openSpots } from "@/lib/events/availability";
 import {
@@ -227,7 +228,10 @@ export default async function EventDetailPage(
       {/* ---------------------------------------------------------------- */}
       <section
         aria-label={t("events.detail.glance")}
-        className="mx-auto grid max-w-[1600px] grid-cols-2 gap-0.5 border-b-2 border-line bg-line sm:grid-cols-3 lg:grid-cols-6"
+        className={cn(
+          "mx-auto grid max-w-[1600px] grid-cols-2 gap-0.5 border-b-2 border-line bg-line sm:grid-cols-3",
+          event.showSpotsLeft ? "lg:grid-cols-6" : "lg:grid-cols-5",
+        )}
       >
         <SpecCell
           label={t("events.detail.specDistance")}
@@ -254,17 +258,24 @@ export default async function EventDetailPage(
           value={event.registrationCloses}
           className="bg-ink"
         />
-        <SpecCell
-          label={t("events.detail.specSpotsLeft")}
-          value={fmt.number(spotsLeft)}
-          accent="lime"
-          className="bg-ink"
-        />
+        {event.showSpotsLeft ? (
+          <SpecCell
+            label={t("events.detail.specSpotsLeft")}
+            value={fmt.number(spotsLeft)}
+            accent="lime"
+            className="bg-ink"
+          />
+        ) : null}
         <SpecCell
           label={t("events.detail.specFrom")}
           value={fmt.moneyWhole(event.fromPrice)}
           accent="yellow"
-          className="bg-ink"
+          // Five facts leave a gap in the two- and three-column rows: the
+          // last one stretches across it.
+          className={cn(
+            "bg-ink",
+            !event.showSpotsLeft && "col-span-2 lg:col-span-1",
+          )}
         />
       </section>
 
@@ -380,19 +391,21 @@ export default async function EventDetailPage(
               />
             </div>
 
-            <div className="border-b-2 border-line px-5 py-6 sm:px-7">
-              <Progress
-                value={taken}
-                max={event.capacity}
-                label={t("events.detail.capacity")}
-              />
-              <p className="mt-3 font-mono text-[11px] tracking-widest text-neon-lime uppercase">
-                {t("events.detail.capacityFull", {
-                  percent: percentFull,
-                  spots: fmt.number(spotsLeft),
-                })}
-              </p>
-            </div>
+            {event.showSpotsLeft ? (
+              <div className="border-b-2 border-line px-5 py-6 sm:px-7">
+                <Progress
+                  value={taken}
+                  max={event.capacity}
+                  label={t("events.detail.capacity")}
+                />
+                <p className="mt-3 font-mono text-[11px] tracking-widest text-neon-lime uppercase">
+                  {t("events.detail.capacityFull", {
+                    percent: percentFull,
+                    spots: fmt.number(spotsLeft),
+                  })}
+                </p>
+              </div>
+            ) : null}
 
             <div className="border-b-2 border-line px-5 py-6 sm:px-7">
               <Eyebrow>{t("events.detail.raceCategories")}</Eyebrow>

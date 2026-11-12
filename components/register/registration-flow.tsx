@@ -291,7 +291,7 @@ export function RegistrationFlow({
   // has of its own.
   const soldOut = event.registrationStatus === "full";
   const categoryFull = (c: (typeof event.categories)[number]) =>
-    soldOut || c.registered >= c.capacity;
+    soldOut || c.full;
 
   const { tax, total } = useMemo(
     () =>

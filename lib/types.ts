@@ -39,8 +39,11 @@ export type RaceCategory = {
   /** Absent when the race has no start time; see `startTimeLabel`. */
   startTime?: string;
   wave: string;
+  /** Zero, like `registered`, while the organizer hides the spots left. */
   capacity: number;
   registered: number;
+  /** No spot left to sign up for, whether or not the counts are shown. */
+  full: boolean;
 };
 
 export type AidStation = {
@@ -146,6 +149,12 @@ export type RunningEvent = {
    * it may be far from the cap, even zero for a past race listed as a reference.
    */
   soldOut?: boolean;
+  /**
+   * Runners see the spots left, capacity bar and runner count. Off, the
+   * counts on this event and its categories are zeroed before they leave the
+   * server, so the page source can't give them away either.
+   */
+  showSpotsLeft: boolean;
   /** The last day has passed. Only a race marked sold out is still listed then. */
   finished?: boolean;
   /** Created in the last two weeks and not yet run: wears a "New event" badge. */

@@ -130,7 +130,7 @@ export function eventJsonLd(
     if (event.registrationStatus === "opening-soon") return `${SCHEMA}PreOrder`;
     if (event.registrationStatus === "closed" || event.registrationStatus === "full")
       return `${SCHEMA}SoldOut`;
-    return c.registered >= c.capacity ? `${SCHEMA}SoldOut` : `${SCHEMA}InStock`;
+    return c.full ? `${SCHEMA}SoldOut` : `${SCHEMA}InStock`;
   };
 
   return {

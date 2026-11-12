@@ -149,6 +149,12 @@ Cada categoría es una distancia con su **precio**, su **cupo máximo** y una
 
 - **Límite de participantes** (opcional): el cupo total del evento. Si lo
   dejas vacío, se usa la suma de los cupos de las categorías.
+- **Mostrar cupos disponibles**: marcado por defecto. Desmárcalo para que los
+  corredores no vean cuántos cupos quedan: se ocultan los cupos disponibles,
+  la barra de capacidad, el número de corredores inscritos y la etiqueta
+  **Casi lleno**. Los cupos se siguen respetando: una carrera o categoría
+  llena sigue mostrándose como **Agotado** y no acepta más inscripciones. Tú
+  sigues viendo los números en tu panel.
 - **Edad mínima** y **Edad máxima** (opcional): se comprueban con la edad del
   corredor el día de la carrera.
 - **Cuenta de ATH Móvil** (opcional): la cuenta comercial a la que los
