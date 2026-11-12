@@ -9,7 +9,9 @@ import type { RegistrationStatus } from "@/lib/types";
  * once they reach the event's cap, or every category's: then
  * `register_for_event()` refuses anyone. It also counts live checkout holds,
  * which only it can see, so a race can still turn a runner away as sold out
- * while this says "almost-full". `search_events()` mirrors these rules.
+ * while this says "almost-full". Never "almost-full" while the organizer
+ * hides the spots left: that would give away how full the race is.
+ * `search_events()` mirrors these rules.
  *
  * Plain function, no server imports: tested on its own.
  */
@@ -18,6 +20,7 @@ export function registrationStatus(
     registration_closes: string;
     registration_opens: string | null;
     sold_out?: boolean;
+    show_spots_left?: boolean;
   },
   /** Paid runners across the event. */
   registered: number,
@@ -35,7 +38,12 @@ export function registrationStatus(
     (categories.length > 0 && categories.every((c) => c.registered >= c.capacity))
   )
     return "full";
-  if (capacity > 0 && registered / capacity >= 0.9) return "almost-full";
+  if (
+    dates.show_spots_left !== false &&
+    capacity > 0 &&
+    registered / capacity >= 0.9
+  )
+    return "almost-full";
   return "open";
 }
 

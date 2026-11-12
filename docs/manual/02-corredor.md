@@ -54,7 +54,9 @@ quieras y envías tu tiempo como evidencia (ver
 > **🛠 Nota técnica:** la búsqueda y los filtros los resuelve la función SQL
 > `search_events()` a través de `/api/events`, paginada. El estado de la
 > inscripción se calcula en `lib/events/availability.ts`: **Casi llena** a
-> partir del 90 % del cupo, contando solo inscripciones pagadas.
+> partir del 90 % del cupo, contando solo inscripciones pagadas, salvo
+> cuando el organizador oculta los cupos: entonces sigue en **Inscripción abierta**
+> hasta agotarse.
 
 ## 2.2 Ver el detalle de una carrera
 
@@ -69,6 +71,10 @@ La página reúne todo lo que necesitas antes de inscribirte:
   límite, estaciones de hidratación, mapa de ruta, estacionamiento e
   indicaciones.
 - La **capacidad** (qué tan llena está) y los **Corredores inscritos**.
+
+El organizador puede ocultar los cupos de su carrera. En ese caso no verás
+los cupos disponibles, la capacidad ni los corredores inscritos; si la
+carrera o una categoría se llena, igual dirá **Agotado**.
 - Botones para compartir la carrera.
 
 El botón principal cambia según el estado:

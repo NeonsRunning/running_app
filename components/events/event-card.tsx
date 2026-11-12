@@ -18,9 +18,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "./saved-events";
 
-/** Marked sold out with nobody signed up here: "0 runners" would contradict it. */
+/**
+ * The organizer hides the spots left, or marked the race sold out with nobody
+ * signed up here, where "0 runners" would contradict it.
+ */
 function hideRunnerCount(event: RunningEvent): boolean {
-  return Boolean(event.soldOut) && event.registered === 0;
+  return (
+    !event.showSpotsLeft || (Boolean(event.soldOut) && event.registered === 0)
+  );
 }
 
 /**

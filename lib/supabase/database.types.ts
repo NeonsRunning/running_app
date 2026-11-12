@@ -190,6 +190,8 @@ export type Database = {
           /** Finishers get the medal mailed, at no extra cost. */
           mails_medals: boolean;
           sold_out: boolean;
+          /** Runners see the spots left, capacity bar and runner count. */
+          show_spots_left: boolean;
           
           charges_sales_tax: boolean;created_at: string;
           updated_at: string;
@@ -242,7 +244,8 @@ export type Database = {
           accepts_results?: boolean;
           mails_medals?: boolean;
           sold_out?: boolean;
-          
+          show_spots_left?: boolean;
+
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
         };
@@ -294,7 +297,8 @@ export type Database = {
           accepts_results?: boolean;
           mails_medals?: boolean;
           sold_out?: boolean;
-          
+          show_spots_left?: boolean;
+
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
         };

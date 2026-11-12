@@ -143,33 +143,38 @@ export function EventDetailTabs({
 
         <FinisherMedal event={event} />
 
-        <section className="px-5 py-9 sm:px-8 lg:px-10">
-          <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
-            {t("events.tabs.participants")}
-          </h2>
-          {/* Only the count: who registered is private to runner and
-              organizer, so there are no faces to show here. */}
-          <div className="mt-6">
-            {/* Marked sold out with nobody signed up here: a race run before
-                the platform, whose field this count knows nothing about. */}
-            {event.soldOut && event.registered === 0 ? (
-              <p className="font-display text-4xl font-black text-neon-lime uppercase">
-                {t("events.detail.soldOut")}
-              </p>
-            ) : (
-              <>
-                <p className="font-display text-4xl font-black text-neon-lime">
-                  {fmt.number(event.registered)}
+        {/* With the spots hidden there is no count to show: the section
+            stays only to say a full race is sold out. */}
+        {event.showSpotsLeft || event.registrationStatus === "full" ? (
+          <section className="px-5 py-9 sm:px-8 lg:px-10">
+            <h2 className="font-mono text-[13px] font-bold tracking-[0.14em] text-neon-lime uppercase">
+              {t("events.tabs.participants")}
+            </h2>
+            {/* Only the count: who registered is private to runner and
+                organizer, so there are no faces to show here. */}
+            <div className="mt-6">
+              {/* Marked sold out with nobody signed up here: a race run before
+                  the platform, whose field this count knows nothing about. */}
+              {!event.showSpotsLeft ||
+              (event.soldOut && event.registered === 0) ? (
+                <p className="font-display text-4xl font-black text-neon-lime uppercase">
+                  {t("events.detail.soldOut")}
                 </p>
-                <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
-                  {event.registered > 0
-                    ? t("events.tabs.runnersRegistered")
-                    : t("events.tabs.noRunnersYet")}
-                </p>
-              </>
-            )}
-          </div>
-        </section>
+              ) : (
+                <>
+                  <p className="font-display text-4xl font-black text-neon-lime">
+                    {fmt.number(event.registered)}
+                  </p>
+                  <p className="mt-1 font-mono text-[11px] tracking-[0.12em] text-fg-dim uppercase">
+                    {event.registered > 0
+                      ? t("events.tabs.runnersRegistered")
+                      : t("events.tabs.noRunnersYet")}
+                  </p>
+                </>
+              )}
+            </div>
+          </section>
+        ) : null}
       </TabPanel>
 
       {/* ---------------------------------------------------------------- */}
@@ -249,13 +254,20 @@ export function EventDetailTabs({
                   <p className="font-display text-xl font-black text-neon-yellow">
                     {fmt.moneyWhole(c.price)}
                   </p>
-                  <p className="mt-1 font-mono text-[11px] text-fg-dim">
-                    {t("events.tabs.spotsLeft", {
-                      count: fmt.number(
-                        event.soldOut ? 0 : Math.max(0, c.capacity - c.registered),
-                      ),
-                    })}
-                  </p>
+                  {event.showSpotsLeft ? (
+                    <p className="mt-1 font-mono text-[11px] text-fg-dim">
+                      {t("events.tabs.spotsLeft", {
+                        count: fmt.number(
+                          event.soldOut ? 0 : Math.max(0, c.capacity - c.registered),
+                        ),
+                      })}
+                    </p>
+                  ) : c.full ? (
+                    // The count is hidden, but a full distance still says so.
+                    <p className="mt-1 font-mono text-[11px] text-fg-dim">
+                      {t("events.detail.soldOut")}
+                    </p>
+                  ) : null}
                 </div>
               </li>
             ))}

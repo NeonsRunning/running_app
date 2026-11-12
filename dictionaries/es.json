@@ -1879,6 +1879,10 @@
       "title": "Agotado",
       "detail": "Cierra las inscripciones y muestra el evento como agotado, sin importar el conteo. Actívalo para publicar una carrera que ya celebraste: las fechas pasadas solo se aceptan en un evento agotado."
     },
+    "showSpotsLeft": {
+      "title": "Mostrar cupos disponibles",
+      "detail": "Los corredores ven cuántos cupos quedan. Desactívalo para ocultar el conteo y la barra de capacidad."
+    },
     "results": {
       "title": "Evidencia de llegada",
       "detail": "Desde el día de la carrera, los corredores inscritos pueden enviar una captura de su carrera (Strava, Nike Run Club, la app de su reloj) con su tiempo. Tú aceptas o rechazas cada una desde la página del evento; quienes sean aceptados reciben el resultado y esta medalla en su perfil."

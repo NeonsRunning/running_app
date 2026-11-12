@@ -111,6 +111,15 @@ function toEvent(
     row.capacity ?? categories.reduce((sum, c) => sum + c.capacity, 0);
   const registered = categories.reduce((sum, c) => sum + c.registered, 0);
   const status = registrationStatus(row, registered, capacity, categories);
+  // Hidden spots: the counts never reach the page, only whether a category
+  // still has room.
+  const shown = row.show_spots_left;
+  const shownCategories = categories.map((c) => ({
+    ...c,
+    capacity: shown ? c.capacity : 0,
+    registered: shown ? c.registered : 0,
+    full: row.sold_out || c.registered >= c.capacity,
+  }));
   const [year, , day] = row.event_date.split("-");
   const description = row.description
     .split(/\r?\n\s*\r?\n/)
@@ -137,6 +146,7 @@ function toEvent(
     medalImage: eventImageUrl(row.medal_image_path),
     acceptsResults: row.accepts_results,
     soldOut: row.sold_out,
+    showSpotsLeft: shown,
     finished: (row.end_date ?? row.event_date) < todayIso(),
     // A race already run, listed as a reference, is not news.
     isNew:
@@ -192,13 +202,13 @@ function toEvent(
     elevationGain: row.elevation_gain,
     cutoff: row.cutoff,
     minimumAge: row.minimum_age,
-    categories,
+    categories: shownCategories,
     featuredDistance: categories[0]?.name ?? "5K",
     fromPrice: categories.length
       ? Math.min(...categories.map((c) => c.price))
       : 0,
-    registered,
-    capacity,
+    registered: shown ? registered : 0,
+    capacity: shown ? capacity : 0,
     organizerId: row.organizer_id,
     // Nothing in the wizard describes the race kit yet.
     included: [],
@@ -206,7 +216,7 @@ function toEvent(
     aidStations,
     parking: row.parking,
     directions: row.directions,
-    popularity: registered,
+    popularity: shown ? registered : 0,
     bookable: true,
     shirtSizes: row.shirt_sizes,
     extras: {
