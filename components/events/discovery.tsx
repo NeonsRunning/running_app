@@ -11,7 +11,12 @@ import {
 } from "react";
 import { Button } from "@/components/ui/button";
 import { Chip, Input, Radio, SegmentedControl } from "@/components/ui/field";
-import { Eyebrow, StatusBadge } from "@/components/ui/badge";
+import {
+  EndingSoonBadge,
+  Eyebrow,
+  NewEventBadge,
+  StatusBadge,
+} from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/misc";
 import { SkeletonEventCard } from "@/components/ui/skeleton";
 import { useFormat, useLocale, useT } from "@/components/i18n/provider";
@@ -729,6 +734,8 @@ function MapView({ events }: { events: RunningEvent[] }) {
             </h3>
             <div className="mt-1.5 flex items-center gap-3">
               <StatusBadge status={e.registrationStatus} label={e.statusLabel} />
+              {e.isNew ? <NewEventBadge /> : null}
+              {e.endingSoon ? <EndingSoonBadge /> : null}
               <span className="text-xs text-fg-dim">{e.city}</span>
             </div>
             <div className="mt-4 flex items-center justify-between">

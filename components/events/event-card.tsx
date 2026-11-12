@@ -9,7 +9,12 @@ import {
 } from "@/lib/i18n/labels";
 import { cn } from "@/lib/cn";
 import type { RunningEvent } from "@/lib/types";
-import { Badge, StatusBadge } from "@/components/ui/badge";
+import {
+  Badge,
+  EndingSoonBadge,
+  NewEventBadge,
+  StatusBadge,
+} from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SaveButton } from "./saved-events";
 
@@ -172,6 +177,8 @@ export function EventRow({ event }: { event: RunningEvent }) {
             status={event.registrationStatus}
             label={event.statusLabel}
           />
+          {event.isNew ? <NewEventBadge /> : null}
+          {event.endingSoon ? <EndingSoonBadge /> : null}
           <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
             {event.place}
           </span>
@@ -258,6 +265,13 @@ export function EventCardCompact({
           size="sm"
           className="absolute top-2.5 right-2.5"
         />
+        {event.isNew || event.endingSoon ? (
+          <div className="absolute bottom-0 left-0 flex">
+            {event.isNew ? <NewEventBadge /> : null}
+            {/* The danger tone is translucent; back it so a photo can't show through. */}
+            {event.endingSoon ? <EndingSoonBadge className="bg-ink" /> : null}
+          </div>
+        ) : null}
       </EventCover>
       <div className="flex flex-1 flex-col p-4">
         <div className="font-mono text-[10px] tracking-[0.14em] text-neon-lime">

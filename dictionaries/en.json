@@ -213,7 +213,9 @@
       "runners": "{count} runners",
       "start": "Start {time}",
       "from": "FROM",
-      "register": "Register"
+      "register": "Register",
+      "new": "New event",
+      "endingSoon": "Ending soon"
     },
     "save": {
       "saveAria": "Save {name}",

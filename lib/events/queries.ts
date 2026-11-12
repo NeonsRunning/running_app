@@ -8,7 +8,7 @@ import { formatMonthShort, formatWeekdayShort } from "@/lib/i18n/format";
 import { getTranslator } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { initialsOf } from "@/lib/profile/queries";
-import { registrationStatus } from "./availability";
+import { isEndingSoon, isNewEvent, registrationStatus } from "./availability";
 import { EVENTS_PAGE_SIZE, type EventPage, type EventSearch } from "./search";
 import { hasSupabaseEnv, supabaseEnv } from "@/lib/supabase/env";
 import { selectAll } from "@/lib/supabase/paginate";
@@ -138,6 +138,11 @@ function toEvent(
     acceptsResults: row.accepts_results,
     soldOut: row.sold_out,
     finished: (row.end_date ?? row.event_date) < todayIso(),
+    // A race already run, listed as a reference, is not news.
+    isNew:
+      (row.end_date ?? row.event_date) >= todayIso() &&
+      isNewEvent(row.created_at),
+    endingSoon: isEndingSoon(row, status),
     mailsMedals: row.mails_medals,
     chargesSalesTax: row.charges_sales_tax,
     anywhere: row.anywhere,

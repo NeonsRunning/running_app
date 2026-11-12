@@ -148,6 +148,13 @@ export type RunningEvent = {
   soldOut?: boolean;
   /** The last day has passed. Only a race marked sold out is still listed then. */
   finished?: boolean;
+  /** Created in the last two weeks and not yet run: wears a "New event" badge. */
+  isNew?: boolean;
+  /**
+   * Open sign-ups close within two weeks, or a multi-day event under way
+   * ends within them: wears an "Ending soon" badge.
+   */
+  endingSoon?: boolean;
   /** Finishers get the medal mailed, so sign-up asks for an address. */
   mailsMedals?: boolean;
   /** Sign-ups pay Puerto Rico sales tax (IVU) on all but the donation. */

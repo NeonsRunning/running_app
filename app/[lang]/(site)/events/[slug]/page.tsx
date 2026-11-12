@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Badge, Eyebrow } from "@/components/ui/badge";
+import {
+  Badge,
+  EndingSoonBadge,
+  Eyebrow,
+  NewEventBadge,
+} from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpecCell } from "@/components/ui/card";
 import { Progress } from "@/components/ui/misc";
@@ -192,6 +197,8 @@ export default async function EventDetailPage(
         <div className="relative mx-auto max-w-[1600px] px-4 pt-14 pb-10 sm:px-6 lg:px-10 lg:pt-24 lg:pb-14">
           <div className="flex flex-wrap gap-2.5">
             <Badge tone="yellow">{event.statusLabel}</Badge>
+            {event.isNew ? <NewEventBadge /> : null}
+            {event.endingSoon ? <EndingSoonBadge /> : null}
             <Badge tone="outline" className="bg-ink/60 text-fg">
               {eventTypeLabel(t, event.type)}
             </Badge>

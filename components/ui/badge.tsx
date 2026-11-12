@@ -69,6 +69,26 @@ export function StatusBadge({
   );
 }
 
+/** "New event", for races created in the last two weeks; see `isNewEvent`. */
+export function NewEventBadge({ className }: { className?: string }) {
+  const t = useT();
+  return (
+    <Badge tone="yellow" className={className}>
+      {t("events.card.new")}
+    </Badge>
+  );
+}
+
+/** "Ending soon", for sign-ups or a multi-day event near the end; see `isEndingSoon`. */
+export function EndingSoonBadge({ className }: { className?: string }) {
+  const t = useT();
+  return (
+    <Badge tone="danger" className={className}>
+      {t("events.card.endingSoon")}
+    </Badge>
+  );
+}
+
 const DIFFICULTY_TONE: Record<Difficulty, BadgeTone> = {
   Easy: "green",
   Moderate: "lime",
