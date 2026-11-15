@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
 import { focusFirstInvalid } from "@/components/ui/focus";
@@ -14,7 +14,9 @@ import { distanceLabel } from "@/lib/i18n/labels";
 import {
   correctRaceResultAction,
   prepareEvidenceUploadAction,
+  searchMoveTargetsAction,
   type CorrectionInput,
+  type MoveTarget,
 } from "@/lib/results/corrections";
 import {
   EVIDENCE_BUCKET,
@@ -37,6 +39,10 @@ type Phase = "converting" | "uploading" | "saving";
  * upload the right one in its place. A reason is required and kept with
  * the correction; the runner is not emailed. Used from the profile's race
  * history and from the event's reviewed results.
+ *
+ * An accepted result can also be moved to another paid runner of the same
+ * event — a finish sent from the wrong account — picked from a lookup by
+ * name or bib.
  */
 export function CorrectResultButton({
   result,
@@ -102,6 +108,46 @@ function CorrectResultDialog({
   const [phase, setPhase] = useState<Phase | null>(null);
   const busy = phase !== null;
 
+  // Moving the result to another runner: the lookup, then the one picked.
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  /** Null while the first search is out. */
+  const [targets, setTargets] = useState<MoveTarget[] | null>(null);
+  const [moveError, setMoveError] = useState<string>();
+  const [target, setTarget] = useState<MoveTarget | null>(null);
+  const searchSeq = useRef(0);
+  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(searchTimer.current), []);
+
+  // The distance the result is, or will be, listed under.
+  const listedDistance = target?.distance ?? result.distance;
+
+  async function search(text: string) {
+    const seq = ++searchSeq.current;
+    const found = await searchMoveTargetsAction(result.id, text).catch(
+      () => ({ ok: false, error: "searchFailed" }) as const,
+    );
+    // A later search is out: this answer is stale.
+    if (seq !== searchSeq.current) return;
+    setTargets(found.ok ? found.targets : []);
+    setMoveError(found.ok ? undefined : t(`resultCorrection.errors.${found.error}`));
+  }
+
+  function typeQuery(text: string) {
+    setQuery(text);
+    clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => void search(text), 250);
+  }
+
+  function closeMove() {
+    clearTimeout(searchTimer.current);
+    searchSeq.current++;
+    setMoveOpen(false);
+    setQuery("");
+    setTargets(null);
+    setMoveError(undefined);
+  }
+
   function close() {
     if (busy) return;
     if (preview) URL.revokeObjectURL(preview);
@@ -157,7 +203,11 @@ function CorrectResultDialog({
         if (webp.size > EVIDENCE_MAX_BYTES) return fail("imageTooLarge");
 
         setPhase("uploading");
-        const signed = await prepareEvidenceUploadAction(result.id).catch(
+        // Into the folder of the runner the result will be on.
+        const signed = await prepareEvidenceUploadAction(
+          result.id,
+          target?.registrationId,
+        ).catch(
           () => ({ ok: false, error: "uploadFailed" }) as const,
         );
         if (!signed.ok) return fail(signed.error);
@@ -176,6 +226,7 @@ function CorrectResultDialog({
         distanceRun: distance,
         evidence,
         newEvidencePath,
+        moveToRegistrationId: target?.registrationId,
         reason,
       }).catch(() => ({ ok: false, error: "correctFailed" }) as const);
 
@@ -186,10 +237,17 @@ function CorrectResultDialog({
         return;
       }
 
-      toast({
-        title: t("resultCorrection.savedTitle"),
-        body: t("resultCorrection.savedBody", { name: result.runnerName }),
-      });
+      toast(
+        target
+          ? {
+              title: t("resultCorrection.movedTitle"),
+              body: t("resultCorrection.movedBody", { name: target.runnerName }),
+            }
+          : {
+              title: t("resultCorrection.savedTitle"),
+              body: t("resultCorrection.savedBody", { name: result.runnerName }),
+            },
+      );
       if (preview) URL.revokeObjectURL(preview);
       onClose();
     } catch (e) {
@@ -232,6 +290,134 @@ function CorrectResultDialog({
           void save();
         }}
       >
+        {/* Whose it is ---------------------------------------------------- */}
+        {result.movable ? (
+          <div className="flex flex-col">
+            <p className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase">
+              {t("resultCorrection.runner")}
+            </p>
+
+            {target ? (
+              <>
+                <p className="mt-2 text-[15px] font-bold text-fg">
+                  {t("resultCorrection.moveTo", {
+                    from: result.runnerName,
+                    to: target.runnerName,
+                    bib: target.bib,
+                    distance: distanceLabel(t, target.distance),
+                  })}
+                </p>
+                <p className="mt-1 text-[13px] text-fg-dim">
+                  {t("resultCorrection.moveHint", { from: result.runnerName })}
+                </p>
+                {!target.sameCategory ? (
+                  <p
+                    role="alert"
+                    className="mt-3 flex gap-2 border-2 border-neon-yellow p-3 text-[13px] font-semibold text-fg"
+                  >
+                    <span aria-hidden="true">▲</span>
+                    {t("resultCorrection.moveCategoryWarning", {
+                      name: target.runnerName,
+                      distance: distanceLabel(t, target.distance),
+                      current: distanceLabel(t, result.distance),
+                    })}
+                  </p>
+                ) : null}
+                <div className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => setTarget(null)}
+                  >
+                    {t("resultCorrection.moveCancel")}
+                  </Button>
+                </div>
+              </>
+            ) : moveOpen ? (
+              <>
+                <Field
+                  className="mt-2"
+                  label={t("resultCorrection.moveSearch")}
+                  hint={t("resultCorrection.moveSearchHint")}
+                  error={moveError}
+                >
+                  {(p) => (
+                    <Input
+                      {...p}
+                      // The error is the lookup's, not this field's value.
+                      aria-invalid={undefined}
+                      type="search"
+                      name="move_search"
+                      value={query}
+                      disabled={busy}
+                      onChange={(e) => typeQuery(e.target.value)}
+                      // Enter would save the correction.
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") e.preventDefault();
+                      }}
+                      autoComplete="off"
+                      autoFocus
+                    />
+                  )}
+                </Field>
+                <div aria-live="polite" className="mt-2">
+                  {targets === null ? (
+                    <p className="text-[13px] text-fg-dim">
+                      {t("resultCorrection.moveSearching")}
+                    </p>
+                  ) : targets.length === 0 ? (
+                    moveError ? null : (
+                      <p className="text-[13px] text-fg-dim">{t("resultCorrection.moveNone")}</p>
+                    )
+                  ) : (
+                    <ul className="flex max-h-56 flex-col gap-1 overflow-y-auto">
+                      {targets.map((option) => (
+                        <li key={option.registrationId}>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setTarget(option);
+                              closeMove();
+                            }}
+                            className="flex w-full items-baseline justify-between gap-3 border-2 border-line-strong px-4 py-2.5 text-left text-[13px] hover:border-neon-lime"
+                          >
+                            <span className="font-bold text-fg">{option.runnerName}</span>
+                            <span className="shrink-0 font-mono text-fg-dim tabular-nums">
+                              #{option.bib} · {distanceLabel(t, option.distance)}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <Button variant="ghost" size="sm" disabled={busy} onClick={closeMove}>
+                    {t("resultCorrection.moveCancel")}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+                <p className="text-[15px] font-bold text-fg">{result.runnerName}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => {
+                    setMoveOpen(true);
+                    void search("");
+                  }}
+                >
+                  {t("resultCorrection.move")}
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : null}
+
         {/* The screenshot ------------------------------------------------ */}
         <div className="flex flex-col">
           <p
@@ -300,6 +486,12 @@ function CorrectResultDialog({
               </button>
             ))}
           </RadioGroup>
+
+          {target && hasEvidence && evidence === "keep" ? (
+            <p className="mt-3 text-[13px] text-fg-dim">
+              {t("resultCorrection.moveEvidenceHint")}
+            </p>
+          ) : null}
 
           {evidence === "remove" ? (
             <p className="mt-3 text-[13px] text-fg-dim">{t("resultCorrection.removeHint")}</p>
@@ -377,7 +569,7 @@ function CorrectResultDialog({
         <Field
           label={t("resultCorrection.distanceRun")}
           hint={t("resultCorrection.distanceRunHint", {
-            distance: distanceLabel(t, result.distance),
+            distance: distanceLabel(t, listedDistance),
           })}
           error={distanceError}
         >

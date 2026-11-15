@@ -51,6 +51,7 @@ select set_eq(
     'slugify_handle',
     -- Each of these checks who is calling.
     'admin_correct_race_result',
+    'admin_result_move_targets',
     'admin_list_events',
     'admin_list_payments',
     'admin_payment_kpis',

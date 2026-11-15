@@ -12,6 +12,7 @@ const rpc = vi.fn();
 const maybeSingle = vi.fn();
 const removeFiles = vi.fn();
 const createSignedUploadUrl = vi.fn();
+const copyFile = vi.fn();
 const revalidatePath = vi.fn();
 
 vi.mock("next/cache", () => ({ revalidatePath }));
@@ -29,16 +30,22 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: () => ({
-    storage: { from: () => ({ remove: removeFiles, createSignedUploadUrl }) },
+    storage: {
+      from: () => ({ remove: removeFiles, createSignedUploadUrl, copy: copyFile }),
+    },
   }),
 }));
 
-const { correctRaceResultAction, prepareEvidenceUploadAction } = await import(
-  "./corrections"
-);
+const { correctRaceResultAction, prepareEvidenceUploadAction, searchMoveTargetsAction } =
+  await import("./corrections");
 
 const RESULT = "00000000-0000-4000-9000-0000000000f1";
 const RUNNER = "00000000-0000-4000-8000-000000000004";
+/** The runner a result is moved to, their sign-up, and the event. */
+const OTHER = "00000000-0000-4000-8000-000000000003";
+const OTHER_SIGNUP = "00000000-0000-4000-9000-0000000000b2";
+const EVENT = "00000000-0000-4000-9000-0000000000e1";
+const IN_OTHER_FOLDER = new RegExp(`^${OTHER}/[0-9a-f-]{36}\\.webp$`);
 const OLD = `${RUNNER}/00000000-0000-4000-9000-0000000000d1.webp`;
 const NEW = `${RUNNER}/00000000-0000-4000-9000-0000000000d2.webp`;
 
@@ -62,6 +69,8 @@ beforeEach(() => {
   isPlatformAdmin.mockResolvedValue(true);
   rpc.mockResolvedValue(log());
   removeFiles.mockResolvedValue({ data: [], error: null });
+  copyFile.mockResolvedValue({ data: { path: "copied" }, error: null });
+  maybeSingle.mockReset();
 });
 
 describe("correctRaceResultAction", () => {
@@ -160,7 +169,171 @@ describe("correctRaceResultAction", () => {
   });
 });
 
+describe("correctRaceResultAction, moving the result", () => {
+  /** The result as read, then the sign-up it moves to. */
+  const found = (evidencePath: string | null = OLD) =>
+    maybeSingle
+      .mockResolvedValueOnce({ data: { event_id: EVENT, evidence_path: evidencePath } })
+      .mockResolvedValueOnce({ data: { runner_id: OTHER } });
+
+  it("copies a kept screenshot into the new runner's folder and deletes the original", async () => {
+    found();
+    rpc.mockImplementation(async (_name: string, args: { p_evidence_path: string }) =>
+      log({ new_evidence_path: args.p_evidence_path }),
+    );
+    await expect(
+      correctRaceResultAction(input({ moveToRegistrationId: OTHER_SIGNUP })),
+    ).resolves.toEqual({ ok: true });
+
+    const [from, to] = copyFile.mock.calls[0];
+    expect(from).toBe(OLD);
+    expect(to).toMatch(IN_OTHER_FOLDER);
+    expect(rpc.mock.calls[0][1]).toMatchObject({
+      p_evidence_path: to,
+      p_remove_evidence: false,
+      p_move_to_registration: OTHER_SIGNUP,
+    });
+    expect(removeFiles).toHaveBeenCalledWith([OLD]);
+  });
+
+  it("moves a result that has no screenshot without copying anything", async () => {
+    found(null);
+    rpc.mockResolvedValue(log({ old_evidence_path: null, new_evidence_path: null }));
+    await expect(
+      correctRaceResultAction(input({ moveToRegistrationId: OTHER_SIGNUP })),
+    ).resolves.toEqual({ ok: true });
+    expect(copyFile).not.toHaveBeenCalled();
+    expect(rpc.mock.calls[0][1]).toMatchObject({
+      p_evidence_path: null,
+      p_move_to_registration: OTHER_SIGNUP,
+    });
+  });
+
+  it("does not copy when the screenshot is replaced or removed", async () => {
+    const uploaded = `${OTHER}/00000000-0000-4000-9000-0000000000d3.webp`;
+    rpc.mockResolvedValue(log({ new_evidence_path: uploaded }));
+    await correctRaceResultAction(
+      input({
+        moveToRegistrationId: OTHER_SIGNUP,
+        evidence: "replace",
+        newEvidencePath: uploaded,
+      }),
+    );
+    expect(copyFile).not.toHaveBeenCalled();
+    expect(rpc.mock.calls[0][1]).toMatchObject({ p_evidence_path: uploaded });
+  });
+
+  it("deletes the copy when the database refuses the move", async () => {
+    found();
+    rpc.mockResolvedValue({
+      data: null,
+      error: { code: "P0001", message: "moveTargetHasResult" },
+    });
+    await expect(
+      correctRaceResultAction(input({ moveToRegistrationId: OTHER_SIGNUP })),
+    ).resolves.toEqual({ ok: false, error: "moveTargetHasResult" });
+    expect(removeFiles).toHaveBeenCalledWith([copyFile.mock.calls[0][1]]);
+  });
+
+  it("refuses a sign-up that is not a paid one of the event", async () => {
+    maybeSingle
+      .mockResolvedValueOnce({ data: { event_id: EVENT, evidence_path: OLD } })
+      .mockResolvedValueOnce({ data: null });
+    await expect(
+      correctRaceResultAction(input({ moveToRegistrationId: OTHER_SIGNUP })),
+    ).resolves.toEqual({ ok: false, error: "moveInvalid" });
+    expect(copyFile).not.toHaveBeenCalled();
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("stops when the screenshot cannot be copied", async () => {
+    found();
+    copyFile.mockResolvedValue({ data: null, error: { message: "boom" } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      correctRaceResultAction(input({ moveToRegistrationId: OTHER_SIGNUP })),
+    ).resolves.toEqual({ ok: false, error: "correctFailed" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses a sign-up id that is not one", async () => {
+    await expect(
+      correctRaceResultAction(input({ moveToRegistrationId: "someone" })),
+    ).resolves.toEqual({ ok: false, error: "correctFailed" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("sends no move for an ordinary correction", async () => {
+    await correctRaceResultAction(input());
+    expect(rpc.mock.calls[0][1]).not.toHaveProperty("p_move_to_registration");
+  });
+});
+
+describe("searchMoveTargetsAction", () => {
+  it("returns the runners the result could move to", async () => {
+    rpc.mockResolvedValue({
+      data: [
+        {
+          registration_id: OTHER_SIGNUP,
+          runner_id: OTHER,
+          runner_name: "Ana Figueroa",
+          bib: 1002,
+          distance: "5K",
+          same_category: false,
+        },
+      ],
+      error: null,
+    });
+    await expect(searchMoveTargetsAction(RESULT, "  ana ")).resolves.toEqual({
+      ok: true,
+      targets: [
+        {
+          registrationId: OTHER_SIGNUP,
+          runnerName: "Ana Figueroa",
+          bib: 1002,
+          distance: "5K",
+          sameCategory: false,
+        },
+      ],
+    });
+    expect(rpc).toHaveBeenCalledWith("admin_result_move_targets", {
+      p_result_id: RESULT,
+      p_query: "ana",
+    });
+  });
+
+  it("refuses anyone but an admin", async () => {
+    isPlatformAdmin.mockResolvedValue(false);
+    await expect(searchMoveTargetsAction(RESULT, "")).resolves.toEqual({
+      ok: false,
+      error: "notAllowed",
+    });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["moveMedalDelivered", "moveMedalDelivered"],
+    ["moveDisqualified", "moveDisqualified"],
+    ["resultMissing", "alreadyChanged"],
+  ])("maps the database's %s to %s", async (raised, error) => {
+    rpc.mockResolvedValue({ data: null, error: { code: "P0001", message: raised } });
+    await expect(searchMoveTargetsAction(RESULT, "")).resolves.toEqual({ ok: false, error });
+  });
+});
+
 describe("prepareEvidenceUploadAction", () => {
+  it("signs an upload into the new runner's folder for a result being moved", async () => {
+    maybeSingle
+      .mockResolvedValueOnce({ data: { runner_id: RUNNER, event_id: EVENT } })
+      .mockResolvedValueOnce({ data: { runner_id: OTHER } });
+    createSignedUploadUrl.mockImplementation(async (path: string) => ({
+      data: { path, token: "tok" },
+      error: null,
+    }));
+    const result = await prepareEvidenceUploadAction(RESULT, OTHER_SIGNUP);
+    expect(result.ok && result.path).toMatch(IN_OTHER_FOLDER);
+  });
+
   it("signs an upload into the runner's folder", async () => {
     maybeSingle.mockResolvedValue({ data: { runner_id: RUNNER } });
     createSignedUploadUrl.mockImplementation(async (path: string) => ({

@@ -637,6 +637,9 @@ export type Database = {
           /** The path only; the file itself is deleted once replaced or removed. */
           old_evidence_path: string | null;
           new_evidence_path: string | null;
+          /** Set on a correction that moved the result to another runner. */
+          old_runner_id: string | null;
+          new_runner_id: string | null;
         };
         Insert: never;
         Update: never;
@@ -950,8 +953,21 @@ export type Database = {
           p_evidence_path: string | null;
           p_remove_evidence: boolean;
           p_reason: string;
+          /** A paid sign-up of the same event to move the result to. */
+          p_move_to_registration?: string | null;
         };
         Returns: Database["public"]["Tables"]["race_result_corrections"]["Row"];
+      };
+      admin_result_move_targets: {
+        Args: { p_result_id: string; p_query?: string; p_limit?: number };
+        Returns: {
+          registration_id: string;
+          runner_id: string;
+          runner_name: string;
+          bib: number;
+          distance: Database["public"]["Enums"]["race_distance"];
+          same_category: boolean;
+        }[];
       };
       admin_remove_event: {
         Args: { p_event_id: string; p_reason: string };

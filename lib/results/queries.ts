@@ -211,6 +211,8 @@ export type CorrectableResult = {
   recorded: boolean;
   /** An admin removed the screenshot. */
   evidenceRemoved: boolean;
+  /** Accepted, so it can be moved to another runner; a disqualified one cannot. */
+  movable: boolean;
   /** What `admin_correct_race_result()` checks nothing changed since. */
   version: string;
 };
@@ -268,6 +270,7 @@ export async function listCorrectableResults(
         evidenceUrl: urls.get(r.evidence_path) ?? null,
         recorded: wasRecorded(r),
         evidenceRemoved: r.evidence_removed_at !== null,
+        movable: true,
         version: versionOf(r),
       },
     ]),
