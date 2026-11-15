@@ -328,6 +328,7 @@ export function EventFinishers({
                       evidenceUrl: row.evidenceUrl,
                       recorded: row.recorded,
                       evidenceRemoved: row.evidenceRemoved,
+                      movable: row.status === "accepted",
                       version: row.version,
                     }}
                   />

@@ -322,6 +322,42 @@ fecha y, si quitaste la captura, *Captura eliminada por un administrador*.
 Si otra persona cambió el resultado mientras lo editabas, la app no guarda
 tus cambios: recarga la página y vuelve a intentarlo.
 
+### Mover un resultado a otro corredor
+
+Si un corredor envió su resultado desde la cuenta equivocada (por ejemplo,
+la de un amigo inscrito en la misma carrera) y ya se aceptó, puedes moverlo
+al corredor que de verdad corrió.
+
+1. Abre **Editar resultado** como arriba.
+2. En **Corredor**, pulsa **Mover a otro corredor**.
+3. Busca por nombre o dorsal y elige al corredor. Solo aparecen los
+   corredores con pago de ese mismo evento que no tienen un resultado
+   revisado.
+4. Si el corredor se inscribió en otra distancia, verás un aviso: el
+   resultado pasará a esa distancia. Revisa el **Tiempo final** y la
+   **Distancia corrida (km)**.
+5. Escribe el **Motivo** y pulsa **Guardar corrección**.
+
+Al guardar:
+
+- El resultado, la captura y la medalla pasan al corredor elegido.
+- Si ese corredor tenía un envío pendiente o rechazado, se reemplaza.
+- El primer corredor se queda sin resultado y puede enviar el suyo.
+- **No se le envía correo a nadie.**
+
+No se puede mover un resultado si:
+
+- la medalla de ese resultado ya se envió o se recogió;
+- el corredor elegido ya tiene un resultado aceptado o descalificado;
+- el resultado está descalificado (restablécelo primero).
+
+> **🛠 Nota técnica:** la búsqueda es `searchMoveTargetsAction`, que llama a
+> `public.admin_result_move_targets()`. El movimiento es el parámetro
+> `p_move_to_registration` de `public.admin_correct_race_result()`; queda en
+> `race_result_corrections` con `old_runner_id` y `new_runner_id`. La captura
+> se copia a la carpeta del nuevo corredor antes de guardar y la original se
+> borra después.
+
 > **🛠 Nota técnica:** `correctRaceResultAction` y
 > `prepareEvidenceUploadAction` (`lib/results/corrections.ts`), que llaman a
 > `public.admin_correct_race_result()`. Cada corrección queda en
