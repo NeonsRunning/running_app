@@ -346,6 +346,28 @@ request, after applying every migration to a fresh database. They insert
 test users and events inside a transaction they roll back — run them only
 against a throwaway database, never a real project's SQL editor.
 
+### Backing it up
+
+`npm run backup` copies the production database and every storage bucket to
+this computer, standing in for Supabase's paid backups. It needs Docker
+running, the Supabase CLI logged in and linked, and
+`NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+
+```bash
+npm run backup              # database and buckets
+npm run backup -- db        # database only
+npm run backup -- storage   # buckets only
+```
+
+Backups go to `../running_app_backups`, outside the repo (`BACKUP_DIR`
+changes that). Each run writes a full dump under `db/<timestamp>` — roles,
+schema and data, auth users included — and keeps the newest 30
+(`BACKUP_KEEP`). `storage/<bucket>` is a mirror: only new or changed files
+are downloaded, and a file deleted from a bucket stays in the backup. The
+dumps hold runners' personal data and the screenshots can show where they
+live, so keep the folder off shared or synced drives. Nothing schedules it;
+run it by hand or from Task Scheduler.
+
 ## ATH Móvil payments
 
 Next to Stripe, runners can pay with ATH Móvil. There is no API behind it: the
