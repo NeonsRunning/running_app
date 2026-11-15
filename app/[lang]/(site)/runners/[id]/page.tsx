@@ -10,6 +10,7 @@ import { CopyTracking } from "@/components/profile/copy-tracking";
 import { MedalDelivery } from "@/components/profile/medal-delivery";
 import { ProfilePhoto } from "@/components/profile/profile-photo";
 import { CorrectResultButton } from "@/components/results/correct-result";
+import { DeleteResultButton } from "@/components/results/delete-result";
 import { SavedEventsPanel } from "@/components/profile/saved-panel";
 import { EventCardCompact } from "@/components/events/event-card";
 import { ShareRow } from "@/components/events/share-row";
@@ -700,7 +701,10 @@ export default async function RunnerProfilePage(
                           <Badge tone="yellow">{t("runner.podium")}</Badge>
                         ) : null}
                         {r.resultId && correctable.has(r.resultId) ? (
-                          <CorrectResultButton result={correctable.get(r.resultId)!} />
+                          <>
+                            <CorrectResultButton result={correctable.get(r.resultId)!} />
+                            <DeleteResultButton result={correctable.get(r.resultId)!} />
+                          </>
                         ) : null}
                         {/* A reported result has no results table behind it,
                             and a removed event has no page at all. */}

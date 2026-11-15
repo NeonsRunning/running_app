@@ -51,6 +51,7 @@ select set_eq(
     'slugify_handle',
     -- Each of these checks who is calling.
     'admin_correct_race_result',
+    'admin_delete_race_result',
     'admin_result_move_targets',
     'admin_list_events',
     'admin_list_payments',
@@ -128,6 +129,8 @@ select ok(
   and not has_table_privilege('authenticated', 'public.race_results', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.race_result_corrections', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('anon', 'public.race_result_corrections', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.race_result_deletions', 'INSERT, UPDATE, DELETE')
+  and not has_table_privilege('anon', 'public.race_result_deletions', 'SELECT')
   and not has_table_privilege('authenticated', 'public.event_moderation_log', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.account_deletion_requests', 'INSERT, UPDATE, DELETE'),
   'tables written only by functions take no direct writes'

@@ -7,6 +7,7 @@ import { Field, Input, Textarea } from "@/components/ui/field";
 import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
 import { CorrectResultButton } from "@/components/results/correct-result";
+import { DeleteResultButton } from "@/components/results/delete-result";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel } from "@/lib/i18n/labels";
 import {
@@ -27,7 +28,8 @@ import { focusKey, focusSoon } from "./row-focus";
  * sent-back result leaves the list when the runner sends new evidence. A
  * finish the organizer recorded without evidence says so in place of the
  * evidence link. An admin can also correct an accepted or disqualified
- * result's time, distance and screenshot (`CorrectResultButton`).
+ * result's time, distance and screenshot (`CorrectResultButton`), and
+ * delete a result of any status outright (`DeleteResultButton`).
  */
 /** Finishers shown at once. */
 const PAGE_SIZE = 10;
@@ -39,7 +41,7 @@ export function EventFinishers({
 }: {
   initial: EventFinisherRow[];
   isAdmin: boolean;
-  /** For the correction dialog's heading. */
+  /** For the correction and deletion dialogs' headings. */
   eventName: string;
 }) {
   const t = useT();
@@ -350,6 +352,18 @@ export function EventFinishers({
                   >
                     {busy === row.id ? t("resultFinishers.working") : t("resultFinishers.reinstate")}
                   </Button>
+                ) : null}
+
+                {isAdmin && disqualifying !== row.id ? (
+                  <DeleteResultButton
+                    disabled={busy !== null}
+                    result={{
+                      id: row.id,
+                      runnerName: row.runnerName,
+                      eventName,
+                      version: row.version,
+                    }}
+                  />
                 ) : null}
               </div>
 

@@ -293,7 +293,7 @@ export default async function EventDetailPage(
       {/* ---------------------------------------------------------------- */}
       {showResults ? (
         <div className="mx-auto max-w-[1600px] border-b-2 border-line px-4 py-10 sm:px-6 lg:px-10 lg:py-12">
-          <EventResults initial={pendingResults} />
+          <EventResults initial={pendingResults} isAdmin={isAdmin} eventName={event.name} />
         </div>
       ) : null}
 

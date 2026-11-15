@@ -26,6 +26,7 @@ pedirlo desde la app.
 | [Gestionar cualquier evento como su organizador](#45-gestionar-cualquier-evento) | Página del evento |
 | [Restablecer un resultado descalificado](#46-restablecer-un-resultado-descalificado) | Página del evento → **Resultados revisados** |
 | [Corregir un resultado (tiempo, distancia o captura)](#47-corregir-un-resultado) | Perfil del corredor → **Historial de carreras**, o página del evento → **Resultados revisados** |
+| [Eliminar un resultado](#eliminar-un-resultado) | Página del evento → **Resultados por revisar** o **Resultados revisados**, o perfil del corredor → **Historial de carreras** |
 | [Consultar los usuarios y sus perfiles](#usuarios) | **Usuarios** (`/admin/users`) |
 | [Tareas fuera de la app](#48-tareas-fuera-de-la-app-equipo-técnico) | Base de datos, Stripe, correo del equipo |
 
@@ -366,6 +367,47 @@ No se puede mover un resultado si:
 > `race-evidence` al guardar; si eso falla, la limpieza diaria
 > (`/api/cron/evidence-sweep`) la borra. Una captura nueva se sube con una
 > URL firmada a la carpeta del corredor.
+
+### Eliminar un resultado
+
+Si un resultado nunca debió enviarse (una prueba, un duplicado, una carrera
+que no es de este evento), puedes eliminarlo del todo, en cualquier estado:
+pendiente de revisión, rechazado, aceptado o descalificado. A diferencia de
+rechazarlo o descalificarlo, **no se le envía correo a nadie** y el corredor
+no queda bloqueado.
+
+Si solo la captura está mal, no elimines el resultado: usa **Editar
+resultado** y elige **Eliminarla** o **Subir una nueva**.
+
+1. Busca el resultado en la página del evento (**Resultados por revisar** o
+   **Resultados revisados**) o, si está aceptado, en el **Historial de
+   carreras** del perfil del corredor.
+2. Pulsa **Eliminar resultado**.
+3. Escribe el **Motivo**. Es obligatorio y queda en el registro de
+   eliminaciones. El corredor no lo ve.
+4. Pulsa **Eliminar resultado** para confirmar.
+
+Al eliminar:
+
+- El resultado y su captura se borran. Si estaba aceptado, sale del perfil
+  y de la tabla de resultados, y la medalla con él.
+- El corredor se queda sin resultado en ese evento y puede enviar uno nuevo,
+  aunque el eliminado estuviera descalificado.
+- **No se puede deshacer.** Las correcciones que tenía ese resultado también
+  se borran.
+
+No se puede eliminar un resultado aceptado si su medalla ya se envió o se
+recogió; descalifícalo.
+
+Si otra persona cambió el resultado mientras tenías la ventana abierta, la
+app no lo elimina: revisa la página, que se actualiza, y vuelve a intentarlo.
+
+> **🛠 Nota técnica:** `deleteRaceResultAction`
+> (`lib/results/corrections.ts`), que llama a
+> `public.admin_delete_race_result()`. Cada eliminación queda en
+> `public.race_result_deletions` (el resultado como estaba, quién lo eliminó
+> y por qué). La captura se borra del bucket `race-evidence` al eliminar; si
+> eso falla, la limpieza diaria (`/api/cron/evidence-sweep`) la borra.
 
 ## 4.8 Tareas fuera de la app (equipo técnico)
 
