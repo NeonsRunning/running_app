@@ -19,6 +19,8 @@ import {
  * and, for a finish sent from the wrong account, whose result it is: moved
  * to another paid runner of the same event. Nobody is emailed.
  *
+ * And deleting a result of any status outright (`deleteRaceResultAction`).
+ *
  * `admin_correct_race_result()` decides who may and what is allowed; the
  * checks here are for the message. Errors are keys under
  * `resultCorrection.errors`.
@@ -359,6 +361,85 @@ export async function correctRaceResultAction(
       .remove([data.old_evidence_path]);
     if (removeError) {
       console.error(`Deleting replaced evidence of ${resultId} failed:`, removeError.message);
+    }
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export type DeletionInput = {
+  resultId: string;
+  /** The result's version as the admin was shown it (`CorrectableResult.version`). */
+  version: string;
+  reason: string;
+};
+
+export type DeletionError =
+  | "notAllowed"
+  | "alreadyChanged"
+  | "reasonRequired"
+  | "deleteMedalDelivered"
+  | "deleteFailed";
+
+export type DeletionResult = { ok: true } | { ok: false; error: DeletionError };
+
+const DELETION_ERRORS = new Set<string>(["notAllowed", "reasonRequired", "deleteMedalDelivered"]);
+
+/**
+ * Delete a result outright, whatever its status: waiting for review, sent
+ * back, accepted or disqualified. The runner is left with no result for the
+ * event — the medal of an accepted one goes with it — and can send a new
+ * one. Nobody is emailed. What it was, which admin and why stay in
+ * `race_result_deletions`; the screenshot is deleted at once.
+ *
+ * `admin_delete_race_result()` decides who may and what is allowed. Errors
+ * are keys under `resultDeletion.errors`.
+ */
+export async function deleteRaceResultAction(input: DeletionInput): Promise<DeletionResult> {
+  if (!input || typeof input !== "object") return { ok: false, error: "deleteFailed" };
+  const { resultId, version, reason } = input;
+  if (
+    typeof resultId !== "string" ||
+    !UUID.test(resultId) ||
+    typeof version !== "string" ||
+    Number.isNaN(Date.parse(version))
+  ) {
+    return { ok: false, error: "deleteFailed" };
+  }
+
+  const trimmed = typeof reason === "string" ? reason.trim().slice(0, REVIEW_NOTE_MAX) : "";
+  if (!trimmed) return { ok: false, error: "reasonRequired" };
+
+  if (!(await isPlatformAdmin())) return { ok: false, error: "notAllowed" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("admin_delete_race_result", {
+    p_result_id: resultId,
+    p_version: version,
+    p_reason: trimmed,
+  });
+
+  if (error || !data) {
+    const key = error?.code === RAISED ? error.message : "";
+    if (DELETION_ERRORS.has(key)) return { ok: false, error: key as DeletionError };
+    // Deleted, corrected, reviewed or re-sent meanwhile: the refreshed page
+    // shows which.
+    if (key === "resultMissing" || key === "resultChanged") {
+      revalidatePath("/", "layout");
+      return { ok: false, error: "alreadyChanged" };
+    }
+    console.error(`Deleting result ${resultId} failed:`, error?.message);
+    return { ok: false, error: "deleteFailed" };
+  }
+
+  // Best effort: the daily sweep deletes it if this does not.
+  if (data.evidence_path) {
+    const { error: removeError } = await createAdminClient()
+      .storage.from(EVIDENCE_BUCKET)
+      .remove([data.evidence_path]);
+    if (removeError) {
+      console.error(`Deleting the evidence of ${resultId} failed:`, removeError.message);
     }
   }
 

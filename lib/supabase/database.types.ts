@@ -653,6 +653,52 @@ export type Database = {
           },
         ];
       };
+      /** Results an admin deleted, as they were (`admin_delete_race_result()`). */
+      race_result_deletions: {
+        Row: {
+          id: string;
+          deleted_at: string;
+          deleted_by: string | null;
+          reason: string;
+          /** The deleted result's own id; it points at nothing now. */
+          result_id: string;
+          event_id: string | null;
+          registration_id: string | null;
+          runner_id: string | null;
+          status: Database["public"]["Enums"]["result_status"];
+          finish_seconds: number;
+          distance_run_km: number | null;
+          /** The path only; the file itself is deleted. */
+          evidence_path: string | null;
+          submitted_at: string;
+          reviewed_at: string | null;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "race_result_deletions_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "race_result_deletions_registration_id_fkey";
+            columns: ["registration_id"];
+            isOneToOne: false;
+            referencedRelation: "registrations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "race_result_deletions_runner_id_fkey";
+            columns: ["runner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       event_moderation_log: {
         Row: {
           id: string;
@@ -957,6 +1003,10 @@ export type Database = {
           p_move_to_registration?: string | null;
         };
         Returns: Database["public"]["Tables"]["race_result_corrections"]["Row"];
+      };
+      admin_delete_race_result: {
+        Args: { p_result_id: string; p_version: string; p_reason: string };
+        Returns: Database["public"]["Tables"]["race_result_deletions"]["Row"];
       };
       admin_result_move_targets: {
         Args: { p_result_id: string; p_query?: string; p_limit?: number };

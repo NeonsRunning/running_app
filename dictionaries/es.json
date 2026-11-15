@@ -2253,6 +2253,28 @@
       "correctFailed": "Algo salió mal — inténtalo otra vez en un momento."
     }
   },
+  "resultDeletion": {
+    "delete": "Eliminar resultado",
+    "deleteAria": "Eliminar el resultado de {name} en {event}",
+    "title": "Eliminar resultado",
+    "description": "{name} · {event}. No se le escribe a nadie.",
+    "body": "El resultado se borra con su captura, y la medalla que venía con él sale del perfil de {name}. Se queda sin resultado en este evento y puede enviar uno nuevo — aunque este estuviera descalificado. No se puede deshacer.",
+    "reason": "Motivo",
+    "reasonHint": "Por qué lo eliminas — queda en el registro de eliminaciones. El corredor no lo ve.",
+    "cancel": "Cancelar",
+    "confirm": "Eliminar resultado",
+    "working": "Eliminando…",
+    "deletedTitle": "Resultado eliminado",
+    "deletedBody": "{name} ya no tiene resultado en {event}.",
+    "errors": {
+      "title": "No se pudo eliminar el resultado",
+      "notAllowed": "Solo los administradores de la plataforma pueden eliminar un resultado.",
+      "alreadyChanged": "Este resultado cambió desde que lo abriste. La página se actualizó — revísalo e inténtalo otra vez.",
+      "reasonRequired": "Indica por qué eliminas el resultado.",
+      "deleteMedalDelivered": "La medalla de este resultado ya se envió o se recogió, así que no se puede eliminar. Descalifícalo.",
+      "deleteFailed": "Algo salió mal — inténtalo otra vez en un momento."
+    }
+  },
   "recordResult": {
     "markFinished": "Marcar llegada",
     "markFinishedAria": "Marcar que {name} terminó",

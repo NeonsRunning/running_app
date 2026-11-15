@@ -2253,6 +2253,28 @@
       "correctFailed": "Something went wrong — try again in a moment."
     }
   },
+  "resultDeletion": {
+    "delete": "Delete result",
+    "deleteAria": "Delete {name}’s result for {event}",
+    "title": "Delete result",
+    "description": "{name} · {event}. Nobody is emailed.",
+    "body": "The result is deleted with its screenshot, and the medal that came with it leaves {name}’s profile. They’re left with no result for this event and can send a new one — even if this one was disqualified. This can’t be undone.",
+    "reason": "Reason",
+    "reasonHint": "Why you’re deleting it — kept in the deletion log. The runner doesn’t see it.",
+    "cancel": "Cancel",
+    "confirm": "Delete Result",
+    "working": "Deleting…",
+    "deletedTitle": "Result deleted",
+    "deletedBody": "{name} has no result for {event} now.",
+    "errors": {
+      "title": "Couldn’t delete the result",
+      "notAllowed": "Only platform admins can delete a result.",
+      "alreadyChanged": "This result changed since you opened it. The page is refreshed — check it and try again.",
+      "reasonRequired": "Say why you’re deleting the result.",
+      "deleteMedalDelivered": "This result’s medal was already shipped or picked up, so it can’t be deleted. Disqualify it instead.",
+      "deleteFailed": "Something went wrong — try again in a moment."
+    }
+  },
   "recordResult": {
     "markFinished": "Mark finished",
     "markFinishedAria": "Mark {name} as finished",

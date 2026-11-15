@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/field";
 import { Pagination, SectionHeading } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/toast";
+import { DeleteResultButton } from "@/components/results/delete-result";
 import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { distanceLabel } from "@/lib/i18n/labels";
 import { reviewRaceResultAction } from "@/lib/results/actions";
@@ -18,12 +19,22 @@ import { focusKey, focusSoon, neighbourOf } from "./row-focus";
  * screenshot beside the time they claim. Accepting puts the result and the
  * event's medal on the runner's profile; rejecting sends it back with an
  * optional note, and the runner can try again. A reviewed card leaves the
- * queue at once.
+ * queue at once. An admin can also delete a submission outright
+ * (`DeleteResultButton`).
  */
 /** Results to review shown at once. */
 const PAGE_SIZE = 10;
 
-export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
+export function EventResults({
+  initial,
+  isAdmin,
+  eventName,
+}: {
+  initial: ResultSubmissionRow[];
+  isAdmin: boolean;
+  /** For the deletion dialog's heading. */
+  eventName: string;
+}) {
   const t = useT();
   const fmt = useFormat();
   const localeTag = useLocaleTag();
@@ -249,6 +260,19 @@ export function EventResults({ initial }: { initial: ResultSubmissionRow[] }) {
                       >
                         {t("resultReview.reject")}
                       </Button>
+                      {isAdmin ? (
+                        <DeleteResultButton
+                          className="ml-auto"
+                          disabled={busy !== null}
+                          result={{
+                            id: row.id,
+                            runnerName: row.runnerName,
+                            eventName,
+                            // Never reviewed or corrected: when it was sent.
+                            version: row.submittedAt,
+                          }}
+                        />
+                      ) : null}
                     </div>
                   )}
                 </div>

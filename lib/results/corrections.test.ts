@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * An admin correcting a reviewed result: what the actions refuse before the
- * database is asked, how its errors come back, and which file is deleted.
- * Who may correct what is tested against Postgres
- * (supabase/tests/database/correct_result.test.sql).
+ * An admin correcting a reviewed result, or deleting one: what the actions
+ * refuse before the database is asked, how its errors come back, and which
+ * file is deleted. Who may correct or delete what is tested against Postgres
+ * (supabase/tests/database/correct_result.test.sql, delete_result.test.sql).
  */
 
 const isPlatformAdmin = vi.fn();
@@ -36,8 +36,12 @@ vi.mock("@/lib/supabase/admin", () => ({
   }),
 }));
 
-const { correctRaceResultAction, prepareEvidenceUploadAction, searchMoveTargetsAction } =
-  await import("./corrections");
+const {
+  correctRaceResultAction,
+  deleteRaceResultAction,
+  prepareEvidenceUploadAction,
+  searchMoveTargetsAction,
+} = await import("./corrections");
 
 const RESULT = "00000000-0000-4000-9000-0000000000f1";
 const RUNNER = "00000000-0000-4000-8000-000000000004";
@@ -363,5 +367,82 @@ describe("prepareEvidenceUploadAction", () => {
       error: "alreadyChanged",
     });
     expect(createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteRaceResultAction", () => {
+  const deletion = (over: Partial<Parameters<typeof deleteRaceResultAction>[0]> = {}) => ({
+    resultId: RESULT,
+    version: "2026-11-12T10:00:00.123456+00:00",
+    reason: "Sent for the wrong race",
+    ...over,
+  });
+
+  beforeEach(() => {
+    rpc.mockResolvedValue({ data: { evidence_path: OLD }, error: null });
+  });
+
+  it("sends the version and trimmed reason, and deletes the screenshot", async () => {
+    await expect(
+      deleteRaceResultAction(deletion({ reason: "  Sent for the wrong race  " })),
+    ).resolves.toEqual({ ok: true });
+    expect(rpc).toHaveBeenCalledWith("admin_delete_race_result", {
+      p_result_id: RESULT,
+      p_version: "2026-11-12T10:00:00.123456+00:00",
+      p_reason: "Sent for the wrong race",
+    });
+    expect(removeFiles).toHaveBeenCalledWith([OLD]);
+    expect(revalidatePath).toHaveBeenCalledWith("/", "layout");
+  });
+
+  it("deletes no file for a result that had no screenshot", async () => {
+    rpc.mockResolvedValue({ data: { evidence_path: null }, error: null });
+    await expect(deleteRaceResultAction(deletion())).resolves.toEqual({ ok: true });
+    expect(removeFiles).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ reason: "   " }, "reasonRequired"],
+    [{ resultId: "not-a-uuid" }, "deleteFailed"],
+    [{ version: "yesterday" }, "deleteFailed"],
+  ])("refuses %o before asking the database", async (over, error) => {
+    await expect(deleteRaceResultAction(deletion(over))).resolves.toEqual({ ok: false, error });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses anyone but an admin", async () => {
+    isPlatformAdmin.mockResolvedValue(false);
+    await expect(deleteRaceResultAction(deletion())).resolves.toEqual({
+      ok: false,
+      error: "notAllowed",
+    });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("still succeeds when the screenshot cannot be deleted", async () => {
+    removeFiles.mockResolvedValue({ data: null, error: { message: "boom" } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(deleteRaceResultAction(deletion())).resolves.toEqual({ ok: true });
+  });
+
+  it.each([
+    ["resultChanged", "alreadyChanged"],
+    ["resultMissing", "alreadyChanged"],
+    ["deleteMedalDelivered", "deleteMedalDelivered"],
+    ["reasonRequired", "reasonRequired"],
+    ["notAllowed", "notAllowed"],
+  ])("maps the database's %s to %s", async (raised, error) => {
+    rpc.mockResolvedValue({ data: null, error: { code: "P0001", message: raised } });
+    await expect(deleteRaceResultAction(deletion())).resolves.toEqual({ ok: false, error });
+    expect(removeFiles).not.toHaveBeenCalled();
+  });
+
+  it("reports anything else as a failure", async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: "42P01", message: "nope" } });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(deleteRaceResultAction(deletion())).resolves.toEqual({
+      ok: false,
+      error: "deleteFailed",
+    });
   });
 });
