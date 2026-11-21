@@ -4,7 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 
 /**
  * Checking a runner in at the race-day tent, or undoing it. The event's
- * organizer, or a platform admin, may; `set_checked_in()` decides.
+ * organizer, or a platform admin, may; `set_checked_in()` decides. A child
+ * on an adult's sign-up is checked in on their own, by their own id, through
+ * `set_child_checked_in()`.
  */
 
 /** A key under `checkin.errors`. */
@@ -17,18 +19,30 @@ export type CheckInResult =
 const KNOWN = new Set<string>(["notAllowed", "registrationMissing", "noCheckIn"]);
 
 export async function setCheckedInAction(
+  /** The sign-up's id, or the child's when `kind` is "child". */
   registrationId: string,
   checkedIn: boolean,
+  kind: "runner" | "child" = "runner",
 ): Promise<CheckInResult> {
-  if (typeof registrationId !== "string" || typeof checkedIn !== "boolean") {
+  if (
+    typeof registrationId !== "string" ||
+    typeof checkedIn !== "boolean" ||
+    (kind !== "runner" && kind !== "child")
+  ) {
     return { ok: false, error: "checkInFailed" };
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("set_checked_in", {
-    p_registration_id: registrationId,
-    p_checked_in: checkedIn,
-  });
+  const { data, error } =
+    kind === "child"
+      ? await supabase.rpc("set_child_checked_in", {
+          p_child_id: registrationId,
+          p_checked_in: checkedIn,
+        })
+      : await supabase.rpc("set_checked_in", {
+          p_registration_id: registrationId,
+          p_checked_in: checkedIn,
+        });
 
   if (error || !data) {
     const key = error?.code === "P0001" ? (error.message ?? "") : "";

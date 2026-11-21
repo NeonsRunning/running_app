@@ -255,8 +255,11 @@ async function sendRaceDayChangedEmails(
     if (whereBefore !== whereNow) {
       rows.push([t(k("whereNow")), whereNow], [t(k("whereBefore")), whereBefore]);
     }
-    const own = (runner.categoryId ? moved.get(runner.categoryId) : undefined);
-    if (own) {
+    // Every distance on the sign-up whose start moved: the runner's own, and
+    // each child's.
+    for (const id of runner.categoryIds) {
+      const own = moved.get(id);
+      if (!own) continue;
       const [startBefore, startNow] = [
         startLine(own.before, before, t, locale),
         startLine(own.after, saved, t, locale),

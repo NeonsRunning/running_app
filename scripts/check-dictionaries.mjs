@@ -67,6 +67,7 @@ const DYNAMIC_PREFIXES = [
   "adminEvents.blocked.",
   "eventPayments.errors.",
   "eventRegistrations.errors.",
+  "eventRegistrations.childErrors.",
   "eventRegistrations.pendingErrors.",
   "eventRegistrations.shipErrors.",
   "footer.",

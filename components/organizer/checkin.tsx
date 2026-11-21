@@ -91,7 +91,10 @@ export function CheckInStation({ list }: { list: CheckInList }) {
   const found = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return people.filter((p) => `${p.name} ${p.bib ?? ""}`.toLowerCase().includes(q));
+    // A child is also found by the adult who signed them up.
+    return people.filter((p) =>
+      `${p.name} ${p.bib ?? ""} ${p.guardianName ?? ""}`.toLowerCase().includes(q),
+    );
   }, [people, query]);
   const matches = found.slice(0, MAX_MATCHES);
 
@@ -142,7 +145,7 @@ export function CheckInStation({ list }: { list: CheckInList }) {
       }),
     );
     focusAfterTap(checkIn);
-    const result = await setCheckedInAction(runner.id, checkIn).catch(
+    const result = await setCheckedInAction(runner.id, checkIn, runner.kind).catch(
       () => ({ ok: false, error: "checkInFailed" }) as const,
     );
 
@@ -232,6 +235,11 @@ export function CheckInStation({ list }: { list: CheckInList }) {
                 gender: genderLabel(t, active.gender),
               })}
             </p>
+            {active.guardianName ? (
+              <p className="mt-2 text-base text-fg-muted">
+                {t("checkin.withGuardian", { name: active.guardianName })}
+              </p>
+            ) : null}
           </div>
 
           <ul className="mt-9 border-t-2 border-line">
@@ -414,6 +422,11 @@ export function CheckInStation({ list }: { list: CheckInList }) {
                             })
                           : distanceLabel(t, p.distance)}
                       </span>
+                      {p.guardianName ? (
+                        <span className="block truncate text-[12px] text-fg-dim">
+                          {t("checkin.withGuardian", { name: p.guardianName })}
+                        </span>
+                      ) : null}
                     </span>
                     {p.paymentUnderReview ? (
                       <Badge tone="yellow">{t("checkin.underReview")}</Badge>

@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { scheduleRegistrationChangedEmail } from "@/lib/email/registration-changed";
+import {
+  scheduleChildRemovedEmail,
+  scheduleRegistrationChangedEmail,
+} from "@/lib/email/registration-changed";
 import { createClient } from "@/lib/supabase/server";
 
 /**
@@ -51,6 +54,47 @@ export async function removeRegistrationAction(
 
   await scheduleRegistrationChangedEmail(data, "removed");
   // Spots left, sign-up counts and the runner's own pages all change.
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export type RemoveChildResult =
+  | { ok: true }
+  /** A key under `eventRegistrations.childErrors`. */
+  | {
+      ok: false;
+      error: "notAllowed" | "alreadyRemoved" | "lastChild" | "removeFailed";
+    };
+
+/**
+ * Taking one child off a paid order, leaving the adult and any other
+ * children on it. The spot opens; the amount paid stands, and a refund for
+ * the child is a manual step, as for a removed runner. Whether the caller
+ * may is decided by `remove_registration_child()`. The adult is emailed.
+ */
+export async function removeRegistrationChildAction(
+  childId: string,
+): Promise<RemoveChildResult> {
+  if (typeof childId !== "string") return { ok: false, error: "removeFailed" };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("remove_registration_child", {
+    p_child_id: childId,
+  });
+
+  if (error || !data) {
+    const key = error?.code === "P0001" ? error.message : "";
+    if (key === "notAllowed") return { ok: false, error: "notAllowed" };
+    // The only child of an adult who is not racing: the whole order goes.
+    if (key === "lastChild") return { ok: false, error: "lastChild" };
+    // Taken off a moment ago, or the order was removed or is unpaid again.
+    if (key === "registrationMissing") return { ok: false, error: "alreadyRemoved" };
+    console.error(`Removing child ${childId} failed:`, error?.message);
+    return { ok: false, error: "removeFailed" };
+  }
+
+  await scheduleChildRemovedEmail(data);
+  // Spots left and sign-up counts change, and the adult's own pages.
   revalidatePath("/", "layout");
   return { ok: true };
 }

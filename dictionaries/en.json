@@ -861,7 +861,8 @@
       "cta": "View race details",
       "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING.",
       "preheaderNoTime": "Your race is tomorrow. Here are your details.",
-      "tipsAnywhere": "Pick your route, charge your watch or phone, and keep a screenshot of your finish."
+      "tipsAnywhere": "Pick your route, charge your watch or phone, and keep a screenshot of your finish.",
+      "childBib": "Bib #{bib}"
     },
     "contactMessage": {
       "subject": "Contact form: {topic} from {name}",
@@ -910,6 +911,19 @@
       "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
       "cta": "Track it on your profile",
       "footer": "You’re receiving this because you asked to have your items for {event} mailed to you on NEONS RUNNING."
+    },
+    "childRemoved": {
+      "subject": "A child was removed from your registration for {event}",
+      "preheader": "{child} is no longer on the runner list for this race.",
+      "heading": "Hi {name},",
+      "intro": "{child} has been removed from your registration for {event} and is no longer on its runner list. The rest of your registration is unchanged.",
+      "race": "Race",
+      "child": "Child",
+      "amount": "You paid for this child",
+      "next": "If you think this was a mistake, or have questions about a refund, contact us and we’ll look into it.",
+      "nextFree": "If you think this was a mistake, contact us and we’ll look into it.",
+      "cta": "Contact Us",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
     }
   },
   "results": {
@@ -1106,7 +1120,9 @@
     },
     "mailKitAndMedal": "Race kit + finisher medal",
     "kitAheadOfMedal": "Your kit shipped {date}. Your medal follows once it’s earned.",
-    "medalPickupFinal": "Mailing your medal is now part of the paid “Send by mail” extra, so you won’t be able to switch back to the mail."
+    "medalPickupFinal": "Mailing your medal is now part of the paid “Send by mail” extra, so you won’t be able to switch back to the mail.",
+    "children": "Children",
+    "registrationMetaChildren": "Children registered: {count}"
   },
   "auth": {
     "shell": {
@@ -1672,7 +1688,8 @@
       "registrationMissing": "This runner is no longer registered for the race.",
       "noCheckIn": "This race has no check-in: it isn’t published, or it’s run virtually or anywhere.",
       "checkInFailed": "Something went wrong. Try again."
-    }
+    },
+    "withGuardian": "With {name}"
   },
   "charts": {
     "table": "Table",
@@ -2412,7 +2429,8 @@
       "shipped": "Shipped on",
       "tracking": "Tracking number",
       "medalDelivery": "Medal",
-      "medalPickedUp": "Medal picked up on"
+      "medalPickedUp": "Medal picked up on",
+      "registeredBy": "Registered by"
     },
     "markShipped": "Mark shipped",
     "markShippedAria": "Mark shipped: {name}’s shipment",
@@ -2467,7 +2485,19 @@
     "noAddress": "No address yet",
     "markMedalShipped": "Mark medal shipped",
     "shipMedalTitle": "Mark {name}’s medal as shipped?",
-    "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone."
+    "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone.",
+    "guardian": "Guardian",
+    "childOf": "Child · registered by {name}",
+    "removeChildAria": "Remove {name} from {guardian}’s registration",
+    "removeChildDescription": "Bib {bib} comes off the list and the spot goes back to the race. The rest of {guardian}’s registration stays as it is. What was paid for this child is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",
+    "childRemovedTitle": "Child removed",
+    "childErrors": {
+      "title": "Couldn’t remove the child",
+      "notAllowed": "Only this event’s organizer can remove its runners.",
+      "alreadyRemoved": "This child was already removed.",
+      "lastChild": "This is the only child on a registration whose adult isn’t racing. Remove the whole registration instead.",
+      "removeFailed": "Something went wrong — try again in a moment."
+    }
   },
   "cancelledRegistrations": {
     "title": "Removed runners",

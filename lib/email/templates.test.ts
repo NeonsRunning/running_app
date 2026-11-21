@@ -61,6 +61,27 @@ const REGISTRATION = {
   medal_email_sent_at: null,
   events: EVENT,
   event_categories: CATEGORY,
+  // A child on the sign-up, as each query embeds them.
+  registration_children: [
+    {
+      first_name: "Lia",
+      last_name: "Rivera",
+      bib: 43,
+      position: 1,
+      cancelled_at: null,
+      category: { distance: "5K" },
+    },
+  ],
+  children: [{ category_id: "cat-2", cancelled_at: null }],
+};
+
+const CHILD = {
+  id: "child-1",
+  registration_id: REGISTRATION.id,
+  event_id: EVENT.id,
+  first_name: "Lia",
+  last_name: "Rivera",
+  price: 10,
 };
 
 /** Laid over the sample sign-up, for a test about a different kind of one. */
@@ -189,7 +210,9 @@ const { scheduleEventRestoredEmails } = await import("./event-restored");
 const { scheduleEventSavedEmails } = await import("./event-updated");
 const { schedulePaymentRefundedEmail } = await import("./payment-refunded");
 const { sendRaceReminders } = await import("./race-reminder");
-const { scheduleRegistrationChangedEmail } = await import("./registration-changed");
+const { scheduleChildRemovedEmail, scheduleRegistrationChangedEmail } = await import(
+  "./registration-changed"
+);
 const { scheduleRegistrationEmail } = await import("./registration-confirmed");
 const { scheduleResultReviewedEmail } = await import("./result-reviewed");
 const { scheduleReviewRequestedEmail } = await import("./review-requested");
@@ -267,6 +290,10 @@ const TEMPLATES: [string, () => Promise<unknown>][] = [
   ["registration removed", () => scheduleRegistrationChangedEmail(reg(), "removed")],
   ["registration removed, free", () => scheduleRegistrationChangedEmail(reg({ amount: 0 }), "removed")],
   ["registration back to pending", () => scheduleRegistrationChangedEmail(reg(), "pending")],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a sample row
+  ["child removed from an order", () => scheduleChildRemovedEmail(CHILD as any)],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a sample row
+  ["child removed, free", () => scheduleChildRemovedEmail({ ...CHILD, price: 0 } as any)],
   ["registration confirmed (card)", () => scheduleRegistrationEmail(reg())],
   ["registration confirmed (ATH Móvil)", () => scheduleRegistrationEmail(reg({ payment_method: "ath_movil" }))],
   ["result accepted", () => scheduleResultReviewedEmail(result("accepted"))],
@@ -354,6 +381,19 @@ describe("registration confirmed, with children", () => {
       expect(email.html).not.toContain("font-size:44px");
     },
   );
+});
+
+describe("race reminder, with children", () => {
+  it.each(["es", "en"] as const)("lists each child with their distance and bib (%s)", async (lang) => {
+    locale = lang;
+    const [email] = await render(() => sendRaceReminders("https://neons.test"));
+
+    for (const part of [email.html, email.text]) {
+      expect(part).toContain("Lia Rivera");
+      expect(part).toContain("5K");
+      expect(part).toContain("#43");
+    }
+  });
 });
 
 describe("optional emails", () => {

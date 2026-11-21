@@ -258,7 +258,10 @@ export type Runner = {
   upcoming: {
     eventSlug: string;
     bib: string;
-    category: Distance;
+    /** Null when the adult signed up only children. */
+    category: Distance | null;
+    /** Children on the sign-up; absent or 0 when there are none. */
+    children?: number;
     wave: string;
     /** Signed up but not paid yet: there is no bib until it is. */
     pending?: boolean;

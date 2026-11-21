@@ -861,7 +861,8 @@
       "cta": "Ver detalles de la carrera",
       "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING.",
       "preheaderNoTime": "Tu carrera es mañana. Aquí tienes los detalles.",
-      "tipsAnywhere": "Escoge tu ruta, carga tu reloj o teléfono y guarda una captura de tu llegada."
+      "tipsAnywhere": "Escoge tu ruta, carga tu reloj o teléfono y guarda una captura de tu llegada.",
+      "childBib": "Número #{bib}"
     },
     "contactMessage": {
       "subject": "Formulario de contacto: {topic} de {name}",
@@ -910,6 +911,19 @@
       "nextNoTracking": "Si no llega en los próximos días, contáctanos.",
       "cta": "Rastréalo en tu perfil",
       "footer": "Recibes este correo porque pediste que te enviaran por correo lo tuyo de {event} en NEONS RUNNING."
+    },
+    "childRemoved": {
+      "subject": "Se eliminó a un menor de tu inscripción en {event}",
+      "preheader": "{child} ya no está en la lista de corredores de esta carrera.",
+      "heading": "Hola, {name}:",
+      "intro": "{child} fue eliminado de tu inscripción en {event} y ya no está en su lista de corredores. El resto de tu inscripción no cambia.",
+      "race": "Carrera",
+      "child": "Menor",
+      "amount": "Pagaste por este menor",
+      "next": "Si crees que fue un error, o tienes preguntas sobre un reembolso, contáctanos y lo revisaremos.",
+      "nextFree": "Si crees que fue un error, contáctanos y lo revisaremos.",
+      "cta": "Contáctanos",
+      "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING."
     }
   },
   "results": {
@@ -1106,7 +1120,9 @@
     },
     "mailKitAndMedal": "Paquete de la carrera + medalla",
     "kitAheadOfMedal": "Tu paquete se envió el {date}. Tu medalla sigue cuando la ganes.",
-    "medalPickupFinal": "Enviar la medalla ahora es parte del extra pagado “Envío por correo”, así que no podrás volver al correo."
+    "medalPickupFinal": "Enviar la medalla ahora es parte del extra pagado “Envío por correo”, así que no podrás volver al correo.",
+    "children": "Menores",
+    "registrationMetaChildren": "Menores inscritos: {count}"
   },
   "auth": {
     "shell": {
@@ -1672,7 +1688,8 @@
       "registrationMissing": "Este corredor ya no está inscrito en la carrera.",
       "noCheckIn": "Esta carrera no tiene registro: no está publicada, o es virtual o se corre en cualquier lugar.",
       "checkInFailed": "Algo salió mal. Inténtalo de nuevo."
-    }
+    },
+    "withGuardian": "Con {name}"
   },
   "charts": {
     "table": "Tabla",
@@ -2412,7 +2429,8 @@
       "shipped": "Enviado el",
       "tracking": "Número de rastreo",
       "medalDelivery": "Medalla",
-      "medalPickedUp": "Medalla recogida el"
+      "medalPickedUp": "Medalla recogida el",
+      "registeredBy": "Inscrito por"
     },
     "markShipped": "Marcar enviado",
     "markShippedAria": "Marcar enviado: el envío de {name}",
@@ -2467,7 +2485,19 @@
     "noAddress": "Sin dirección",
     "markMedalShipped": "Marcar medalla enviada",
     "shipMedalTitle": "¿Marcar como enviada la medalla de {name}?",
-    "shipKitOnlyDescription": "{name} no ha ganado su medalla, así que solo va el paquete. La medalla puede seguir si la gana. Le escribiremos a {name}. Esto no se puede deshacer."
+    "shipKitOnlyDescription": "{name} no ha ganado su medalla, así que solo va el paquete. La medalla puede seguir si la gana. Le escribiremos a {name}. Esto no se puede deshacer.",
+    "guardian": "Tutor",
+    "childOf": "Menor · inscrito por {name}",
+    "removeChildAria": "Eliminar a {name} de la inscripción de {guardian}",
+    "removeChildDescription": "El número {bib} sale de la lista y el espacio vuelve a quedar disponible. El resto de la inscripción de {guardian} queda como está. Lo que se pagó por este menor no se reembolsa automáticamente — reembólsalo en Stripe o en la app ATH Móvil Business si hace falta. Esto no se puede deshacer.",
+    "childRemovedTitle": "Menor eliminado",
+    "childErrors": {
+      "title": "No se pudo eliminar al menor",
+      "notAllowed": "Solo el organizador de este evento puede eliminar a sus corredores.",
+      "alreadyRemoved": "Este menor ya fue eliminado.",
+      "lastChild": "Es el único menor de una inscripción cuyo adulto no corre. Elimina la inscripción completa.",
+      "removeFailed": "Algo salió mal — inténtalo de nuevo en un momento."
+    }
   },
   "cancelledRegistrations": {
     "title": "Corredores removidos",

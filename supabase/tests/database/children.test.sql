@@ -156,7 +156,7 @@ grant execute on function tests.save_with(uuid, jsonb) to authenticated;
 grant execute on function tests.spots(text) to authenticated;
 -- End of fixtures.
 
-select plan(44);
+select plan(46);
 
 -- What register_for_event() refuses -----------------------------------------
 
@@ -520,6 +520,30 @@ select is(
   array[tests.spots('c1'), tests.spots('c2')],
   array[1, 1]::bigint[],
   'and the children''s spots open with the adult''s'
+);
+
+-- Medals -------------------------------------------------------------------------
+
+-- Race day has come, on a race that hands out medals and takes no results.
+reset role;
+update public.events set
+  event_date = current_date - 1, registration_closes = current_date - 2,
+  mails_medals = true
+where id = '00000000-0000-4000-9000-0000000000e1';
+select tests.act_as('00000000-0000-4000-8000-000000000001');
+set local role authenticated;
+
+select lives_ok(
+  $$ select public.mark_medal_picked_up('00000000-0000-4000-9000-0000000000b1') $$,
+  'a runner''s medal is handed over on race day'
+);
+
+select throws_ok(
+  $$ select public.mark_medal_picked_up(
+       (select id from public.registrations
+        where runner_id = '00000000-0000-4000-8000-000000000006')) $$,
+  'P0001', 'notFinished',
+  'an adult who signed up only children earned none'
 );
 
 -- The organizer's switch --------------------------------------------------------

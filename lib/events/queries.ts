@@ -496,6 +496,9 @@ export async function getRegisteredEventIds(
  * — the runner has either run it or missed it by then. One with an accepted
  * result drops off as soon as the organizer accepts it.
  *
+ * A sign-up of only children has no distance or bib of its own; it is listed
+ * with how many children are on it.
+ *
  * Paid sign-ups come with their bib. Unpaid ones come flagged `pending` while
  * their spot is still held: a card payment in progress, or an ATH Móvil
  * payment waiting for review (held until reviewed). A lapsed hold or a
@@ -515,7 +518,7 @@ export async function getUpcomingRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, status, category:event_categories!inner(distance), event:events!inner(slug, event_date, last_day, status)",
+        "id, bib, status, category:event_categories(distance), children:registration_children(cancelled_at), event:events!inner(slug, event_date, last_day, status)",
       )
       .eq("runner_id", runnerId)
       .or(`status.eq.confirmed,hold_expires_at.gt.${new Date().toISOString()}`)
@@ -542,7 +545,8 @@ export async function getUpcomingRegistrations(
     .map((r) => ({
       eventSlug: r.event.slug,
       bib: r.bib === null ? "" : String(r.bib),
-      category: r.category.distance,
+      category: r.category?.distance ?? null,
+      children: r.children.filter((c) => c.cancelled_at === null).length,
       // Database races have a single open wave; see `toEvent`.
       wave: "Open",
       pending: r.status === "pending",

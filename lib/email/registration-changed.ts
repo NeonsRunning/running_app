@@ -20,6 +20,9 @@ import { siteOrigin } from "@/lib/site-url";
  *             spot held and the bib given up. Approving it again sends the
  *             confirmation email afresh; rejecting it, the rejection email.
  *
+ * And when one child is taken off a paid order (`scheduleChildRemovedEmail`):
+ * the adult is told which child, and that the rest of the order stands.
+ *
  * Each RPC changes a confirmed row once, so no claim is needed. Runs after
  * the response with `after()`.
  */
@@ -39,6 +42,64 @@ export async function scheduleRegistrationChangedEmail(
       console.error(`Registration ${change} email for ${registration.id} failed:`, err);
     }),
   );
+}
+
+/** The adult is told that one of the children on their order was taken off it. */
+export async function scheduleChildRemovedEmail(
+  child: Tables<"registration_children">,
+): Promise<void> {
+  if (!hasBrevoEnv()) return;
+
+  const origin = await siteOrigin();
+  after(() =>
+    sendChildRemovedEmail(child, origin).catch((err) => {
+      console.error(`Child removed email for ${child.id} failed:`, err);
+    }),
+  );
+}
+
+async function sendChildRemovedEmail(
+  child: Tables<"registration_children">,
+  origin: string,
+) {
+  const admin = createAdminClient();
+  const [{ data: reg }, { data: event }] = await Promise.all([
+    admin
+      .from("registrations")
+      .select("runner_id, email, first_name, last_name")
+      .eq("id", child.registration_id)
+      .single(),
+    admin.from("events").select("name").eq("id", child.event_id).single(),
+  ]);
+  if (!reg || !event) throw new Error("Registration or event not found.");
+
+  const locale = await getLocaleOf(reg.runner_id);
+  const t = await getTranslator(locale);
+  const k = (key: string) => `emails.childRemoved.${key}`;
+  const name = `${child.first_name} ${child.last_name}`.trim();
+  const paid = Number(child.price) > 0;
+
+  await sendEmail({
+    to: { email: reg.email, name: `${reg.first_name} ${reg.last_name}` },
+    ...renderEmail({
+      locale,
+      subject: t(k("subject"), { event: event.name }),
+      preheader: t(k("preheader"), { child: name }),
+      heading: t(k("heading"), { name: reg.first_name }),
+      intro: [t(k("intro"), { child: name, event: event.name })],
+      rows: [
+        [t(k("race")), event.name],
+        [t(k("child")), name],
+        ...(paid
+          ? [[t(k("amount")), formatMoney(Number(child.price), locale)] as [string, string]]
+          : []),
+      ],
+      outro: [paid ? t(k("next")) : t(k("nextFree"))],
+      cta: { label: t(k("cta")), url: `${origin}${localizePath("/contact", locale)}` },
+      footer: t(k("footer"), { event: event.name }),
+    }),
+    tags: ["registration-child-removed"],
+  });
 }
 
 async function sendRegistrationChangedEmail(
