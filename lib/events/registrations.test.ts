@@ -381,6 +381,88 @@ describe("startRegistrationPaymentAction", () => {
     expect(stripe.paymentIntents.create).not.toHaveBeenCalled();
   });
 
+  describe("for a race with card payments switched off", () => {
+    /** The race as checkout reads it: no cards, and this ATH Móvil account. */
+    const cardsOff = (account: { active: boolean } | null) => ({
+      data: {
+        event_id: "event-1",
+        event: { accepts_card_payments: false, account },
+      },
+    });
+
+    it("holds the spot and opens no card payment", async () => {
+      answerUser = (q) =>
+        q.table === "event_categories" ? cardsOff({ active: true }) : { data: null };
+
+      expect(await startRegistrationPaymentAction(input)).toEqual({
+        ok: true,
+        registrationId: "reg-1",
+        clientSecret: null,
+        amount: 50.23,
+      });
+      expect(rpc).toHaveBeenCalled();
+      expect(stripe.paymentIntents.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses when the race has no active ATH Móvil account either", async () => {
+      for (const account of [null, { active: false }]) {
+        answerUser = (q) =>
+          q.table === "event_categories" ? cardsOff(account) : { data: null };
+
+        expect(await startRegistrationPaymentAction(input)).toEqual({
+          ok: false,
+          error: "paymentsUnavailable",
+        });
+      }
+      expect(rpc).not.toHaveBeenCalled();
+    });
+
+    it("cancels a card payment left open from before the switch", async () => {
+      answerUser = (q) =>
+        q.table === "event_categories"
+          ? cardsOff({ active: true })
+          : { data: { status: "pending", payment_intent_id: "pi_open" } };
+      stripe.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_open",
+        amount: 5023,
+        status: "requires_payment_method",
+        client_secret: "secret_open",
+      });
+
+      expect(await startRegistrationPaymentAction(input)).toMatchObject({
+        ok: true,
+        clientSecret: null,
+      });
+      expect(stripe.paymentIntents.cancel).toHaveBeenCalledWith("pi_open");
+      expect(stripe.paymentIntents.create).not.toHaveBeenCalled();
+    });
+
+    it("still finishes a sign-up whose card payment already went through", async () => {
+      answerUser = (q) =>
+        q.table === "event_categories"
+          ? cardsOff({ active: true })
+          : { data: { status: "pending", payment_intent_id: "pi_paid" } };
+      const paid = { id: "pi_paid", amount: 5023, status: "succeeded" };
+      stripe.paymentIntents.retrieve.mockResolvedValue(paid);
+      settlePayment.mockResolvedValue({
+        ok: true,
+        registration: {
+          bib: 1001,
+          amount: 50.23,
+          email: "ana@example.com",
+          first_name: "Ana",
+          last_name: "Figueroa",
+        },
+      });
+
+      expect(await startRegistrationPaymentAction(input)).toMatchObject({
+        ok: true,
+        confirmed: { bib: 1001 },
+      });
+      expect(settlePayment).toHaveBeenCalledWith(paid);
+    });
+  });
+
   it("reports payments unavailable when Stripe cannot open one", async () => {
     stripe.paymentIntents.create.mockRejectedValue(new Error("Stripe is down"));
 

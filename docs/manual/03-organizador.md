@@ -157,6 +157,12 @@ Cada categoría es una distancia con su **precio**, su **cupo máximo** y una
   sigues viendo los números en tu panel.
 - **Edad mínima** y **Edad máxima** (opcional): se comprueban con la edad del
   corredor el día de la carrera.
+- **Aceptar pagos con tarjeta**: marcado por defecto. Desmárcalo si la carrera
+  solo acepta ATH Móvil: los corredores ya no ven la opción de tarjeta al
+  pagar y pasan directo a las instrucciones de ATH Móvil. Aplica a los pagos
+  que se inicien después del cambio; un pago con tarjeta que ya estaba abierto
+  se acepta igual. El evento necesita al menos una forma de pago: sin tarjeta,
+  tienes que elegir una cuenta de ATH Móvil activa o el evento no se guarda.
 - **Cuenta de ATH Móvil** (opcional): la cuenta comercial a la que los
   corredores pueden pagar por ATH Móvil, además de con tarjeta. Las cuentas
   las crea el equipo de NEONS RUNNING. Si no hay ninguna, los corredores solo
@@ -233,7 +239,8 @@ tiene errores, se marca en la columna izquierda.
 > **🛠 Nota técnica:** `saveEventAction` (`lib/events/actions.ts`) valida el
 > formulario y llama a `save_event()`, que repite las reglas en la base de
 > datos: rol de organizador, estado `draft` o `published` (nunca `removed`),
-> cupos frente a inscritos y cuenta de ATH Móvil activa. Las imágenes se
+> cupos frente a inscritos, cuenta de ATH Móvil activa y al menos una forma
+> de pago (`accepts_card_payments` o una cuenta activa). Las imágenes se
 > convierten a WebP en el navegador y se suben al bucket de imágenes de
 > eventos dentro de la carpeta del organizador.
 

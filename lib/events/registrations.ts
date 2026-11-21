@@ -83,7 +83,8 @@ export type AthMovilSubmission = {
 export type PaymentStart =
   /**
    * The spot is held. `clientSecret` mounts Stripe's Payment Element; null
-   * when card payments are not configured and only ATH Móvil is offered.
+   * when card payments are not configured, or the organizer switched them
+   * off for this race, and only ATH Móvil is offered.
    */
   | {
       ok: true;
@@ -279,12 +280,15 @@ export async function startRegistrationPaymentAction(
   const { data: category } = await supabase
     .from("event_categories")
     .select(
-      "event_id, event:events!inner(account:ath_movil_accounts!events_ath_movil_account_id_fkey(active))",
+      "event_id, event:events!inner(accepts_card_payments, account:ath_movil_accounts!events_ath_movil_account_id_fkey(active))",
     )
     .eq("id", input.categoryId)
     .maybeSingle();
+  // Cards need Stripe configured and the organizer not to have switched them
+  // off for this race.
+  const cardsReady = stripeReady && category?.event.accepts_card_payments !== false;
   // Without cards, the race's own ATH Móvil account is the only way to pay.
-  if (!stripeReady && !category?.event.account?.active) {
+  if (!cardsReady && !category?.event.account?.active) {
     return { ok: false, error: "paymentsUnavailable" };
   }
   const { data: existing } = category
@@ -356,7 +360,13 @@ export async function startRegistrationPaymentAction(
   const amount = Number(reg.amount);
 
   // ATH Móvil only: the held spot is all the payment step needs.
-  if (!stripeReady) {
+  if (!cardsReady) {
+    // A card payment opened before the organizer switched cards off must not
+    // stay payable beside the ATH Móvil instructions. One already paid was
+    // settled above; one paid while this runs is settled by the webhook.
+    if (intent && PAYABLE.has(intent.status)) {
+      await getStripe().paymentIntents.cancel(intent.id).catch(() => null);
+    }
     return { ok: true, registrationId: reg.id, clientSecret: null, amount };
   }
 

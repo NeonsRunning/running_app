@@ -89,6 +89,8 @@ export type EventFormValues = {
   medalImagePath: string;
   /** The ATH Móvil account runners pay into; empty to not offer ATH Móvil. */
   athMovilAccountId: string;
+  /** Runners may pay by card; off for a race that takes ATH Móvil only. */
+  acceptsCardPayments: boolean;
   /** Runners may send finish evidence for the organizer to review. */
   acceptsResults: boolean;
   /** Finishers get the medal mailed to the address they gave at sign-up. */
@@ -146,6 +148,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   routeImagePath: "",
   medalImagePath: "",
   athMovilAccountId: "",
+  acceptsCardPayments: true,
   acceptsResults: false,
   mailsMedals: false,
   soldOut: false,

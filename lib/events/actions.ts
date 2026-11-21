@@ -539,6 +539,11 @@ export async function saveEventAction(
   const athMovilAccountId = readText(formData, "ath_movil_account_id");
   if (athMovilAccountId && !UUID.test(athMovilAccountId))
     fieldErrors.ath_movil_account_id = "athMovilAccountInvalid";
+  // Runners need a way to pay: without cards, the race must take ATH Móvil.
+  // `save_event` also checks the account is still active.
+  const acceptsCardPayments = formData.get("accepts_card_payments") === "on";
+  if (!acceptsCardPayments && !athMovilAccountId)
+    fieldErrors.ath_movil_account_id = "paymentMethodRequired";
 
   if (Object.keys(fieldErrors).length || "error" in parsedCategories) {
     return { fieldErrors };
@@ -588,6 +593,7 @@ export async function saveEventAction(
     route_image_path: routeImagePath || null,
     medal_image_path: medalImagePath || null,
     ath_movil_account_id: athMovilAccountId || null,
+    accepts_card_payments: acceptsCardPayments,
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
     sold_out: soldOut,
@@ -672,6 +678,9 @@ export async function saveEventAction(
     // Not a listed account, or retired while the wizard was open.
     if (error?.code === RAISED && error.message === "athMovilAccountInvalid")
       return { fieldErrors: { ath_movil_account_id: "athMovilAccountInvalid" } };
+    // Cards off, and the account picked is missing or has been retired.
+    if (error?.code === RAISED && error.message === "paymentMethodRequired")
+      return { fieldErrors: { ath_movil_account_id: "paymentMethodRequired" } };
     if (error?.code === RAISED && error.message === "eventNotFound")
       return { error: "eventNotFound" };
     return { error: "saveFailed" };

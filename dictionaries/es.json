@@ -1840,6 +1840,7 @@
       "imageUploadFailed": "No se pudo subir la imagen — inténtalo de nuevo en un momento.",
       "imageInvalid": "Esa imagen no se puede usar. Súbela de nuevo.",
       "athMovilAccountInvalid": "Esa cuenta de ATH Móvil ya no está disponible. Elige otra o desactiva ATH Móvil.",
+      "paymentMethodRequired": "Los corredores necesitan una forma de pagar. Elige una cuenta de ATH Móvil activa o deja activados los pagos con tarjeta.",
       "categoryDistanceLocked": "Hay corredores inscritos en una categoría cuya distancia cambiaste. Devuélvele su distancia o añade una categoría nueva.",
       "eventCapacityBelowRegistered": "El cupo del evento no puede quedar por debajo de los corredores ya inscritos o con un espacio reservado.",
       "closesInPast": "La inscripción ya estaría cerrada. Elige una fecha de cierre de hoy en adelante."
@@ -1868,9 +1869,14 @@
     "deleteFailedTitle": "No se pudo eliminar el evento",
     "athMovilAccount": "Cuenta de ATH Móvil",
     "athMovilAccountHint": "Además de tarjeta, los corredores pueden pagar por ATH Móvil a esta cuenta comercial. Tú confirmas cada pago desde la página del evento.",
+    "athMovilAccountHintOnly": "Los corredores pagan por ATH Móvil a esta cuenta comercial. Tú confirmas cada pago desde la página del evento.",
     "athMovilAccountNone": "Todavía no hay cuentas de ATH Móvil, así que los corredores pagan con tarjeta. Comunícate con el equipo para añadir una.",
     "athMovilAccountOff": "No aceptar ATH Móvil",
     "athMovilAccountRetired": "retirada",
+    "cardPayments": {
+      "title": "Aceptar pagos con tarjeta",
+      "detail": "Los corredores pueden pagar con tarjeta al inscribirse, a través de Stripe. Desactívalo si la carrera solo acepta ATH Móvil. Cambiarlo solo aplica a los pagos que se inicien después."
+    },
     "salesTax": {
       "title": "Cobrar IVU (11.5%)",
       "detail": "Los corredores pagan el IVU de Puerto Rico sobre la inscripción, los extras, el cargo por servicio y el envío, pero no sobre los donativos. Aparece como una línea aparte en su resumen del pedido. Cambiarlo solo aplica a las inscripciones nuevas."

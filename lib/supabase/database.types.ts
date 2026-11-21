@@ -192,6 +192,8 @@ export type Database = {
           sold_out: boolean;
           /** Runners see the spots left, capacity bar and runner count. */
           show_spots_left: boolean;
+          /** Runners may pay by card; off for an ATH Móvil-only race. */
+          accepts_card_payments: boolean;
           
           charges_sales_tax: boolean;created_at: string;
           updated_at: string;
@@ -245,6 +247,7 @@ export type Database = {
           mails_medals?: boolean;
           sold_out?: boolean;
           show_spots_left?: boolean;
+          accepts_card_payments?: boolean;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -298,6 +301,7 @@ export type Database = {
           mails_medals?: boolean;
           sold_out?: boolean;
           show_spots_left?: boolean;
+          accepts_card_payments?: boolean;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;

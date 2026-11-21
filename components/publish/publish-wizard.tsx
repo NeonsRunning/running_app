@@ -185,6 +185,9 @@ export function PublishWizard({
   const [soldOut, setSoldOut] = useState(initial.soldOut);
   const [showSpotsLeft, setShowSpotsLeft] = useState(initial.showSpotsLeft);
   const [chargesSalesTax, setChargesSalesTax] = useState(initial.chargesSalesTax);
+  const [acceptsCardPayments, setAcceptsCardPayments] = useState(
+    initial.acceptsCardPayments,
+  );
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -1115,13 +1118,27 @@ export function PublishWizard({
               />
             </div>
 
+            {/* How runners pay: by card unless switched off, and by ATH Móvil
+                with an account below. One of the two must stay on. */}
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="accepts_card_payments"
+                checked={acceptsCardPayments}
+                onChange={setAcceptsCardPayments}
+                title={t("publish.cardPayments.title")}
+                detail={t("publish.cardPayments.detail")}
+              />
+            </div>
+
             {/* Where ATH Móvil payments go. A retired account stays listed
                 only on the event that already uses it. */}
             <Field
               label={t("publish.athMovilAccount")}
               hint={t(
                 athOptions.length
-                  ? "publish.athMovilAccountHint"
+                  ? acceptsCardPayments
+                    ? "publish.athMovilAccountHint"
+                    : "publish.athMovilAccountHintOnly"
                   : "publish.athMovilAccountNone",
               )}
               error={fieldError("ath_movil_account_id")}
