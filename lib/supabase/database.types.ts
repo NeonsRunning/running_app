@@ -198,6 +198,8 @@ export type Database = {
           allows_children: boolean;
           /** Dollars per child, whatever the distance. 0 is free. */
           child_price: number;
+          /** Dollars of shipping per child's medal, on a race that mails medals. */
+          child_shipping_price: number;
           
           charges_sales_tax: boolean;created_at: string;
           updated_at: string;
@@ -254,6 +256,7 @@ export type Database = {
           accepts_card_payments?: boolean;
           allows_children?: boolean;
           child_price?: number;
+          child_shipping_price?: number;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -310,6 +313,7 @@ export type Database = {
           accepts_card_payments?: boolean;
           allows_children?: boolean;
           child_price?: number;
+          child_shipping_price?: number;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -536,6 +540,11 @@ export type Database = {
           /** Null until the order is paid. */
           bib: number | null;
           checked_in_at: string | null;
+          /** This child's medal rides in the order's shipment. */
+          medal_by_mail: boolean;
+          /** What mailing this child's medal cost when the order was priced. */
+          shipping_price: number;
+          medal_shipped_at: string | null;
           /** When the organizer or an admin took this child off the order. */
           cancelled_at: string | null;
           cancelled_by: string | null;
