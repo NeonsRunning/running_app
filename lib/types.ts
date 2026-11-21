@@ -185,6 +185,11 @@ export type EventExtras = {
   donationRecipient: string | null;
   /** Shipping and handling when the runner has their kit sent by mail. */
   shippingPrice: number | null;
+  /**
+   * Shipping for each child's medal, on top of `shippingPrice`. Null unless
+   * the race takes children and mails medals.
+   */
+  childShippingPrice?: number | null;
 };
 
 export type IncludedIcon =

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseDonation, registrationTotal } from "./pricing";
+import { parseDonation, registrationTotal, shippingCharge } from "./pricing";
 
 const extras = { shirtPrice: 22, photoPrice: 12, shippingPrice: 8, donationRecipient: "" };
 
@@ -148,6 +148,82 @@ describe("registrationTotal with children", () => {
       childPrice: 0,
     });
     expect(total).toBe(2);
+  });
+});
+
+/**
+ * The orders `supabase/tests/database/children_medal_mail.test.sql` registers
+ * through `register_for_event()`: $10 a child, $12 shipping and, where the
+ * race mails medals, $6 for each child's medal. Both sides must arrive at the
+ * same totals.
+ */
+describe("registrationTotal with children's medals by mail", () => {
+  const mailsMedals = {
+    shirtPrice: null,
+    photoPrice: null,
+    shippingPrice: 12,
+    childShippingPrice: 6,
+    donationRecipient: null,
+  };
+  const order = {
+    extras: mailsMedals,
+    shirt: false,
+    photos: false,
+    donation: 0,
+    mail: true,
+    salesTax: true,
+    childPrice: 10,
+  };
+
+  it("adds the price per child to the shipping of an adult who runs", () => {
+    const { tax, total } = registrationTotal({ ...order, price: 30, children: 2 });
+    // 30 + 2 × 10 + 2 + 12 + 2 × 6 = 76; 76 × 0.115 = 8.74
+    expect(tax).toBe(8.74);
+    expect(total).toBe(84.74);
+  });
+
+  it("covers the first child with the shipping price when the adult is not racing", () => {
+    const one = registrationTotal({ ...order, price: 0, racing: false, children: 1 });
+    // 10 + 2 + 12 = 24; 24 × 0.115 = 2.76
+    expect(one.tax).toBe(2.76);
+    expect(one.total).toBe(26.76);
+
+    const three = registrationTotal({ ...order, price: 0, racing: false, children: 3 });
+    // 3 × 10 + 2 + 12 + 2 × 6 = 56; 56 × 0.115 = 6.44
+    expect(three.tax).toBe(6.44);
+    expect(three.total).toBe(62.44);
+  });
+
+  it("charges children nothing where the race mails no medals", () => {
+    const { total } = registrationTotal({
+      ...order,
+      extras: { ...mailsMedals, childShippingPrice: null },
+      salesTax: false,
+      price: 30,
+      children: 1,
+    });
+    // 30 + 10 + 2 + 12
+    expect(total).toBe(54);
+  });
+
+  it("splits the charge into the shipment and the children's medals", () => {
+    const charge = (racing: boolean, children: number, mail = true) =>
+      shippingCharge({ mail, racing, children, extras: mailsMedals });
+
+    expect(charge(true, 0)).toEqual({ base: 12, children: 0 });
+    expect(charge(true, 3)).toEqual({ base: 12, children: 18 });
+    expect(charge(false, 1)).toEqual({ base: 12, children: 0 });
+    expect(charge(false, 3)).toEqual({ base: 12, children: 12 });
+    expect(charge(true, 3, false)).toEqual({ base: 0, children: 0 });
+    // Nothing of an adult who is not racing is mailed without medals to send.
+    expect(
+      shippingCharge({
+        mail: true,
+        racing: false,
+        children: 2,
+        extras: { ...mailsMedals, childShippingPrice: null },
+      }),
+    ).toEqual({ base: 0, children: 0 });
   });
 });
 

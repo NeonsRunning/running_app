@@ -230,6 +230,10 @@ function toEvent(
           ? row.donation_recipient
           : null,
       shippingPrice: row.offers_mail ? Number(row.shipping_price) : null,
+      childShippingPrice:
+        row.offers_mail && row.mails_medals && row.allows_children
+          ? Number(row.child_shipping_price)
+          : null,
     },
     athMovil: row.ath_movil_account?.active
       ? toAthMovilAccount(row.ath_movil_account)
