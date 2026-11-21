@@ -155,6 +155,8 @@ function toEvent(
     endingSoon: isEndingSoon(row, status),
     mailsMedals: row.mails_medals,
     chargesSalesTax: row.charges_sales_tax,
+    allowsChildren: row.allows_children,
+    childPrice: Number(row.child_price),
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,
@@ -359,17 +361,22 @@ export async function getOwnRegistration(
 ): Promise<{
   /** Null when they signed up only children. */
   categoryId: string | null;
-  bib: number;
+  /** Null when they signed up only children: the bibs are the children's. */
+  bib: number | null;
   amount: number;
   email: string;
   name: string;
+  /** The children on the sign-up, as listed on the form. */
+  children: { name: string; bib: number | null; categoryId: string }[];
 } | null> {
   if (!hasSupabaseEnv()) return null;
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("registrations")
-    .select("category_id, bib, amount, email, first_name, last_name")
+    .select(
+      "category_id, bib, amount, email, first_name, last_name, children:registration_children (first_name, last_name, bib, category_id, position, cancelled_at)",
+    )
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
     .eq("status", "confirmed")
@@ -378,10 +385,19 @@ export async function getOwnRegistration(
   return data
     ? {
         categoryId: data.category_id,
-        bib: data.bib ?? 0,
+        bib: data.bib,
         amount: Number(data.amount),
         email: data.email,
         name: `${data.first_name} ${data.last_name}`.trim(),
+        children: data.children
+          // One the organizer took off the order is no longer coming.
+          .filter((c) => c.cancelled_at === null)
+          .sort((a, b) => a.position - b.position)
+          .map((c) => ({
+            name: `${c.first_name} ${c.last_name}`.trim(),
+            bib: c.bib,
+            categoryId: c.category_id,
+          })),
       }
     : null;
 }

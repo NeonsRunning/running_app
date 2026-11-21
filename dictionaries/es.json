@@ -433,7 +433,14 @@
       "registrationCancelled": "El organizador canceló esta inscripción. Escríbenos sobre tu pago.",
       "registrationCancelledRefunded": "El organizador canceló esta inscripción, así que te reembolsamos este pago completo.",
       "referenceLimitReached": "No se pudieron verificar varios números de referencia de esta inscripción, así que no acepta otro. Escríbenos si enviaste el pago.",
-      "rateLimited": "Demasiados intentos de pago en la última hora. Espera un poco y vuelve a intentarlo."
+      "rateLimited": "Demasiados intentos de pago en la última hora. Espera un poco y vuelve a intentarlo.",
+      "childrenInvalid": "Algunos datos de los menores no son válidos. Vuelve y revisa el paso del corredor.",
+      "guardianWaiverRequired": "Tienes que aceptar el descargo por los menores. Vuelve al paso del corredor y márcalo.",
+      "childrenNotAllowed": "Esta carrera ya no acepta menores. Vuelve e inscríbete solo tú.",
+      "tooManyChildren": "Puedes inscribir hasta 3 menores en una carrera.",
+      "childrenRequired": "Añade al menos a un menor, o inscríbete tú también.",
+      "childAgeNotEligible": "La edad de un menor el día de la carrera está fuera de los límites. Los menores tienen menos de 18 años y al menos la edad mínima de la carrera.",
+      "guardianUnderage": "Tienes que tener 18 años o más el día de la carrera para inscribir a menores."
     },
     "confirmToastTitle": "¡Ya estás dentro!",
     "confirmToastBody": "Dorsal n.º 1048 confirmado para {event}.",
@@ -446,7 +453,15 @@
       "waiverLink": "descargo de responsabilidad",
       "waiverPost": "y confirmo que estoy en condiciones médicas de participar.",
       "waiverError": "▲ Tienes que aceptar el descargo antes de continuar.",
-      "soldOut": "Esta carrera está agotada: no quedan espacios."
+      "soldOut": "Esta carrera está agotada: no quedan espacios.",
+      "bodyChildren": "Eliges la distancia de cada menor en el próximo paso.",
+      "whoGroup": "¿Para quién es esta inscripción?",
+      "whoSelf": "Solo yo",
+      "whoSelfDetail": "Una inscripción, para ti.",
+      "whoBoth": "Yo y menores",
+      "whoBothDetail": "Tú corres y añades hasta {max} menores.",
+      "whoChildren": "Solo menores",
+      "whoChildrenDetail": "Los inscribes tú y no corres."
     },
     "step2": {
       "title": "Datos del corredor",
@@ -463,7 +478,9 @@
       "genderUndisclosed": "Prefiero no decirlo",
       "emergencyName": "Contacto de emergencia",
       "emergencyPhone": "Teléfono de emergencia",
-      "club": "Club o equipo"
+      "club": "Club o equipo",
+      "titleGuardian": "Padre, madre o tutor",
+      "bodyGuardian": "Eres el contacto de los menores que inscribes. Tu contacto de emergencia también se usa para ellos."
     },
     "step3": {
       "title": "Extras",
@@ -515,7 +532,8 @@
       "back": "Atrás",
       "refundPre": "Por lo general, las inscripciones no son reembolsables una vez confirmado el pago. Consulta la",
       "refundLink": "política de reembolsos",
-      "raceDay": "Día de la carrera"
+      "raceDay": "Día de la carrera",
+      "child": "{name} · {category}"
     },
     "confirmation": {
       "titleLine1": "¡Ya estás",
@@ -527,7 +545,8 @@
       "receiptSentTo": "Recibo enviado a",
       "totalCharged": "Total cobrado",
       "registrationConfirmed": "Inscripción confirmada",
-      "paymentReceived": "Pago recibido"
+      "paymentReceived": "Pago recibido",
+      "children": "Menores"
     },
     "finished": {
       "titleLine1": "¡Carrera",
@@ -575,6 +594,31 @@
       "pendingBody": "Recibimos los datos de tu pago por ATH Móvil y tu puesto está guardado. La verificación puede tardar hasta {hours} horas; te enviaremos tu número de corredor a {email} en cuanto se confirme.",
       "amountSent": "Cantidad",
       "pendingHelp": "¿Enviaste otra cantidad o algo no cuadra? Escríbenos con tu recibo de ATH Móvil y lo resolvemos."
+    },
+    "children": {
+      "title": "Menores",
+      "body": "Añade hasta {max} menores de {min} a 17 años el día de la carrera. Cada menor: {price}. Tu contacto de emergencia se usa para ellos.",
+      "child": "Menor {n}",
+      "distance": "Distancia",
+      "distanceFull": "{distance} — agotada",
+      "select": "Selecciona…",
+      "add": "Añadir otro menor",
+      "remove": "Quitar al menor {n}",
+      "removeShort": "Quitar",
+      "waiverPre": "Soy el padre, la madre o el tutor legal de estos menores y acepto el",
+      "waiverPost": "en su nombre.",
+      "waiverError": "▲ Tienes que aceptar el descargo por los menores antes de continuar.",
+      "notice": "Revisa que estén todos. Después de pagar no puedes añadir a un menor ni tu propia carrera a esta inscripción.",
+      "errors": {
+        "firstName": "Escribe el nombre del menor.",
+        "lastName": "Escribe los apellidos del menor.",
+        "dob": "Escribe la fecha de nacimiento del menor.",
+        "tooOld": "Los menores tienen menos de 18 años el día de la carrera. Quien tiene 18 o más se inscribe con su propia cuenta.",
+        "tooYoung": "Esta carrera acepta corredores desde los {age} años.",
+        "gender": "Selecciona una opción.",
+        "categoryFull": "Esa distancia está agotada. Elige otra.",
+        "guardianUnderage": "Tienes que tener 18 años o más el día de la carrera para inscribir a menores."
+      }
     }
   },
   "emails": {
@@ -603,7 +647,11 @@
       "cta": "Ver detalles de la carrera",
       "footer": "Recibes este correo porque te inscribiste en {event} en NEONS RUNNING. El recibo de tu tarjeta llega en un correo aparte.",
       "totalAthMovil": "Total pagado (ATH Móvil)",
-      "footerAthMovil": "Recibes este email porque te inscribiste en {event} en NEONS RUNNING. Tu recibo de ATH Móvil está en la app de ATH Móvil."
+      "footerAthMovil": "Recibes este email porque te inscribiste en {event} en NEONS RUNNING. Tu recibo de ATH Móvil está en la app de ATH Móvil.",
+      "preheaderGuardian": "Los menores que inscribiste están dentro. Aquí tienes sus números y los detalles de la carrera.",
+      "introWithChildren": "Tu inscripción en {event} está confirmada, y la de los menores que inscribiste también. Guarda este correo para el día de la carrera.",
+      "introGuardian": "La inscripción de los menores en {event} está confirmada. Guarda este correo para el día de la carrera: tiene sus números de corredor.",
+      "childBib": "Número #{bib}"
     },
     "eventRemoved": {
       "subject": "{event} fue retirado de NEONS RUNNING",

@@ -75,6 +75,7 @@ vi.mock("@/lib/email/review-requested", () => ({
 vi.mock("./payments", () => ({ settlePayment }));
 
 const { startRegistrationPaymentAction } = await import("./registrations");
+type ChildInput = import("./registrations").ChildInput;
 const { WAIVER_VERSION } = await import("@/lib/legal");
 
 const RUNNER = "00000000-0000-4000-8000-000000000003";
@@ -98,6 +99,20 @@ const input = {
   mailingAddress: "",
   waiverAccepted: true,
   locale: "en",
+  racing: true,
+  children: [] as ChildInput[],
+  guardianWaiverAccepted: false,
+};
+
+const CHILD_CATEGORY = "00000000-0000-4000-9000-0000000000c2";
+
+/** A child Ana adds to her sign-up. */
+const child: ChildInput = {
+  firstName: "Lia",
+  lastName: "Figueroa",
+  dob: "2016-05-09",
+  gender: "female",
+  categoryId: CHILD_CATEGORY,
 };
 
 /** The pending sign-up `register_for_event()` hands back. */
@@ -355,12 +370,24 @@ describe("startRegistrationPaymentAction", () => {
     answerUser = (q) =>
       q.table === "event_categories"
         ? { data: { event_id: "event-1", event: { account: null } } }
-        : { data: { status: "pending", payment_intent_id: "pi_paid" } };
+        : q.table === "registration_children"
+          ? {
+              data: [
+                {
+                  first_name: "Lia",
+                  last_name: "Figueroa",
+                  bib: 1002,
+                  category_id: CHILD_CATEGORY,
+                },
+              ],
+            }
+          : { data: { status: "pending", payment_intent_id: "pi_paid" } };
     const paid = { id: "pi_paid", amount: 5023, status: "succeeded" };
     stripe.paymentIntents.retrieve.mockResolvedValue(paid);
     settlePayment.mockResolvedValue({
       ok: true,
       registration: {
+        id: "reg-1",
         bib: 1001,
         amount: 50.23,
         email: "ana@example.com",
@@ -374,8 +401,18 @@ describe("startRegistrationPaymentAction", () => {
     expect(settlePayment).toHaveBeenCalledWith(paid);
     expect(result).toEqual({
       ok: true,
-      confirmed: { bib: 1001, amount: 50.23, email: "ana@example.com", name: "Ana Figueroa" },
+      confirmed: {
+        bib: 1001,
+        amount: 50.23,
+        email: "ana@example.com",
+        name: "Ana Figueroa",
+        // The children on the sign-up come back with the bibs they were given.
+        children: [{ name: "Lia Figueroa", bib: 1002, categoryId: CHILD_CATEGORY }],
+      },
     });
+    const [read] = userQueries.filter((q) => q.table === "registration_children");
+    expect(read.calls).toContainEqual(["eq", "registration_id", "reg-1"]);
+    expect(read.calls).toContainEqual(["is", "cancelled_at", null]);
     // Not repriced, not charged again.
     expect(rpc).not.toHaveBeenCalled();
     expect(stripe.paymentIntents.create).not.toHaveBeenCalled();
@@ -441,7 +478,9 @@ describe("startRegistrationPaymentAction", () => {
       answerUser = (q) =>
         q.table === "event_categories"
           ? cardsOff({ active: true })
-          : { data: { status: "pending", payment_intent_id: "pi_paid" } };
+          : q.table === "registration_children"
+            ? { data: [] }
+            : { data: { status: "pending", payment_intent_id: "pi_paid" } };
       const paid = { id: "pi_paid", amount: 5023, status: "succeeded" };
       stripe.paymentIntents.retrieve.mockResolvedValue(paid);
       settlePayment.mockResolvedValue({
@@ -461,6 +500,118 @@ describe("startRegistrationPaymentAction", () => {
       });
       expect(settlePayment).toHaveBeenCalledWith(paid);
     });
+  });
+
+  it("refuses children without the guardian's waiver, before anything is written", async () => {
+    const result = await startRegistrationPaymentAction({
+      ...input,
+      children: [child],
+      guardianWaiverAccepted: false,
+    });
+
+    expect(result).toEqual({ ok: false, error: "guardianWaiverRequired" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("refuses four children, a child with a field missing, and nobody at all", async () => {
+    const withChildren = { ...input, guardianWaiverAccepted: true };
+
+    expect(
+      await startRegistrationPaymentAction({
+        ...withChildren,
+        children: [child, child, child, child],
+      }),
+    ).toEqual({ ok: false, error: "childrenInvalid" });
+    expect(
+      await startRegistrationPaymentAction({
+        ...withChildren,
+        children: [{ ...child, dob: "" }],
+      }),
+    ).toEqual({ ok: false, error: "childrenInvalid" });
+    expect(
+      await startRegistrationPaymentAction({ ...withChildren, racing: false, children: [] }),
+    ).toEqual({ ok: false, error: "childrenInvalid" });
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
+  it("sends the children with the sign-up, in the database's own names", async () => {
+    await startRegistrationPaymentAction({
+      ...input,
+      children: [child],
+      guardianWaiverAccepted: true,
+    });
+
+    const [, args] = rpc.mock.calls[0];
+    expect(args.p_category_id).toBe(CATEGORY);
+    expect(args.p_details.racing).toBe(true);
+    expect(args.p_details.children).toEqual([
+      {
+        first_name: "Lia",
+        last_name: "Figueroa",
+        birth_date: "2016-05-09",
+        gender: "f",
+        category_id: CHILD_CATEGORY,
+      },
+    ]);
+  });
+
+  it("signs up only children under the first child's distance", async () => {
+    await startRegistrationPaymentAction({
+      ...input,
+      // What the form leaves behind from the step the adult skipped.
+      categoryId: "",
+      racing: false,
+      children: [child],
+      guardianWaiverAccepted: true,
+    });
+
+    const [, args] = rpc.mock.calls[0];
+    expect(args.p_category_id).toBe(CHILD_CATEGORY);
+    expect(args.p_details.racing).toBe(false);
+  });
+
+  it("records the guardian's waiver on the sign-up, once, and only with children", async () => {
+    const guardian = () =>
+      adminQueries.filter((q) =>
+        q.calls.some(
+          ([m, v]) => m === "update" && "guardian_waiver_accepted_at" in (v as object),
+        ),
+      );
+
+    await startRegistrationPaymentAction(input);
+    expect(guardian()).toHaveLength(0);
+
+    await startRegistrationPaymentAction({
+      ...input,
+      children: [child],
+      guardianWaiverAccepted: true,
+    });
+    const [waiver] = guardian();
+    expect(waiver.calls).toContainEqual([
+      "update",
+      { guardian_waiver_accepted_at: expect.any(String), guardian_waiver_version: WAIVER_VERSION },
+    ]);
+    expect(waiver.calls).toContainEqual(["eq", "id", "reg-1"]);
+    expect(waiver.calls).toContainEqual(["is", "guardian_waiver_accepted_at", null]);
+  });
+
+  it("copies nothing about a child into the adult's profile", async () => {
+    await startRegistrationPaymentAction({
+      ...input,
+      children: [child],
+      guardianWaiverAccepted: true,
+    });
+
+    const written = [...userQueries, ...adminQueries]
+      .filter((q) => q.table === "profile_private" || q.table === "profiles")
+      .flatMap((q) => q.calls.filter(([m]) => m === "update").map(([, v]) => v));
+    expect(written.length).toBeGreaterThan(0);
+    const text = JSON.stringify(written);
+    expect(text).not.toContain("Lia");
+    expect(text).not.toContain("2016-05-09");
+    expect(text).not.toContain("children");
+    // The adult's own date of birth is what the profile remembers.
+    expect(text).toContain("1990-04-02");
   });
 
   it("reports payments unavailable when Stripe cannot open one", async () => {

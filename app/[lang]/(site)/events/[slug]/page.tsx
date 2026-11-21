@@ -342,7 +342,7 @@ export default async function EventDetailPage(
         <aside className="border-t-2 border-line lg:border-t-0">
           {/* On desktop the booking card follows the reader down the page. */}
           <div className="lg:sticky lg:top-20">
-            {ownRegistration ? (
+            {ownRegistration?.categoryId ? (
               <ResultSubmission
                 eventId={event.id}
                 raceDay={raceDay}

@@ -11,6 +11,7 @@ import { WAIVER_VERSION } from "@/lib/legal";
 import { LIMITS, withinLimits } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { settlePayment } from "./payments";
+import { MAX_CHILDREN } from "./pricing";
 import { SHIRT_SIZES, isOneOf } from "./vocabulary";
 
 /**
@@ -34,10 +35,33 @@ import { SHIRT_SIZES, isOneOf } from "./vocabulary";
  * ATH Móvil receipt and holds the spot until the organizer or a platform
  * admin finds the payment in the event's ATH Móvil Business account and
  * approves it (see `lib/ath-movil/config.ts`).
+ *
+ * On a race that takes children, the adult can add up to three to the same
+ * sign-up, or sign up only them (`racing: false`). They are part of the one
+ * order and the one payment. Their details go to the registration only:
+ * nothing about a child is ever copied into the adult's profile.
  */
 
-export type RegistrationInput = {
+/** A child the adult is signing up, as typed on the form. */
+export type ChildInput = {
+  firstName: string;
+  lastName: string;
+  dob: string;
+  /** The flow's select values, as for the adult. */
+  gender: string;
+  /** The distance this child runs. */
   categoryId: string;
+};
+
+export type RegistrationInput = {
+  /** The adult's distance. Ignored when they are not racing. */
+  categoryId: string;
+  /** False when the adult signs up only children. */
+  racing: boolean;
+  /** Up to three; empty on a sign-up without children. */
+  children: ChildInput[];
+  /** The adult accepted the waiver on the children's behalf. Required with children. */
+  guardianWaiverAccepted: boolean;
   firstName: string;
   lastName: string;
   email: string;
@@ -63,11 +87,14 @@ export type RegistrationInput = {
 
 /** A confirmed sign-up: what the confirmation screen shows. */
 export type ConfirmedSignUp = {
-  bib: number;
+  /** Null when the adult signed up only children. */
+  bib: number | null;
   amount: number;
   email: string;
   /** The runner's name as entered on the sign-up. */
   name: string;
+  /** The children on the sign-up, with the bibs they were given. */
+  children: { name: string; bib: number | null; categoryId: string }[];
 };
 
 /** An ATH Móvil payment waiting for an admin: what the runner is shown. */
@@ -132,6 +159,11 @@ const KNOWN_ERRORS = new Set([
   "mailingAddressInvalid",
   "paymentUnderReview",
   "holdLimitReached",
+  "childrenNotAllowed",
+  "tooManyChildren",
+  "childrenRequired",
+  "childAgeNotEligible",
+  "guardianUnderage",
 ]);
 
 const GENDER: Record<string, "f" | "m" | "x"> = {
@@ -192,18 +224,36 @@ async function rememberDetails(
   ]);
 }
 
-function confirmedSignUp(row: {
-  bib: number | null;
-  amount: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-}): ConfirmedSignUp {
+async function confirmedSignUp(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  row: {
+    id: string;
+    bib: number | null;
+    amount: number;
+    email: string;
+    first_name: string;
+    last_name: string;
+  },
+): Promise<ConfirmedSignUp> {
+  // Read as the adult, who may see the children on their own sign-up. A
+  // failed read costs the list on this screen, not the sign-up: the email
+  // has it too.
+  const { data: children } = await supabase
+    .from("registration_children")
+    .select("first_name, last_name, bib, category_id")
+    .eq("registration_id", row.id)
+    .is("cancelled_at", null)
+    .order("position");
   return {
-    bib: row.bib ?? 0,
+    bib: row.bib,
     amount: Number(row.amount),
     email: row.email,
     name: `${row.first_name} ${row.last_name}`.trim(),
+    children: (children ?? []).map((c) => ({
+      name: `${c.first_name} ${c.last_name}`.trim(),
+      bib: c.bib,
+      categoryId: c.category_id,
+    })),
   };
 }
 
@@ -236,8 +286,38 @@ export async function startRegistrationPaymentAction(
     mailing_address: trim(input.mailingAddress),
   };
 
+  const racing = input.racing !== false;
+  const list = Array.isArray(input.children) ? input.children : [];
+  const children = list.map((c) => ({
+    first_name: trim(c?.firstName),
+    last_name: trim(c?.lastName),
+    birth_date: trim(c?.dob),
+    gender: GENDER[c?.gender],
+    category_id: trim(c?.categoryId),
+  }));
+  // An adult who is not racing has no distance of their own: a child's says
+  // which event this is.
+  const categoryId = racing ? input.categoryId : (children[0]?.category_id ?? "");
+
   if (
-    !UUID.test(input.categoryId) ||
+    list.length > MAX_CHILDREN ||
+    (!racing && children.length === 0) ||
+    children.some(
+      (c) =>
+        !c.first_name ||
+        c.first_name.length > 80 ||
+        !c.last_name ||
+        c.last_name.length > 80 ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(c.birth_date) ||
+        !c.gender ||
+        !UUID.test(c.category_id),
+    )
+  ) {
+    return { ok: false, error: "childrenInvalid" };
+  }
+
+  if (
+    !UUID.test(categoryId) ||
     !details.first_name ||
     details.first_name.length > 80 ||
     !details.last_name ||
@@ -262,6 +342,11 @@ export async function startRegistrationPaymentAction(
   // without the waiver is refused here, and its acceptance is written on the
   // registration below.
   if (input.waiverAccepted !== true) return { ok: false, error: "waiverRequired" };
+  // The same for the children: only their parent or guardian can accept it
+  // for them.
+  if (children.length > 0 && input.guardianWaiverAccepted !== true) {
+    return { ok: false, error: "guardianWaiverRequired" };
+  }
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -282,7 +367,7 @@ export async function startRegistrationPaymentAction(
     .select(
       "event_id, event:events!inner(accepts_card_payments, account:ath_movil_accounts!events_ath_movil_account_id_fkey(active))",
     )
-    .eq("id", input.categoryId)
+    .eq("id", categoryId)
     .maybeSingle();
   // Cards need Stripe configured and the organizer not to have switched them
   // off for this race.
@@ -311,7 +396,10 @@ export async function startRegistrationPaymentAction(
       const settled = await settlePayment(intent);
       if (settled.ok) {
         revalidatePath("/", "layout");
-        return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+        return {
+          ok: true,
+          confirmed: await confirmedSignUp(supabase, settled.registration),
+        };
       }
       // Refunded — now, or when it could not confirm earlier — so it pays
       // for nothing: fall through and open a new one, which the sign-up
@@ -324,8 +412,10 @@ export async function startRegistrationPaymentAction(
   }
 
   const { data: reg, error } = await supabase.rpc("register_for_event", {
-    p_category_id: input.categoryId,
-    p_details: details,
+    p_category_id: categoryId,
+    // The children ride along here and nowhere else: `rememberDetails()`
+    // below is given the adult's own details only.
+    p_details: { ...details, racing, children },
   });
 
   if (error || !reg) {
@@ -349,6 +439,25 @@ export async function startRegistrationPaymentAction(
   if (waiverError) {
     console.error(`Recording the waiver for ${reg.id} failed:`, waiverError.message);
     return { ok: false, error: "registrationFailed" };
+  }
+
+  if (children.length > 0) {
+    const { error: guardianError } = await createAdminClient()
+      .from("registrations")
+      .update({
+        guardian_waiver_accepted_at: new Date().toISOString(),
+        guardian_waiver_version: WAIVER_VERSION,
+      })
+      .eq("id", reg.id)
+      .eq("runner_id", userData.user.id)
+      .is("guardian_waiver_accepted_at", null);
+    if (guardianError) {
+      console.error(
+        `Recording the guardian's waiver for ${reg.id} failed:`,
+        guardianError.message,
+      );
+      return { ok: false, error: "registrationFailed" };
+    }
   }
 
   await rememberDetails(supabase, userData.user.id, {
@@ -427,12 +536,12 @@ export async function startRegistrationPaymentAction(
         await stripe.paymentIntents.cancel(intent.id).catch(() => null);
         const { data: current } = await supabase
           .from("registrations")
-          .select("status, bib, amount, email, first_name, last_name, payment_submitted_at")
+          .select("id, status, bib, amount, email, first_name, last_name, payment_submitted_at")
           .eq("id", reg.id)
           .maybeSingle();
         if (current?.status === "confirmed") {
           revalidatePath("/", "layout");
-          return { ok: true, confirmed: confirmedSignUp(current) };
+          return { ok: true, confirmed: await confirmedSignUp(supabase, current) };
         }
         if (current?.payment_submitted_at) {
           return { ok: false, error: "paymentUnderReview" };
@@ -474,13 +583,13 @@ export async function completeRegistrationPaymentAction(
   // Organizers can read their runners' rows too; only the runner's own counts.
   const { data: reg } = await supabase
     .from("registrations")
-    .select("status, bib, amount, email, first_name, last_name, payment_intent_id")
+    .select("id, status, bib, amount, email, first_name, last_name, payment_intent_id")
     .eq("id", registrationId)
     .eq("runner_id", userData.user.id)
     .maybeSingle();
   if (!reg) return { ok: false, error: "registrationFailed" };
   if (reg.status === "confirmed") {
-    return { ok: true, confirmed: confirmedSignUp(reg) };
+    return { ok: true, confirmed: await confirmedSignUp(supabase, reg) };
   }
   if (!reg.payment_intent_id) return { ok: false, error: "paymentIncomplete" };
 
@@ -503,7 +612,7 @@ export async function completeRegistrationPaymentAction(
   if (!settled.ok) return settled;
 
   revalidatePath("/", "layout");
-  return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+  return { ok: true, confirmed: await confirmedSignUp(supabase, settled.registration) };
 }
 
 /**
@@ -539,13 +648,13 @@ export async function submitAthMovilPaymentAction(
 
   const { data: reg } = await supabase
     .from("registrations")
-    .select("status, bib, amount, email, first_name, last_name, payment_intent_id")
+    .select("id, status, bib, amount, email, first_name, last_name, payment_intent_id")
     .eq("id", registrationId)
     .eq("runner_id", userData.user.id)
     .maybeSingle();
   if (!reg) return { ok: false, error: "registrationFailed" };
   if (reg.status === "confirmed") {
-    return { ok: true, confirmed: confirmedSignUp(reg) };
+    return { ok: true, confirmed: await confirmedSignUp(supabase, reg) };
   }
 
   if (reg.payment_intent_id && hasStripeEnv()) {
@@ -562,7 +671,10 @@ export async function submitAthMovilPaymentAction(
         const settled = await settlePayment(intent);
         if (!settled.ok) return settled;
         revalidatePath("/", "layout");
-        return { ok: true, confirmed: confirmedSignUp(settled.registration) };
+        return {
+          ok: true,
+          confirmed: await confirmedSignUp(supabase, settled.registration),
+        };
       }
       if (intent.status !== "canceled") {
         return { ok: false, error: "paymentProcessing" };
