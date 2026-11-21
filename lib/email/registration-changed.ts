@@ -77,7 +77,12 @@ async function sendChildRemovedEmail(
   const t = await getTranslator(locale);
   const k = (key: string) => `emails.childRemoved.${key}`;
   const name = `${child.first_name} ${child.last_name}`.trim();
-  const paid = Number(child.price) > 0;
+  // What the order was charged for this child: their place and, while it has
+  // not left, the mailing of their medal.
+  const amount =
+    Number(child.price) +
+    (child.medal_shipped_at ? 0 : Number(child.shipping_price ?? 0));
+  const paid = amount > 0;
 
   await sendEmail({
     to: { email: reg.email, name: `${reg.first_name} ${reg.last_name}` },
@@ -91,7 +96,7 @@ async function sendChildRemovedEmail(
         [t(k("race")), event.name],
         [t(k("child")), name],
         ...(paid
-          ? [[t(k("amount")), formatMoney(Number(child.price), locale)] as [string, string]]
+          ? [[t(k("amount")), formatMoney(amount, locale)] as [string, string]]
           : []),
       ],
       outro: [paid ? t(k("next")) : t(k("nextFree"))],

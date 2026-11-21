@@ -87,7 +87,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
         admin
           .from("registration_children")
           .select(
-            "first_name, last_name, bib, category:event_categories!registration_children_category_id_fkey (distance)",
+            "first_name, last_name, bib, medal_by_mail, category:event_categories!registration_children_category_id_fkey (distance)",
           )
           .eq("registration_id", claimed.id)
           .is("cancelled_at", null)
@@ -100,6 +100,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       name: `${c.first_name} ${c.last_name}`.trim(),
       bib: c.bib,
       distance: c.category?.distance ?? null,
+      medalByMail: Boolean(c.medal_by_mail),
     }));
     if (!category && children.length === 0) {
       throw new Error("A sign-up with nobody running.");
@@ -167,6 +168,8 @@ async function composeEmail({
     name: string;
     bib: number | null;
     distance: Tables<"event_categories">["distance"] | null;
+    /** Their medal rides in the order's shipment. */
+    medalByMail: boolean;
   }[];
   locale: Locale;
   eventUrl: string;
@@ -176,6 +179,8 @@ async function composeEmail({
   const bib = String(registration.bib ?? "");
   const athMovil = registration.payment_method === "ath_movil";
 
+  // The children's medals that ride in the order's shipment.
+  const kidMedals = children.filter((c) => c.medalByMail).length;
   const extras = [
     registration.shirt_size
       ? t(k("shirt"), { size: registration.shirt_size })
@@ -189,10 +194,12 @@ async function composeEmail({
         } · ${formatMoney(Number(registration.donation), locale)}`
       : null,
     registration.ships_by_mail ? t(k("mail")) : null,
+    kidMedals > 0 ? t(k("childMedalsMail"), { count: kidMedals }) : null,
   ].filter((v): v is string => v !== null);
-  // One line, so the text version reads as a single row too.
+  // One line, so the text version reads as a single row too. An order of only
+  // children has an address for their medals alone.
   const mailTo =
-    registration.ships_by_mail && registration.mailing_address
+    (registration.ships_by_mail || kidMedals > 0) && registration.mailing_address
       ? registration.mailing_address
           .split(/\s*\n\s*/)
           .filter(Boolean)

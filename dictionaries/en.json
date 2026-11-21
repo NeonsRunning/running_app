@@ -648,6 +648,7 @@
       "donation": "Donation",
       "donationTo": "Donation to {recipient}",
       "mail": "Sent by mail",
+      "childMedalsMail": "Children’s medals by mail ({count})",
       "mailTo": "Mail to",
       "total": "Total charged",
       "cta": "View race details",

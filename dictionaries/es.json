@@ -648,6 +648,7 @@
       "donation": "Donativo",
       "donationTo": "Donativo a {recipient}",
       "mail": "Envío por correo",
+      "childMedalsMail": "Medallas de menores por correo ({count})",
       "mailTo": "Enviar a",
       "total": "Total cobrado",
       "cta": "Ver detalles de la carrera",
