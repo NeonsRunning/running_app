@@ -126,6 +126,7 @@ const FIELD_STEP: Record<string, number> = {
   image_path: 6,
   route_image_path: 7,
   medal_image_path: 8,
+  child_shipping_price: 8,
 };
 
 /** A form row: the stored category plus a key that survives reordering. */
@@ -1589,6 +1590,27 @@ export function PublishWizard({
                     : "publish.medalMail.detail",
                 )}
               />
+              {/* What each child's medal adds to the shipping. It posts even
+                  while hidden, so it comes back with the options it needs. */}
+              <div
+                hidden={!(mailsMedals && offersMail && allowsChildren)}
+                className="mt-5 max-w-56 pl-8"
+              >
+                <Field
+                  label={t("publish.medalMail.childShippingPrice")}
+                  hint={t("publish.medalMail.childShippingPriceHint")}
+                  error={fieldError("child_shipping_price")}
+                >
+                  {(p) => (
+                    <Input
+                      {...p}
+                      name="child_shipping_price"
+                      defaultValue={initial.childShippingPrice}
+                      inputMode="decimal"
+                    />
+                  )}
+                </Field>
+              </div>
             </div>
           </div>
 

@@ -532,6 +532,7 @@ export async function getEventForm(
     childPrice: decimal(event.child_price),
     acceptsResults: event.accepts_results,
     mailsMedals: event.mails_medals,
+    childShippingPrice: decimal(event.child_shipping_price),
     soldOut: event.sold_out,
     showSpotsLeft: event.show_spots_left,
     chargesSalesTax: event.charges_sales_tax,

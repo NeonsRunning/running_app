@@ -1962,7 +1962,9 @@
     "medalMail": {
       "title": "Include finisher medals in the mail",
       "detail": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once race day is over. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras.",
-      "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras."
+      "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras.",
+      "childShippingPrice": "Shipping per child (USD)",
+      "childShippingPriceHint": "Added for each child's medal in the package. When the adult isn't running, the first child is covered by the shipping fee. Enter 0 to ship them free."
     },
     "categoryLocked": "Has sign-ups",
     "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is.",

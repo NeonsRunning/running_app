@@ -1962,7 +1962,9 @@
     "medalMail": {
       "title": "Incluir las medallas en el envío",
       "detail": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando pase el día de la carrera. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras.",
-      "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras."
+      "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras.",
+      "childShippingPrice": "Envío por menor (USD)",
+      "childShippingPriceHint": "Se suma por la medalla de cada menor en el envío. Si el adulto no corre, el cargo de envío cubre al primer menor. Escribe 0 para enviarlas gratis."
     },
     "categoryLocked": "Tiene inscripciones",
     "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar.",

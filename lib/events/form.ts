@@ -99,6 +99,8 @@ export type EventFormValues = {
   acceptsResults: boolean;
   /** Finishers get the medal mailed to the address they gave at sign-up. */
   mailsMedals: boolean;
+  /** Shipping for each child's medal; kept while children or medal mail are off. */
+  childShippingPrice: string;
   /** Marked sold out by hand. The only way a past race can be listed. */
   soldOut: boolean;
   /** Runners see the spots left, capacity bar and runner count. */
@@ -157,6 +159,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   childPrice: "0",
   acceptsResults: false,
   mailsMedals: false,
+  childShippingPrice: "6",
   soldOut: false,
   showSpotsLeft: true,
   chargesSalesTax: false,
