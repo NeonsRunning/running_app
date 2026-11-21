@@ -168,6 +168,13 @@ export type RunningEvent = {
   mailsMedals?: boolean;
   /** Sign-ups pay Puerto Rico sales tax (IVU) on all but the donation. */
   chargesSalesTax?: boolean;
+  /**
+   * Adults may add children to their sign-up: under 18 on race day and at
+   * least `minimumAge`. Set on bookable races only.
+   */
+  allowsChildren?: boolean;
+  /** Dollars per child, whatever the distance; 0 is free. */
+  childPrice?: number;
 };
 
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */
@@ -251,7 +258,10 @@ export type Runner = {
   upcoming: {
     eventSlug: string;
     bib: string;
-    category: Distance;
+    /** Null when the adult signed up only children. */
+    category: Distance | null;
+    /** Children on the sign-up; absent or 0 when there are none. */
+    children?: number;
     wave: string;
     /** Signed up but not paid yet: there is no bib until it is. */
     pending?: boolean;

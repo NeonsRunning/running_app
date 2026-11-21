@@ -61,7 +61,31 @@ const REGISTRATION = {
   medal_email_sent_at: null,
   events: EVENT,
   event_categories: CATEGORY,
+  // A child on the sign-up, as each query embeds them.
+  registration_children: [
+    {
+      first_name: "Lia",
+      last_name: "Rivera",
+      bib: 43,
+      position: 1,
+      cancelled_at: null,
+      category: { distance: "5K" },
+    },
+  ],
+  children: [{ category_id: "cat-2", cancelled_at: null }],
 };
+
+const CHILD = {
+  id: "child-1",
+  registration_id: REGISTRATION.id,
+  event_id: EVENT.id,
+  first_name: "Lia",
+  last_name: "Rivera",
+  price: 10,
+};
+
+/** Laid over the sample sign-up, for a test about a different kind of one. */
+let registrationPatch: Record<string, unknown> = {};
 
 function sample(table: string): Record<string, unknown> {
   switch (table) {
@@ -70,7 +94,14 @@ function sample(table: string): Record<string, unknown> {
     case "event_categories":
       return CATEGORY;
     case "registrations":
-      return REGISTRATION;
+      return { ...REGISTRATION, ...registrationPatch };
+    case "registration_children":
+      return {
+        first_name: "Lia",
+        last_name: "Rivera",
+        bib: 43,
+        category: { distance: "5K" },
+      };
     case "profiles":
       return { full_name: "Olga Organiza", handle: "olga" };
     case "profile_private":
@@ -179,7 +210,9 @@ const { scheduleEventRestoredEmails } = await import("./event-restored");
 const { scheduleEventSavedEmails } = await import("./event-updated");
 const { schedulePaymentRefundedEmail } = await import("./payment-refunded");
 const { sendRaceReminders } = await import("./race-reminder");
-const { scheduleRegistrationChangedEmail } = await import("./registration-changed");
+const { scheduleChildRemovedEmail, scheduleRegistrationChangedEmail } = await import(
+  "./registration-changed"
+);
 const { scheduleRegistrationEmail } = await import("./registration-confirmed");
 const { scheduleResultReviewedEmail } = await import("./result-reviewed");
 const { scheduleReviewRequestedEmail } = await import("./review-requested");
@@ -257,6 +290,10 @@ const TEMPLATES: [string, () => Promise<unknown>][] = [
   ["registration removed", () => scheduleRegistrationChangedEmail(reg(), "removed")],
   ["registration removed, free", () => scheduleRegistrationChangedEmail(reg({ amount: 0 }), "removed")],
   ["registration back to pending", () => scheduleRegistrationChangedEmail(reg(), "pending")],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a sample row
+  ["child removed from an order", () => scheduleChildRemovedEmail(CHILD as any)],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a sample row
+  ["child removed, free", () => scheduleChildRemovedEmail({ ...CHILD, price: 0 } as any)],
   ["registration confirmed (card)", () => scheduleRegistrationEmail(reg())],
   ["registration confirmed (ATH Móvil)", () => scheduleRegistrationEmail(reg({ payment_method: "ath_movil" }))],
   ["result accepted", () => scheduleResultReviewedEmail(result("accepted"))],
@@ -272,6 +309,7 @@ beforeEach(() => {
   sent.length = 0;
   pending.length = 0;
   updates.length = 0;
+  registrationPatch = {};
   sendEmail.mockClear();
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -305,6 +343,55 @@ describe.each(["es", "en"] as const)("every email in %s", (lang) => {
         expect(part).not.toMatch(RAW_KEY);
         expect(part).not.toMatch(/\{\w+\}/);
       }
+    }
+  });
+});
+
+describe("registration confirmed, with children", () => {
+  it.each(["es", "en"] as const)("lists each child with their distance and bib (%s)", async (lang) => {
+    locale = lang;
+    const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+    for (const part of [email.html, email.text]) {
+      expect(part).toContain("Lia Rivera");
+      expect(part).toContain("5K");
+      expect(part).toContain("#43");
+      // The adult's own bib is still there.
+      expect(part).toContain("42");
+    }
+  });
+
+  it.each(["es", "en"] as const)(
+    "has no bib or distance for an adult who signed up only children (%s)",
+    async (lang) => {
+      locale = lang;
+      registrationPatch = { category_id: null, racing: false, bib: null };
+      const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+      expect(console.error).not.toHaveBeenCalled();
+      for (const part of [email.subject, email.html, email.text]) {
+        expect(part).not.toMatch(RAW_KEY);
+        expect(part).not.toMatch(/\{\w+\}/);
+        expect(part).not.toContain("null");
+      }
+      expect(email.text).toContain("Lia Rivera");
+      expect(email.text).toContain("#43");
+      // No bib block for the adult, and no 10K: that was the adult's distance.
+      expect(email.text).not.toContain("10K");
+      expect(email.html).not.toContain("font-size:44px");
+    },
+  );
+});
+
+describe("race reminder, with children", () => {
+  it.each(["es", "en"] as const)("lists each child with their distance and bib (%s)", async (lang) => {
+    locale = lang;
+    const [email] = await render(() => sendRaceReminders("https://neons.test"));
+
+    for (const part of [email.html, email.text]) {
+      expect(part).toContain("Lia Rivera");
+      expect(part).toContain("5K");
+      expect(part).toContain("#43");
     }
   });
 });

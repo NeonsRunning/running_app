@@ -18,6 +18,14 @@ import {
   AthMovilInstructions,
   AthMovilUnderReview,
 } from "@/components/register/ath-movil-payment";
+import {
+  ChildrenFields,
+  ageOn,
+  emptyChild,
+  validateChildren,
+  type Child,
+  type ChildErrors,
+} from "@/components/register/children-fields";
 import { paymentCode } from "@/lib/ath-movil/config";
 import { formatFinishTime, resultPace } from "@/lib/results/evidence";
 import type { OwnFinish } from "@/lib/results/queries";
@@ -32,6 +40,7 @@ import { cn } from "@/lib/cn";
 import {
   DONATIONS,
   FIXTURE_EXTRAS,
+  MAX_CHILDREN,
   MAX_DONATION,
   SERVICE_FEE,
   parseDonation,
@@ -64,6 +73,12 @@ import type { RaceCategory, RunningEvent } from "@/lib/types";
  * A runner whose result the organizer has accepted has finished the race:
  * instead of the bib, they land on a finisher screen with their time.
  *
+ * On a race that takes children, the first step also asks who is racing: the
+ * adult, the adult with children, or only children. The children are typed in
+ * on the runner step, below the adult, and are part of the same order and
+ * payment. An adult who signs up only children picks no distance and no
+ * shirt, photos or mail, and gets no bib of their own.
+ *
  * For the fixture races nothing is persisted or charged: step 4 says so and
  * stands in for the round-trip with a timer, and the fields open with the
  * demo account.
@@ -93,12 +108,19 @@ const DEMO_RUNNER: Runner = {
 
 /** A registration already on file: what the confirmation screen shows. */
 export type ConfirmedRegistration = {
-  categoryId: string;
-  bib: number;
+  /** Null when the adult signed up only children. */
+  categoryId: string | null;
+  /** Null when the adult signed up only children. */
+  bib: number | null;
   amount: number;
   email: string;
   name: string;
+  /** The children on the sign-up, with their bibs. */
+  children: { name: string; bib: number | null; categoryId: string }[];
 };
+
+/** Who an order is for, on a race that takes children. */
+type Who = "self" | "both" | "children";
 
 export type Runner = {
   firstName: string;
@@ -118,7 +140,7 @@ type PaymentMethod = "stripe" | "ath_movil";
 
 /** The runner's unpaid sign-up as ATH Móvil left it; see `getAthMovilStatus`. */
 export type AthMovilStatus =
-  | { state: "submitted"; categoryId: string; submission: AthMovilSubmission }
+  | { state: "submitted"; categoryId: string | null; submission: AthMovilSubmission }
   | { state: "rejected" }
   | null;
 
@@ -223,6 +245,45 @@ export function RegistrationFlow({
       event.categories.find((c) => c.name === event.featuredDistance)?.id ??
       event.categories[0].id,
   );
+  // Children on the order: only on a race whose organizer allows them.
+  const allowsChildren = Boolean(event.bookable && event.allowsChildren);
+  const childPrice = event.childPrice ?? 0;
+  const [who, setWho] = useState<Who>("self");
+  const racing = who !== "children";
+  const withChildren = allowsChildren && who !== "self";
+  const [kids, setKids] = useState<Child[]>([]);
+  const [kidErrors, setKidErrors] = useState<ChildErrors[]>([]);
+  const nextKidKey = useRef(1);
+  const [guardianWaiver, setGuardianWaiver] = useState(false);
+  const [guardianWaiverError, setGuardianWaiverError] = useState(false);
+  /** A blank child, in the first distance that still has room. */
+  function newKid(): Child {
+    const open = event.categories.find((c) => !c.full);
+    return emptyChild(nextKidKey.current++, (open ?? event.categories[0]).id);
+  }
+  function chooseWho(next: Who) {
+    setWho(next);
+    // The children step opens with one card ready to fill in.
+    if (next !== "self" && kids.length === 0) setKids([newKid()]);
+  }
+  function updateKid(key: number, field: keyof ChildErrors, value: string) {
+    const at = kids.findIndex((k) => k.key === key);
+    setKids((list) => list.map((k) => (k.key === key ? { ...k, [field]: value } : k)));
+    // An edited field drops its error, as for the adult.
+    setKidErrors((list) =>
+      list.map((e, i) => {
+        if (i !== at || !e[field]) return e;
+        const rest = { ...e };
+        delete rest[field];
+        return rest;
+      }),
+    );
+  }
+  function removeKid(key: number) {
+    const at = kids.findIndex((k) => k.key === key);
+    setKids((list) => list.filter((k) => k.key !== key));
+    setKidErrors((list) => list.filter((_, i) => i !== at));
+  }
   const [waiver, setWaiver] = useState(false);
   const [waiverError, setWaiverError] = useState(false);
   const [runner, setRunner] = useState<Runner>(initialRunner);
@@ -293,25 +354,37 @@ export function RegistrationFlow({
   const categoryFull = (c: (typeof event.categories)[number]) =>
     soldOut || c.full;
 
+  // The shirt, the photos and the mail are the runner's own: an adult who
+  // signs up only children is offered none, whatever was ticked before.
+  const shirt = racing && wantsShirt;
+  const photos = racing && wantsPhotos;
+  const mail = racing && wantsMail;
+  const kidCount = withChildren ? kids.length : 0;
+
   const { tax, total } = useMemo(
     () =>
       registrationTotal({
-        price: category.price,
+        price: racing ? category.price : 0,
         extras,
-        shirt: wantsShirt,
-        photos: wantsPhotos,
+        shirt,
+        photos,
         donation,
-        mail: wantsMail,
+        mail,
         salesTax: chargesSalesTax,
+        children: kidCount,
+        childPrice,
       }),
     [
+      racing,
       category.price,
       extras,
-      wantsShirt,
-      wantsPhotos,
+      shirt,
+      photos,
       donation,
-      wantsMail,
+      mail,
       chargesSalesTax,
+      kidCount,
+      childPrice,
     ],
   );
 
@@ -361,7 +434,7 @@ export function RegistrationFlow({
   }
 
   function finish(signUp: ConfirmedSignUp) {
-    setConfirmed({ categoryId: category.id, ...signUp });
+    setConfirmed({ categoryId: racing ? category.id : null, ...signUp });
     setStep(5);
     toast({
       title: t("register.confirmToastTitle"),
@@ -378,8 +451,9 @@ export function RegistrationFlow({
 
   function goNext() {
     if (step === 1) {
-      // The pre-selected distance may be one with no spots left.
-      if (categoryFull(category)) {
+      // The pre-selected distance may be one with no spots left. An adult
+      // who is not racing picks none; the children's are checked on step 2.
+      if (racing ? categoryFull(category) : soldOut) {
         toast({
           title: t("register.errors.saveTitle"),
           body: t(soldOut ? "register.step1.soldOut" : "register.errors.soldOut"),
@@ -396,13 +470,41 @@ export function RegistrationFlow({
     }
     if (step === 2) {
       const found = validateRunner(runner, t);
+      // Whoever signs children up is an adult on race day.
+      if (withChildren && runner.dob && !found.dob && ageOn(runner.dob, event.date) < 18) {
+        found.dob = t("register.children.errors.guardianUnderage");
+      }
       setErrors(found);
-      if (Object.keys(found).length > 0) {
+      const foundKids = withChildren
+        ? validateChildren(
+            kids,
+            {
+              raceDay: event.date,
+              minimumAge: event.minimumAge,
+              isFull: (id) => {
+                const c = event.categories.find((x) => x.id === id);
+                return !c || categoryFull(c);
+              },
+            },
+            t,
+          )
+        : [];
+      setKidErrors(foundKids);
+      const needsGuardianWaiver = withChildren && !guardianWaiver;
+      setGuardianWaiverError(needsGuardianWaiver);
+      if (
+        Object.keys(found).length > 0 ||
+        foundKids.some((e) => Object.keys(e).length > 0)
+      ) {
         toast({
           title: t("register.errors.toastTitle"),
           body: t("register.errors.toastBody"),
           tone: "danger",
         });
+        focusFirstInvalid();
+        return;
+      }
+      if (needsGuardianWaiver) {
         focusFirstInvalid();
         return;
       }
@@ -412,7 +514,7 @@ export function RegistrationFlow({
       focusFirstInvalid();
       return;
     }
-    if (step === 3 && wantsMail && !mailingAddress.trim()) {
+    if (step === 3 && mail && !mailingAddress.trim()) {
       setAddressError(true);
       focusFirstInvalid();
       return;
@@ -424,11 +526,22 @@ export function RegistrationFlow({
       startRegistrationPaymentAction({
         ...runner,
         categoryId: category.id,
-        shirtSize: wantsShirt ? shirtSize : null,
-        wantsPhotos,
+        racing,
+        children: withChildren
+          ? kids.map(({ firstName, lastName, dob, gender, categoryId: distance }) => ({
+              firstName,
+              lastName,
+              dob,
+              gender,
+              categoryId: distance,
+            }))
+          : [],
+        guardianWaiverAccepted: withChildren && guardianWaiver,
+        shirtSize: shirt ? shirtSize : null,
+        wantsPhotos: photos,
         donation,
-        shipsByMail: wantsMail,
-        mailingAddress: wantsMail ? mailingAddress : "",
+        shipsByMail: mail,
+        mailingAddress: mail ? mailingAddress : "",
         waiverAccepted: waiver,
         locale,
       })
@@ -530,7 +643,7 @@ export function RegistrationFlow({
       <Finished
         event={event}
         category={category}
-        bib={confirmed.bib}
+        bib={confirmed.bib ?? 0}
         name={confirmed.name}
         finish={ownFinish}
         t={t}
@@ -543,9 +656,17 @@ export function RegistrationFlow({
     return (
       <Confirmation
         event={event}
-        category={category.name}
+        // An adult who signed up only children has no distance or bib.
+        category={
+          (confirmed ? confirmed.categoryId !== null : racing) ? category.name : null
+        }
         total={confirmed?.amount ?? total}
-        bib={confirmed?.bib ?? 1048}
+        bib={confirmed ? confirmed.bib : 1048}
+        kids={(confirmed?.children ?? []).map((c) => ({
+          name: c.name,
+          bib: c.bib,
+          distance: event.categories.find((x) => x.id === c.categoryId)?.name ?? null,
+        }))}
         email={confirmed?.email ?? runner.email}
         name={
           confirmed?.name ??
@@ -641,7 +762,7 @@ export function RegistrationFlow({
                 {t("register.step1.title")}
               </h1>
               <p className="mt-3 text-[15px] text-fg-dim">
-                {t("register.step1.body")}
+                {t(racing ? "register.step1.body" : "register.step1.bodyChildren")}
               </p>
               {soldOut ? (
                 <p
@@ -652,6 +773,65 @@ export function RegistrationFlow({
                 </p>
               ) : null}
 
+              {allowsChildren ? (
+                <RadioGroup
+                  aria-label={t("register.step1.whoGroup")}
+                  className="mt-8 grid gap-0.5 border-2 border-line bg-line sm:grid-cols-3"
+                >
+                  {(
+                    [
+                      {
+                        value: "self",
+                        label: t("register.step1.whoSelf"),
+                        detail: t("register.step1.whoSelfDetail"),
+                      },
+                      {
+                        value: "both",
+                        label: t("register.step1.whoBoth"),
+                        detail: t("register.step1.whoBothDetail", { max: MAX_CHILDREN }),
+                      },
+                      {
+                        value: "children",
+                        label: t("register.step1.whoChildren"),
+                        detail: t("register.step1.whoChildrenDetail"),
+                      },
+                    ] as const
+                  ).map(({ value, label, detail }) => {
+                    const on = who === value;
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={on}
+                        onClick={() => chooseWho(value)}
+                        className={cn(
+                          "flex items-start gap-4 px-5 py-5 text-left transition-colors",
+                          on ? "bg-neon-lime/10 text-neon-lime" : "bg-ink hover:bg-carbon",
+                        )}
+                      >
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "mt-1 h-5 w-5 shrink-0 border-2",
+                            on ? "border-neon-lime bg-neon-lime" : "border-line-input",
+                          )}
+                        />
+                        <span>
+                          <span className="block font-display text-xl font-black uppercase">
+                            {label}
+                          </span>
+                          <span className="mt-1 block text-[13px] text-fg-dim">
+                            {detail}
+                          </span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </RadioGroup>
+              ) : null}
+
+              {racing ? (
               <RadioGroup
                 aria-label={t("register.step1.categoryGroup")}
                 className="mt-8 flex flex-col gap-0.5 border-2 border-line bg-line"
@@ -711,6 +891,7 @@ export function RegistrationFlow({
                   );
                 })}
               </RadioGroup>
+              ) : null}
 
               <div
                 className={cn(
@@ -757,10 +938,10 @@ export function RegistrationFlow({
           {step === 2 ? (
             <section>
               <h1 className="font-display text-3xl font-black uppercase sm:text-4xl">
-                {t("register.step2.title")}
+                {t(racing ? "register.step2.title" : "register.step2.titleGuardian")}
               </h1>
               <p className="mt-3 text-[15px] text-fg-dim">
-                {t("register.step2.body")}
+                {t(racing ? "register.step2.body" : "register.step2.bodyGuardian")}
               </p>
 
               <div className="mt-8 grid gap-6 sm:grid-cols-2">
@@ -895,6 +1076,29 @@ export function RegistrationFlow({
                   )}
                 </Field>
               </div>
+
+              {withChildren ? (
+                <ChildrenFields
+                  list={kids}
+                  errors={kidErrors}
+                  categories={event.categories}
+                  isFull={(id) => {
+                    const c = event.categories.find((x) => x.id === id);
+                    return !c || categoryFull(c);
+                  }}
+                  childPrice={childPrice}
+                  minimumAge={event.minimumAge}
+                  onChange={updateKid}
+                  onAdd={() => setKids((list) => [...list, newKid()])}
+                  onRemove={removeKid}
+                  waiver={guardianWaiver}
+                  waiverError={guardianWaiverError}
+                  onWaiver={(accepted) => {
+                    setGuardianWaiver(accepted);
+                    if (accepted) setGuardianWaiverError(false);
+                  }}
+                />
+              ) : null}
             </section>
           ) : null}
 
@@ -906,15 +1110,23 @@ export function RegistrationFlow({
               <p className="mt-3 text-[15px] text-fg-dim">
                 {t("register.step3.body")}
               </p>
+              {withChildren ? (
+                <p
+                  role="note"
+                  className="mt-5 border-2 border-neon-yellow/60 p-5 text-[14px] leading-relaxed font-semibold text-fg"
+                >
+                  {t("register.children.notice")}
+                </p>
+              ) : null}
 
               <div className="mt-8 border-2 border-line">
                 {/* An organizer may switch any extra off, or all of them. */}
-                {!hasExtras ? (
+                {!(racing ? hasExtras : extras.donationRecipient !== null) ? (
                   <p className="p-5 text-[15px] text-fg-dim sm:p-7">
                     {t("register.step3.none")}
                   </p>
                 ) : null}
-                {shirtPrice !== null ? (
+                {racing && shirtPrice !== null ? (
                   <div className="p-5 sm:p-7">
                     <div className="flex items-start justify-between gap-5">
                       <div>
@@ -967,7 +1179,7 @@ export function RegistrationFlow({
                   </div>
                 ) : null}
 
-                {photoPrice !== null ? (
+                {racing && photoPrice !== null ? (
                   <div className="flex items-center justify-between gap-5 border-t-2 border-line p-5 first:border-t-0 sm:p-7">
                     <div>
                       <h2 className="font-display text-xl font-black uppercase">
@@ -1075,7 +1287,7 @@ export function RegistrationFlow({
                   </div>
                 ) : null}
 
-                {shippingPrice !== null ? (
+                {racing && shippingPrice !== null ? (
                   <div className="border-t-2 border-line p-5 first:border-t-0 sm:p-7">
                     <div className="flex items-start justify-between gap-5">
                       <div>
@@ -1256,19 +1468,44 @@ export function RegistrationFlow({
             <div className="border-b-2 border-line px-5 py-7 sm:px-7">
               <Eyebrow>{t("register.summary.title")}</Eyebrow>
               <dl className="mt-5">
-                <SummaryRow
-                  label={t("register.summary.registration", {
-                    category: distanceLabel(t, category.name),
-                  })}
-                  value={fmt.money(category.price)}
-                />
-                {wantsShirt ? (
+                {racing ? (
+                  <SummaryRow
+                    label={t("register.summary.registration", {
+                      category: distanceLabel(t, category.name),
+                    })}
+                    value={fmt.money(category.price)}
+                  />
+                ) : null}
+                {withChildren
+                  ? kids.map((k, i) => {
+                      const distance = event.categories.find(
+                        (c) => c.id === k.categoryId,
+                      );
+                      return (
+                        <SummaryRow
+                          key={k.key}
+                          label={t("register.summary.child", {
+                            name:
+                              k.firstName.trim() ||
+                              t("register.children.child", { n: i + 1 }),
+                            category: distance ? distanceLabel(t, distance.name) : "",
+                          })}
+                          value={
+                            childPrice === 0
+                              ? t("register.step3.free")
+                              : fmt.money(childPrice)
+                          }
+                        />
+                      );
+                    })
+                  : null}
+                {shirt ? (
                   <SummaryRow
                     label={t("register.summary.shirt", { size: shirtSize })}
                     value={fmt.money(shirtPrice ?? 0)}
                   />
                 ) : null}
-                {wantsPhotos ? (
+                {photos ? (
                   <SummaryRow
                     label={t("register.summary.photos")}
                     value={fmt.money(photoPrice ?? 0)}
@@ -1285,7 +1522,7 @@ export function RegistrationFlow({
                   value={fmt.money(SERVICE_FEE)}
                   muted
                 />
-                {wantsMail ? (
+                {mail ? (
                   <SummaryRow
                     label={t("register.summary.shipping")}
                     value={fmt.money(shippingPrice ?? 0)}
@@ -1449,21 +1686,26 @@ function Confirmation({
   category,
   total,
   bib,
+  kids,
   email,
   name,
   t,
   fmt,
 }: {
   event: RunningEvent;
-  category: string;
+  /** The adult's distance; null when they signed up only children. */
+  category: string | null;
   total: number;
-  bib: number;
+  /** The adult's bib; null when they signed up only children. */
+  bib: number | null;
+  /** The children on the order, with their bibs and distances. */
+  kids: { name: string; bib: number | null; distance: string | null }[];
   email: string;
   name: string;
   t: Translate;
   fmt: Formatters;
 }) {
-  const categoryName = distanceLabel(t, category);
+  const categoryName = category ? distanceLabel(t, category) : "";
   return (
     <div className="grid lg:grid-cols-[1fr_460px]">
       <section className="relative overflow-hidden border-line px-4 py-14 sm:px-8 lg:border-r-2 lg:px-12 lg:py-24">
@@ -1511,25 +1753,67 @@ function Confirmation({
             <span className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase">
               {t("register.confirmation.racePass")}
             </span>
-            <span className="font-mono text-[11px] tracking-[0.18em] text-fg-faint">
-              NR-{event.date.slice(0, 4)}-{category.replace(/\s/g, "").toUpperCase()}
-            </span>
+            {category ? (
+              <span className="font-mono text-[11px] tracking-[0.18em] text-fg-faint">
+                NR-{event.date.slice(0, 4)}-{category.replace(/\s/g, "").toUpperCase()}
+              </span>
+            ) : null}
           </div>
 
-          <div className="px-5 py-8 text-center">
-            <Eyebrow className="tracking-[0.2em]">
-              {t("register.confirmation.bibNumber")}
-            </Eyebrow>
-            <p className="mt-2 font-display text-7xl leading-none font-black tracking-[-0.04em] sm:text-8xl">
-              {bib}
-            </p>
-            <p className="mt-3 font-mono text-[12px] tracking-[0.16em] text-neon-yellow uppercase">
-              {t("register.confirmation.bibMeta", {
-                name,
-                category: categoryName,
-              })}
-            </p>
-          </div>
+          {category && bib !== null ? (
+            <div className="px-5 py-8 text-center">
+              <Eyebrow className="tracking-[0.2em]">
+                {t("register.confirmation.bibNumber")}
+              </Eyebrow>
+              <p className="mt-2 font-display text-7xl leading-none font-black tracking-[-0.04em] tabular-nums sm:text-8xl">
+                {bib}
+              </p>
+              <p className="mt-3 font-mono text-[12px] tracking-[0.16em] text-neon-yellow uppercase">
+                {t("register.confirmation.bibMeta", {
+                  name,
+                  category: categoryName,
+                })}
+              </p>
+            </div>
+          ) : null}
+
+          {kids.length > 0 ? (
+            <div
+              className={cn(
+                "px-5 py-6",
+                category && bib !== null && "border-t-2 border-line",
+              )}
+            >
+              <Eyebrow className="tracking-[0.2em]">
+                {t("register.confirmation.children")}
+              </Eyebrow>
+              <ul className="mt-3">
+                {kids.map((k, i) => (
+                  <li
+                    key={i}
+                    className="flex items-baseline justify-between gap-4 border-b-2 border-line py-3 last:border-b-0"
+                  >
+                    <span className="min-w-0">
+                      <span className="block font-bold wrap-break-word">{k.name}</span>
+                      {k.distance ? (
+                        <span className="mt-0.5 block font-mono text-[11px] tracking-[0.14em] text-fg-dim uppercase">
+                          {distanceLabel(t, k.distance)}
+                        </span>
+                      ) : null}
+                    </span>
+                    {k.bib !== null ? (
+                      <span className="font-display text-3xl leading-none font-black tabular-nums">
+                        <span className="sr-only">
+                          {t("register.confirmation.bibNumber")}{" "}
+                        </span>
+                        {k.bib}
+                      </span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
 
         <div className="mt-5 border-2 border-line px-5 py-5">

@@ -433,7 +433,14 @@
       "registrationCancelled": "This registration was cancelled by the organizer. Contact us about your payment.",
       "registrationCancelledRefunded": "This registration was cancelled by the organizer, so this payment has been refunded in full.",
       "referenceLimitReached": "Several reference numbers for this registration couldn’t be verified, so it can’t take another. Contact us if you sent the payment.",
-      "rateLimited": "Too many checkout attempts in the last hour. Wait a little and try again."
+      "rateLimited": "Too many checkout attempts in the last hour. Wait a little and try again.",
+      "childrenInvalid": "Some of the children’s details aren’t valid. Go back and check the runner step.",
+      "guardianWaiverRequired": "You must accept the waiver for the children. Go back to the runner step and tick it.",
+      "childrenNotAllowed": "This race no longer takes children. Go back and register only yourself.",
+      "tooManyChildren": "You can register up to 3 children for a race.",
+      "childrenRequired": "Add at least one child, or register yourself too.",
+      "childAgeNotEligible": "A child’s age on race day is outside this race’s limits. Children are under 18 and at least the race’s minimum age.",
+      "guardianUnderage": "You must be 18 or older on race day to register children."
     },
     "confirmToastTitle": "You're in!",
     "confirmToastBody": "Bib #1048 confirmed for {event}.",
@@ -446,7 +453,15 @@
       "waiverLink": "race waiver",
       "waiverPost": "and confirm I am medically fit to participate.",
       "waiverError": "▲ You must accept the waiver before continuing.",
-      "soldOut": "This race is sold out: every spot is taken."
+      "soldOut": "This race is sold out: every spot is taken.",
+      "bodyChildren": "You pick each child’s distance on the next step.",
+      "whoGroup": "Who is this registration for?",
+      "whoSelf": "Just me",
+      "whoSelfDetail": "One registration, for you.",
+      "whoBoth": "Me and children",
+      "whoBothDetail": "You race, and add up to {max} children.",
+      "whoChildren": "Only children",
+      "whoChildrenDetail": "You register them and don’t race."
     },
     "step2": {
       "title": "Runner information",
@@ -463,7 +478,9 @@
       "genderUndisclosed": "Prefer not to say",
       "emergencyName": "Emergency contact",
       "emergencyPhone": "Emergency phone",
-      "club": "Running club or team"
+      "club": "Running club or team",
+      "titleGuardian": "Parent or guardian",
+      "bodyGuardian": "You are the contact for the children you register. Your emergency contact is used for them too."
     },
     "step3": {
       "title": "Extras",
@@ -515,7 +532,8 @@
       "back": "Back",
       "refundPre": "Registrations are generally non-refundable once payment is confirmed. See the",
       "refundLink": "refund policy",
-      "raceDay": "Race day"
+      "raceDay": "Race day",
+      "child": "{name} · {category}"
     },
     "confirmation": {
       "titleLine1": "You’re",
@@ -527,7 +545,8 @@
       "receiptSentTo": "Receipt sent to",
       "totalCharged": "Total charged",
       "registrationConfirmed": "Registration confirmed",
-      "paymentReceived": "Payment received"
+      "paymentReceived": "Payment received",
+      "children": "Children"
     },
     "finished": {
       "titleLine1": "Race",
@@ -575,6 +594,31 @@
       "pendingBody": "We received your ATH Móvil payment details and your spot is held. Allow up to {hours} hours for us to verify the payment; we’ll email your bib to {email} as soon as it’s confirmed.",
       "amountSent": "Amount",
       "pendingHelp": "Paid a different amount, or something looks wrong? Contact us with your ATH Móvil receipt and we’ll sort it out."
+    },
+    "children": {
+      "title": "Children",
+      "body": "Add up to {max} children aged {min} to 17 on race day. Each child: {price}. Your emergency contact is used for them.",
+      "child": "Child {n}",
+      "distance": "Distance",
+      "distanceFull": "{distance} — sold out",
+      "select": "Select…",
+      "add": "Add Another Child",
+      "remove": "Remove child {n}",
+      "removeShort": "Remove",
+      "waiverPre": "I am the parent or legal guardian of these children and accept the",
+      "waiverPost": "on their behalf.",
+      "waiverError": "▲ You must accept the waiver for the children before continuing.",
+      "notice": "Check that everyone is listed. After you pay, you can’t add a child or your own race to this registration.",
+      "errors": {
+        "firstName": "Enter the child’s first name.",
+        "lastName": "Enter the child’s last name.",
+        "dob": "Enter the child’s date of birth.",
+        "tooOld": "Children are under 18 on race day. Someone 18 or older registers with their own account.",
+        "tooYoung": "This race takes runners from age {age}.",
+        "gender": "Select an option.",
+        "categoryFull": "That distance is sold out. Pick another.",
+        "guardianUnderage": "You must be 18 or older on race day to register children."
+      }
     }
   },
   "emails": {
@@ -603,7 +647,11 @@
       "cta": "View race details",
       "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your card receipt arrives in a separate email.",
       "totalAthMovil": "Total paid (ATH Móvil)",
-      "footerAthMovil": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your ATH Móvil receipt is in the ATH Móvil app."
+      "footerAthMovil": "You’re receiving this because you registered for {event} on NEONS RUNNING. Your ATH Móvil receipt is in the ATH Móvil app.",
+      "preheaderGuardian": "The children you registered are in. Here are their bibs and race details.",
+      "introWithChildren": "Your spot at {event} is confirmed, and so are the children you registered. Keep this email handy for race day.",
+      "introGuardian": "The children you registered for {event} are confirmed. Keep this email handy for race day: it has their bib numbers.",
+      "childBib": "Bib #{bib}"
     },
     "eventRemoved": {
       "subject": "{event} was removed from NEONS RUNNING",
@@ -813,7 +861,8 @@
       "cta": "View race details",
       "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING.",
       "preheaderNoTime": "Your race is tomorrow. Here are your details.",
-      "tipsAnywhere": "Pick your route, charge your watch or phone, and keep a screenshot of your finish."
+      "tipsAnywhere": "Pick your route, charge your watch or phone, and keep a screenshot of your finish.",
+      "childBib": "Bib #{bib}"
     },
     "contactMessage": {
       "subject": "Contact form: {topic} from {name}",
@@ -862,6 +911,19 @@
       "nextNoTracking": "If it doesn’t arrive in the next few days, contact us.",
       "cta": "Track it on your profile",
       "footer": "You’re receiving this because you asked to have your items for {event} mailed to you on NEONS RUNNING."
+    },
+    "childRemoved": {
+      "subject": "A child was removed from your registration for {event}",
+      "preheader": "{child} is no longer on the runner list for this race.",
+      "heading": "Hi {name},",
+      "intro": "{child} has been removed from your registration for {event} and is no longer on its runner list. The rest of your registration is unchanged.",
+      "race": "Race",
+      "child": "Child",
+      "amount": "You paid for this child",
+      "next": "If you think this was a mistake, or have questions about a refund, contact us and we’ll look into it.",
+      "nextFree": "If you think this was a mistake, contact us and we’ll look into it.",
+      "cta": "Contact Us",
+      "footer": "You’re receiving this because you registered for {event} on NEONS RUNNING."
     }
   },
   "results": {
@@ -1058,7 +1120,9 @@
     },
     "mailKitAndMedal": "Race kit + finisher medal",
     "kitAheadOfMedal": "Your kit shipped {date}. Your medal follows once it’s earned.",
-    "medalPickupFinal": "Mailing your medal is now part of the paid “Send by mail” extra, so you won’t be able to switch back to the mail."
+    "medalPickupFinal": "Mailing your medal is now part of the paid “Send by mail” extra, so you won’t be able to switch back to the mail.",
+    "children": "Children",
+    "registrationMetaChildren": "Children registered: {count}"
   },
   "auth": {
     "shell": {
@@ -1624,7 +1688,8 @@
       "registrationMissing": "This runner is no longer registered for the race.",
       "noCheckIn": "This race has no check-in: it isn’t published, or it’s run virtually or anywhere.",
       "checkInFailed": "Something went wrong. Try again."
-    }
+    },
+    "withGuardian": "With {name}"
   },
   "charts": {
     "table": "Table",
@@ -1843,7 +1908,8 @@
       "paymentMethodRequired": "Runners need a way to pay. Pick an active ATH Móvil account, or leave card payments on.",
       "categoryDistanceLocked": "Runners are signed up for a category whose distance you changed. Put its distance back, or add a new category instead.",
       "eventCapacityBelowRegistered": "The event’s cap can’t go below the runners already registered or holding a spot.",
-      "closesInPast": "Registration would already be closed. Pick a closing date from today on."
+      "closesInPast": "Registration would already be closed. Pick a closing date from today on.",
+      "childrenAgeInvalid": "With a minimum age of 18 or more, nobody counts as a child. Lower the minimum age, or turn off children."
     },
     "editEvent": "Edit event",
     "editingAsAdmin": "Editing as admin",
@@ -1899,7 +1965,14 @@
       "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras."
     },
     "categoryLocked": "Has sign-ups",
-    "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is."
+    "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is.",
+    "children": {
+      "title": "Allow children",
+      "detail": "An adult with an account can add up to 3 children to their registration, or register only children. Each child picks a distance, takes a spot and gets a bib. Changing it applies to new sign-ups only.",
+      "price": "Price per child (USD)",
+      "priceHint": "One price for every distance. Enter 0 for free.",
+      "ages": "Children are ages {min} to 17 on race day. To let younger children in, lower the minimum age above."
+    }
   },
   "organizerOnly": {
     "eyebrow": "Organizers only",
@@ -2364,7 +2437,8 @@
       "shipped": "Shipped on",
       "tracking": "Tracking number",
       "medalDelivery": "Medal",
-      "medalPickedUp": "Medal picked up on"
+      "medalPickedUp": "Medal picked up on",
+      "registeredBy": "Registered by"
     },
     "markShipped": "Mark shipped",
     "markShippedAria": "Mark shipped: {name}’s shipment",
@@ -2419,7 +2493,19 @@
     "noAddress": "No address yet",
     "markMedalShipped": "Mark medal shipped",
     "shipMedalTitle": "Mark {name}’s medal as shipped?",
-    "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone."
+    "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone.",
+    "guardian": "Guardian",
+    "childOf": "Child · registered by {name}",
+    "removeChildAria": "Remove {name} from {guardian}’s registration",
+    "removeChildDescription": "Bib {bib} comes off the list and the spot goes back to the race. The rest of {guardian}’s registration stays as it is. What was paid for this child is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",
+    "childRemovedTitle": "Child removed",
+    "childErrors": {
+      "title": "Couldn’t remove the child",
+      "notAllowed": "Only this event’s organizer can remove its runners.",
+      "alreadyRemoved": "This child was already removed.",
+      "lastChild": "This is the only child on a registration whose adult isn’t racing. Remove the whole registration instead.",
+      "removeFailed": "Something went wrong — try again in a moment."
+    }
   },
   "cancelledRegistrations": {
     "title": "Removed runners",

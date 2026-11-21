@@ -93,6 +93,64 @@ describe("registrationTotal agrees with register_for_event()", () => {
   });
 });
 
+/**
+ * The two orders `supabase/tests/database/children.test.sql` registers
+ * through `register_for_event()`, on a race that charges $10 a child and
+ * sales tax. Both sides must arrive at the same totals.
+ */
+describe("registrationTotal with children", () => {
+  const none = { shirtPrice: null, photoPrice: null, shippingPrice: null, donationRecipient: null };
+
+  it("adds the child price per child, taxed, and the fee once", () => {
+    const { tax, total } = registrationTotal({
+      price: 30,
+      extras: none,
+      shirt: false,
+      photos: false,
+      donation: 0,
+      mail: false,
+      salesTax: true,
+      children: 2,
+      childPrice: 10,
+    });
+    // 30 + 2 × 10 + 2 = 52; 52 × 0.115 = 5.98
+    expect(tax).toBe(5.98);
+    expect(total).toBe(57.98);
+  });
+
+  it("prices an adult who signs up only a child at the child price and the fee", () => {
+    const { tax, total } = registrationTotal({
+      price: 0,
+      extras: none,
+      shirt: false,
+      photos: false,
+      donation: 0,
+      mail: false,
+      salesTax: true,
+      children: 1,
+      childPrice: 10,
+    });
+    // 10 + 2 = 12; 12 × 0.115 = 1.38
+    expect(tax).toBe(1.38);
+    expect(total).toBe(13.38);
+  });
+
+  it("still charges the fee when the children are free", () => {
+    const { total } = registrationTotal({
+      price: 0,
+      extras: none,
+      shirt: false,
+      photos: false,
+      donation: 0,
+      mail: false,
+      salesTax: false,
+      children: 3,
+      childPrice: 0,
+    });
+    expect(total).toBe(2);
+  });
+});
+
 describe("parseDonation", () => {
   it.each([
     ["", 0],

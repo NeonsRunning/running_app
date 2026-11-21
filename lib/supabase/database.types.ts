@@ -194,6 +194,10 @@ export type Database = {
           show_spots_left: boolean;
           /** Runners may pay by card; off for an ATH Móvil-only race. */
           accepts_card_payments: boolean;
+          /** Adults may add children (under 18, at least the minimum age) to their sign-up. */
+          allows_children: boolean;
+          /** Dollars per child, whatever the distance. 0 is free. */
+          child_price: number;
           
           charges_sales_tax: boolean;created_at: string;
           updated_at: string;
@@ -248,6 +252,8 @@ export type Database = {
           sold_out?: boolean;
           show_spots_left?: boolean;
           accepts_card_payments?: boolean;
+          allows_children?: boolean;
+          child_price?: number;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -302,6 +308,8 @@ export type Database = {
           sold_out?: boolean;
           show_spots_left?: boolean;
           accepts_card_payments?: boolean;
+          allows_children?: boolean;
+          child_price?: number;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -371,7 +379,10 @@ export type Database = {
         Row: {
           id: string;
           event_id: string;
-          category_id: string;
+          /** Null when the adult signed up only children (`racing` false). */
+          category_id: string | null;
+          /** False when the adult signed up only children: no distance, bib or result of their own. */
+          racing: boolean;
           runner_id: string;
           /** Null until the payment is confirmed. */
           bib: number | null;
@@ -446,6 +457,9 @@ export type Database = {
           waiver_accepted_at: string | null;
           /** Which waiver text they accepted: `WAIVER_VERSION` in lib/legal.ts. */
           waiver_version: string | null;
+          /** When the adult accepted the waiver for the children on this sign-up. */
+          guardian_waiver_accepted_at: string | null;
+          guardian_waiver_version: string | null;
         };
         Insert: never;
         /**
@@ -466,6 +480,8 @@ export type Database = {
           dispute_status?: string | null;
           waiver_accepted_at?: string | null;
           waiver_version?: string | null;
+          guardian_waiver_accepted_at?: string | null;
+          guardian_waiver_version?: string | null;
         };
         Relationships: [
           {
@@ -494,6 +510,59 @@ export type Database = {
             columns: ["ath_movil_account_id"];
             isOneToOne: false;
             referencedRelation: "ath_movil_accounts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      /**
+       * A child an adult added to their sign-up. Live while that sign-up is
+       * confirmed or holding and `cancelled_at` is null. Written only by
+       * functions; `cancelled_by` is not readable by clients.
+       */
+      registration_children: {
+        Row: {
+          id: string;
+          registration_id: string;
+          event_id: string;
+          category_id: string;
+          /** Order on the form, 1 to 3; bibs follow it. */
+          position: number;
+          first_name: string;
+          last_name: string;
+          birth_date: string;
+          gender: Database["public"]["Enums"]["profile_gender"];
+          /** What this child cost when the order was priced. */
+          price: number;
+          /** Null until the order is paid. */
+          bib: number | null;
+          checked_in_at: string | null;
+          /** When the organizer or an admin took this child off the order. */
+          cancelled_at: string | null;
+          cancelled_by: string | null;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "registration_children_registration_id_fkey";
+            columns: ["registration_id"];
+            isOneToOne: false;
+            referencedRelation: "registrations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registration_children_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registration_children_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "event_categories";
             referencedColumns: ["id"];
           },
         ];
@@ -782,7 +851,26 @@ export type Database = {
         ];
       };
     };
-    Views: { [_ in never]: never };
+    Views: {
+      /** One row per spot on an event: racing adults and live children. */
+      event_spots: {
+        Row: {
+          event_id: string;
+          category_id: string;
+          registration_id: string;
+          /** Null for the adult's own spot. */
+          child_id: string | null;
+          runner_id: string;
+          status: Database["public"]["Enums"]["registration_status"];
+          hold_expires_at: string | null;
+          paid_at: string | null;
+          created_at: string;
+          gender: Database["public"]["Enums"]["profile_gender"];
+          birth_date: string;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       is_organizer: { Args: Record<PropertyKey, never>; Returns: boolean };
       request_account_deletion: {
@@ -919,6 +1007,14 @@ export type Database = {
       set_checked_in: {
         Args: { p_registration_id: string; p_checked_in: boolean };
         Returns: Database["public"]["Tables"]["registrations"]["Row"];
+      };
+      set_child_checked_in: {
+        Args: { p_child_id: string; p_checked_in: boolean };
+        Returns: Database["public"]["Tables"]["registration_children"]["Row"];
+      };
+      remove_registration_child: {
+        Args: { p_child_id: string };
+        Returns: Database["public"]["Tables"]["registration_children"]["Row"];
       };
       set_medal_delivery: {
         Args: { p_registration_id: string; p_by_mail: boolean; p_address?: string | null };

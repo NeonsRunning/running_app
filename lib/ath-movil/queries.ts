@@ -52,7 +52,8 @@ export type EventPaymentRow = {
   runnerName: string;
   email: string;
   phone: string;
-  categoryId: string;
+  /** Null when the adult signed up only children. */
+  categoryId: string | null;
   amount: number;
   reference: string;
   submittedAt: string;

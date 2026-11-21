@@ -868,11 +868,20 @@ export default async function RunnerProfilePage(
                         {waveLabel(t, next.wave)}
                       </dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-fg-dim">{t("runner.category")}</dt>
-                      <dd>{distanceLabel(t, next.category)}</dd>
-                    </div>
-                    {next.pending ? null : (
+                    {next.category ? (
+                      <div className="flex justify-between">
+                        <dt className="text-fg-dim">{t("runner.category")}</dt>
+                        <dd>{distanceLabel(t, next.category)}</dd>
+                      </div>
+                    ) : null}
+                    {next.children ? (
+                      <div className="flex justify-between">
+                        <dt className="text-fg-dim">{t("runner.children")}</dt>
+                        <dd className="tabular-nums">{next.children}</dd>
+                      </div>
+                    ) : null}
+                    {/* No bib for an adult who signed up only children. */}
+                    {next.pending || !next.bib ? null : (
                       <div className="flex justify-between">
                         <dt className="text-fg-dim">{t("runner.bib")}</dt>
                         <dd className="font-mono">#{next.bib}</dd>
@@ -922,16 +931,21 @@ export default async function RunnerProfilePage(
                       </div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-2">
                         <p className="font-mono text-[11px] tracking-[0.12em] text-fg-faint uppercase">
-                          {race.pending
-                            ? t("runner.registrationMetaPending", {
-                                category: distanceLabel(t, race.category),
-                                wave: waveLabel(t, race.wave),
+                          {!race.category
+                            ? // Signed up only children: no distance or bib of their own.
+                              t("runner.registrationMetaChildren", {
+                                count: race.children ?? 0,
                               })
-                            : t("runner.registrationMeta", {
-                                category: distanceLabel(t, race.category),
-                                wave: waveLabel(t, race.wave),
-                                bib: race.bib,
-                              })}
+                            : race.pending
+                              ? t("runner.registrationMetaPending", {
+                                  category: distanceLabel(t, race.category),
+                                  wave: waveLabel(t, race.wave),
+                                })
+                              : t("runner.registrationMeta", {
+                                  category: distanceLabel(t, race.category),
+                                  wave: waveLabel(t, race.wave),
+                                  bib: race.bib,
+                                })}
                         </p>
                         {race.pending ? (
                           <Badge tone="outline">{t("runner.pending")}</Badge>

@@ -7,7 +7,7 @@ import type { EventExtras } from "@/lib/types";
  * prices here are the starting values a new event gets, and what fixture
  * races charge. The registration flow uses these to show a running total; the
  * amount that is stored is computed again by `register_for_event()` in
- * `20261202120000_optional_sales_tax.sql`, which repeats the service fee
+ * `20261216120000_children.sql`, which repeats the service fee
  * and the sales tax rate. Change them in both places.
  */
 export const SHIRT_PRICE = 22;
@@ -23,6 +23,8 @@ export const SALES_TAX_RATE = 0.115;
 export const DONATIONS = [0, 5, 10, 25] as const;
 /** Largest donation a runner can type in; `register_for_event()` enforces it too. */
 export const MAX_DONATION = 1000;
+/** Children an adult can add to one sign-up; `register_for_event()` enforces it too. */
+export const MAX_CHILDREN = 3;
 
 /**
  * A typed-in donation in dollars, rounded to cents, or null when it isn't a
@@ -49,6 +51,7 @@ export const FIXTURE_EXTRAS: EventExtras = {
  * runner pays in all, in dollars.
  */
 export function registrationTotal(opts: {
+  /** The adult's distance; 0 when they sign up only children. */
   price: number;
   extras: EventExtras;
   shirt: boolean;
@@ -57,12 +60,17 @@ export function registrationTotal(opts: {
   mail: boolean;
   /** The event charges sales tax; when it doesn't, the tax is 0. */
   salesTax: boolean;
+  /** Children on the sign-up, each at the event's flat child price. */
+  children?: number;
+  childPrice?: number;
 }): { tax: number; total: number } {
   // In cents, so the tax rounds the way Postgres's round(x, 2) does.
   const taxable = Math.round(
     (opts.price +
       (opts.shirt ? (opts.extras.shirtPrice ?? 0) : 0) +
       (opts.photos ? (opts.extras.photoPrice ?? 0) : 0) +
+      (opts.children ?? 0) * (opts.childPrice ?? 0) +
+      // Once per order, however many are on it.
       SERVICE_FEE +
       (opts.mail ? (opts.extras.shippingPrice ?? 0) : 0)) *
       100,

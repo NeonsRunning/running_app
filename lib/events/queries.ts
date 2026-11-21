@@ -155,6 +155,8 @@ function toEvent(
     endingSoon: isEndingSoon(row, status),
     mailsMedals: row.mails_medals,
     chargesSalesTax: row.charges_sales_tax,
+    allowsChildren: row.allows_children,
+    childPrice: Number(row.child_price),
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,
@@ -357,18 +359,24 @@ export async function getOwnRegistration(
   runnerId: string,
   eventId: string,
 ): Promise<{
-  categoryId: string;
-  bib: number;
+  /** Null when they signed up only children. */
+  categoryId: string | null;
+  /** Null when they signed up only children: the bibs are the children's. */
+  bib: number | null;
   amount: number;
   email: string;
   name: string;
+  /** The children on the sign-up, as listed on the form. */
+  children: { name: string; bib: number | null; categoryId: string }[];
 } | null> {
   if (!hasSupabaseEnv()) return null;
 
   const supabase = await createClient();
   const { data } = await supabase
     .from("registrations")
-    .select("category_id, bib, amount, email, first_name, last_name")
+    .select(
+      "category_id, bib, amount, email, first_name, last_name, children:registration_children (first_name, last_name, bib, category_id, position, cancelled_at)",
+    )
     .eq("runner_id", runnerId)
     .eq("event_id", eventId)
     .eq("status", "confirmed")
@@ -377,10 +385,19 @@ export async function getOwnRegistration(
   return data
     ? {
         categoryId: data.category_id,
-        bib: data.bib ?? 0,
+        bib: data.bib,
         amount: Number(data.amount),
         email: data.email,
         name: `${data.first_name} ${data.last_name}`.trim(),
+        children: data.children
+          // One the organizer took off the order is no longer coming.
+          .filter((c) => c.cancelled_at === null)
+          .sort((a, b) => a.position - b.position)
+          .map((c) => ({
+            name: `${c.first_name} ${c.last_name}`.trim(),
+            bib: c.bib,
+            categoryId: c.category_id,
+          })),
       }
     : null;
 }
@@ -397,7 +414,8 @@ export async function getAthMovilStatus(
 ): Promise<
   | {
       state: "submitted";
-      categoryId: string;
+      /** Null when they signed up only children. */
+      categoryId: string | null;
       submission: {
         amount: number;
         email: string;
@@ -478,6 +496,9 @@ export async function getRegisteredEventIds(
  * — the runner has either run it or missed it by then. One with an accepted
  * result drops off as soon as the organizer accepts it.
  *
+ * A sign-up of only children has no distance or bib of its own; it is listed
+ * with how many children are on it.
+ *
  * Paid sign-ups come with their bib. Unpaid ones come flagged `pending` while
  * their spot is still held: a card payment in progress, or an ATH Móvil
  * payment waiting for review (held until reviewed). A lapsed hold or a
@@ -497,7 +518,7 @@ export async function getUpcomingRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, status, category:event_categories!inner(distance), event:events!inner(slug, event_date, last_day, status)",
+        "id, bib, status, category:event_categories(distance), children:registration_children(cancelled_at), event:events!inner(slug, event_date, last_day, status)",
       )
       .eq("runner_id", runnerId)
       .or(`status.eq.confirmed,hold_expires_at.gt.${new Date().toISOString()}`)
@@ -524,7 +545,8 @@ export async function getUpcomingRegistrations(
     .map((r) => ({
       eventSlug: r.event.slug,
       bib: r.bib === null ? "" : String(r.bib),
-      category: r.category.distance,
+      category: r.category?.distance ?? null,
+      children: r.children.filter((c) => c.cancelled_at === null).length,
       // Database races have a single open wave; see `toEvent`.
       wave: "Open",
       pending: r.status === "pending",

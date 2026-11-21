@@ -117,8 +117,11 @@ export type ConfirmedRunner = {
   firstName: string;
   name: string;
   amount: number;
-  /** The distance they signed up for. */
-  categoryId: string;
+  /**
+   * The distances on their sign-up: their own, unless they signed up only
+   * children, and each child's.
+   */
+  categoryIds: string[];
   locale: Locale;
 };
 
@@ -135,7 +138,9 @@ export async function getConfirmedRunners(
   const { data, error } = await selectAll((from, to) =>
     admin
       .from("registrations")
-      .select("id, runner_id, category_id, email, first_name, last_name, amount")
+      .select(
+        "id, runner_id, category_id, email, first_name, last_name, amount, children:registration_children (category_id, cancelled_at)",
+      )
       .eq("event_id", eventId)
       .eq("status", "confirmed")
       .order("id")
@@ -159,7 +164,12 @@ export async function getConfirmedRunners(
       firstName: r.first_name,
       name: `${r.first_name} ${r.last_name}`,
       amount: Number(r.amount),
-      categoryId: r.category_id,
+      categoryIds: [
+        ...new Set([
+          ...(r.category_id ? [r.category_id] : []),
+          ...r.children.filter((c) => c.cancelled_at === null).map((c) => c.category_id),
+        ]),
+      ],
       locale: settings.get(r.runner_id)?.locale ?? DEFAULT_LOCALE,
     }));
 }

@@ -26,6 +26,10 @@ import { escape, INK, LIME, LINE, MUTED } from "./layout";
  * Runs after the response with `after()`, so neither the confirmation screen
  * nor the webhook waits on Brevo, and an email failure never turns into a
  * failed sign-up. Written in the language the runner last registered in.
+ *
+ * One email per sign-up, to the adult: the children on it are listed with
+ * their distances and bibs. An adult who signed up only children has no bib
+ * or distance of their own, and the email says whose spots are confirmed.
  */
 
 type Registration = Tables<"registrations">;
@@ -58,7 +62,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
   if (!claimed) return;
 
   try {
-    const [{ data: event }, { data: category }, { data: profile }] =
+    const [{ data: event }, { data: category }, { data: profile }, { data: kids }] =
       await Promise.all([
         admin
           .from("events")
@@ -67,18 +71,39 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
           )
           .eq("id", claimed.event_id)
           .single(),
-        admin
-          .from("event_categories")
-          .select("distance, start_time")
-          .eq("id", claimed.category_id)
-          .single(),
+        // An adult who signed up only children has no distance of their own.
+        claimed.category_id
+          ? admin
+              .from("event_categories")
+              .select("distance, start_time")
+              .eq("id", claimed.category_id)
+              .single()
+          : { data: null },
         admin
           .from("profile_private")
           .select("locale")
           .eq("id", claimed.runner_id)
           .maybeSingle(),
+        admin
+          .from("registration_children")
+          .select(
+            "first_name, last_name, bib, category:event_categories!registration_children_category_id_fkey (distance)",
+          )
+          .eq("registration_id", claimed.id)
+          .is("cancelled_at", null)
+          .order("position"),
       ]);
-    if (!event || !category) throw new Error("Event or category not found.");
+    if (!event || (claimed.category_id && !category)) {
+      throw new Error("Event or category not found.");
+    }
+    const children = (kids ?? []).map((c) => ({
+      name: `${c.first_name} ${c.last_name}`.trim(),
+      bib: c.bib,
+      distance: c.category?.distance ?? null,
+    }));
+    if (!category && children.length === 0) {
+      throw new Error("A sign-up with nobody running.");
+    }
 
     const locale =
       profile && isLocale(profile.locale) ? profile.locale : DEFAULT_LOCALE;
@@ -86,6 +111,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       registration: claimed,
       event,
       category,
+      children,
       locale,
       eventUrl: `${origin}${localizePath(`/events/${event.slug}`, locale)}`,
     });
@@ -118,6 +144,7 @@ async function composeEmail({
   registration,
   event,
   category,
+  children,
   locale,
   eventUrl,
 }: {
@@ -134,7 +161,13 @@ async function composeEmail({
     | "region"
     | "donation_recipient"
   >;
-  category: Pick<Tables<"event_categories">, "distance" | "start_time">;
+  /** The adult's distance; null when they signed up only children. */
+  category: Pick<Tables<"event_categories">, "distance" | "start_time"> | null;
+  children: {
+    name: string;
+    bib: number | null;
+    distance: Tables<"event_categories">["distance"] | null;
+  }[];
   locale: Locale;
   eventUrl: string;
 }): Promise<{ subject: string; html: string; text: string }> {
@@ -171,7 +204,7 @@ async function composeEmail({
     : [event.venue, event.city].filter(Boolean).join(", ");
   // A category without its own time starts with the event; an event without
   // one runs any time across its dates, or has not announced it yet.
-  const startTime = category.start_time ?? event.start_time;
+  const startTime = category?.start_time ?? event.start_time;
   const start = startTime
     ? formatClock(clock(startTime), locale)
     : t(event.end_date ? "labels.start.anytime" : "labels.start.tba");
@@ -179,12 +212,27 @@ async function composeEmail({
   /** Label and value, in the order they read. Missing values are left out. */
   const rows: [string, string][] = [
     [t(k("race")), event.name],
-    [t(k("distance")), distanceLabel(t, category.distance)],
+    ...(category
+      ? [[t(k("distance")), distanceLabel(t, category.distance)] as [string, string]]
+      : []),
     ...(event.event_date
       ? [[t(k("date")), formatLongDate(event.event_date, locale)] as [string, string]]
       : []),
     [t(k("start")), start],
     ...(location ? [[t(k("location")), location] as [string, string]] : []),
+    // One row per child: who, what they run, and the bib to pick up.
+    ...children.map(
+      (c) =>
+        [
+          c.name,
+          [
+            c.distance ? distanceLabel(t, c.distance) : null,
+            c.bib !== null ? t(k("childBib"), { bib: c.bib }) : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        ] as [string, string],
+    ),
     ...(extras.length ? [[t(k("extras")), extras.join(" · ")] as [string, string]] : []),
     ...(mailTo ? [[t(k("mailTo")), mailTo] as [string, string]] : []),
     [
@@ -195,7 +243,12 @@ async function composeEmail({
 
   const subject = t(k("subject"), { event: event.name });
   const heading = t(k("heading"), { name: registration.first_name });
-  const intro = t(k("intro"), { event: event.name });
+  const introKey = !category
+    ? k("introGuardian")
+    : children.length
+      ? k("introWithChildren")
+      : k("intro");
+  const intro = t(introKey, { event: event.name });
   const cta = t(k("cta"));
   // No card receipt follows an ATH Móvil payment; the app keeps its own.
   const footer = t(k(athMovil ? "footerAthMovil" : "footer"), {
@@ -207,7 +260,7 @@ async function composeEmail({
     "",
     intro,
     "",
-    `${t(k("bib"))}: ${bib}`,
+    ...(category ? [`${t(k("bib"))}: ${bib}`] : []),
     ...rows.map(([label, value]) => `${label}: ${value}`),
     "",
     `${cta}: ${eventUrl}`,
@@ -233,7 +286,7 @@ async function composeEmail({
 <title>${escape(subject)}</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f4f4;font-family:Helvetica,Arial,sans-serif;">
-  <div style="display:none;max-height:0;overflow:hidden;">${escape(t(k("preheader"), { bib }))}</div>
+  <div style="display:none;max-height:0;overflow:hidden;">${escape(category ? t(k("preheader"), { bib }) : t(k("preheaderGuardian")))}</div>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:24px 12px;">
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;">
@@ -242,15 +295,19 @@ async function composeEmail({
           <h1 style="margin:0 0 12px;color:${INK};font-size:26px;line-height:1.2;">${escape(heading)}</h1>
           <p style="margin:0;color:#333333;font-size:15px;line-height:1.5;">${escape(intro)}</p>
         </td></tr>
-        <tr><td style="padding:20px 28px;">
+        ${
+          category
+            ? `<tr><td style="padding:20px 28px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${INK};border-radius:10px;">
             <tr><td style="padding:18px 22px;">
               <div style="color:${LIME};font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">${escape(t(k("bib")))}</div>
               <div style="color:#ffffff;font-size:44px;font-weight:800;line-height:1.1;margin-top:4px;">${escape(bib)}</div>
             </td></tr>
           </table>
-        </td></tr>
-        <tr><td style="padding:0 28px 8px;">
+        </td></tr>`
+            : ""
+        }
+        <tr><td style="padding:${category ? "0" : "12px"} 28px 8px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowHtml}
           </table>
         </td></tr>

@@ -91,6 +91,10 @@ export type EventFormValues = {
   athMovilAccountId: string;
   /** Runners may pay by card; off for a race that takes ATH Móvil only. */
   acceptsCardPayments: boolean;
+  /** Adults may add children (under 18, at least the minimum age) to their sign-up. */
+  allowsChildren: boolean;
+  /** Dollars per child, whatever the distance; kept while children are off. */
+  childPrice: string;
   /** Runners may send finish evidence for the organizer to review. */
   acceptsResults: boolean;
   /** Finishers get the medal mailed to the address they gave at sign-up. */
@@ -149,6 +153,8 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   medalImagePath: "",
   athMovilAccountId: "",
   acceptsCardPayments: true,
+  allowsChildren: false,
+  childPrice: "0",
   acceptsResults: false,
   mailsMedals: false,
   soldOut: false,

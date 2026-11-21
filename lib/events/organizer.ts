@@ -431,15 +431,37 @@ export async function getEventForm(
   const registered = new Map<string, number>();
   const locked = new Set<string>();
   let deletable = true;
+  // Sign-ups whose spots count: paid, or still held.
+  const live = new Set<string>();
   for (const r of regs) {
-    locked.add(r.category_id);
     const held =
       r.hold_expires_at !== null &&
       (r.hold_expires_at === "infinity" || Date.parse(r.hold_expires_at) > now);
-    if (r.status === "confirmed" || held) {
-      registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
+    if (r.status === "confirmed" || held) live.add(r.id);
+    // Null for an adult who signed up only children: no spot of their own.
+    if (r.category_id) {
+      locked.add(r.category_id);
+      if (live.has(r.id)) {
+        registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
+      }
     }
     if (r.status !== "pending" || r.payment_submitted_at !== null) deletable = false;
+  }
+
+  // The children on those sign-ups take spots and lock distances as well.
+  const { data: children } = await selectAll((from, to) =>
+    admin
+      .from("registration_children")
+      .select("id, registration_id, category_id, cancelled_at")
+      .eq("event_id", event.id)
+      .order("id")
+      .range(from, to),
+  );
+  for (const c of children) {
+    locked.add(c.category_id);
+    if (c.cancelled_at === null && live.has(c.registration_id)) {
+      registered.set(c.category_id, (registered.get(c.category_id) ?? 0) + 1);
+    }
   }
 
   const categories = [...event.event_categories]
@@ -506,6 +528,8 @@ export async function getEventForm(
     medalImagePath: event.medal_image_path ?? "",
     athMovilAccountId: event.ath_movil_account_id ?? "",
     acceptsCardPayments: event.accepts_card_payments,
+    allowsChildren: event.allows_children,
+    childPrice: decimal(event.child_price),
     acceptsResults: event.accepts_results,
     mailsMedals: event.mails_medals,
     soldOut: event.sold_out,
@@ -521,13 +545,30 @@ export async function getEventForm(
 /* An event's registrations                                                   */
 /* -------------------------------------------------------------------------- */
 
+/** A child on an adult's sign-up, as the organizer's list shows them. */
+export type EventChildRow = {
+  id: string;
+  name: string;
+  bib: number | null;
+  categoryId: string;
+  gender: Tables<"registrations">["gender"];
+  /** On race day, or today for an undated event. */
+  age: number;
+};
+
 export type EventRegistrationRow = {
   id: string;
+  /** Null for an adult who signed up only children. */
   bib: number | null;
+  /** False for an adult who signed up only children: the order's contact, not a runner. */
+  racing: boolean;
+  /** The children on this sign-up, as listed on the form; none taken off it. */
+  children: EventChildRow[];
   runnerName: string;
   email: string;
   phone: string;
-  categoryId: string;
+  /** Null for an adult who signed up only children. */
+  categoryId: string | null;
   gender: Tables<"registrations">["gender"];
   /** On race day, or today for an undated event. */
   age: number;
@@ -578,7 +619,9 @@ export type MedalRule = {
 };
 
 /**
- * One event's completed registrations — paid, bib assigned — in bib order.
+ * One event's completed registrations — paid, bib assigned — in bib order,
+ * each with the children on it. An order of only children sorts by its first
+ * child's bib.
  * Read through RLS, so it is empty for anyone but the event's organizer and
  * platform admins.
  */
@@ -594,7 +637,7 @@ export async function getEventRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status)",
+        "id, bib, racing, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status), children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, position, cancelled_at)",
       )
       .eq("event_id", eventId)
       .eq("status", "confirmed")
@@ -615,9 +658,21 @@ export async function getEventRegistrations(
   const today = todayIso();
   const raceOver = medals.lastDay !== null && medals.lastDay < today;
   const raceStarted = medals.firstDay !== null && medals.firstDay <= today;
-  return data.map((r) => ({
+  const rows = data.map((r) => ({
     id: r.id,
     bib: r.bib,
+    racing: r.racing,
+    children: r.children
+      .filter((c) => c.cancelled_at === null)
+      .sort((a, b) => a.position - b.position)
+      .map((c) => ({
+        id: c.id,
+        name: `${c.first_name} ${c.last_name}`,
+        bib: c.bib,
+        categoryId: c.category_id,
+        gender: c.gender,
+        age: ageOn(c.birth_date, raceDay),
+      })),
     runnerName: `${r.first_name} ${r.last_name}`,
     email: r.email,
     phone: r.phone,
@@ -638,9 +693,10 @@ export async function getEventRegistrations(
     hasAcceptedResult: r.result?.status === "accepted",
     hasDisqualifiedResult: r.result?.status === "disqualified",
     hasPendingResult: r.result?.status === "pending",
-    // A medal handed over before the race stopped mailing them stays on record.
+    // A medal handed over before the race stopped mailing them stays on
+    // record. An adult who signed up only children ran nothing, so earns none.
     medal:
-      medals.mailsMedals || r.medal_shipped_at || r.medal_picked_up_at
+      r.racing && (medals.mailsMedals || r.medal_shipped_at || r.medal_picked_up_at)
         ? {
             byMail: r.medal_by_mail,
             finished: medals.acceptsResults
@@ -656,6 +712,18 @@ export async function getEventRegistrations(
           }
         : null,
   }));
+
+  // Bib order across the whole list: an adult who is not racing has no bib,
+  // so their order goes where its first child's bib puts it.
+  const firstBib = (row: (typeof rows)[number]) =>
+    Math.min(
+      row.bib ?? Infinity,
+      ...row.children.map((c) => c.bib ?? Infinity),
+    );
+  return rows
+    .map((row, at) => ({ row, at, bib: firstBib(row) }))
+    .sort((a, b) => a.bib - b.bib || a.at - b.at)
+    .map(({ row }) => row);
 }
 
 /**
@@ -671,7 +739,12 @@ export function hasInPersonCheckIn(event: {
 
 /** A runner as the race-day check-in station shows them. */
 export type CheckInRunner = {
+  /** The sign-up's id, or the child's for a child. */
   id: string;
+  /** A child is checked in on their own, under the adult who signed them up. */
+  kind: "runner" | "child";
+  /** The adult who signed a child up; null for a runner. */
+  guardianName: string | null;
   bib: number | null;
   name: string;
   /** The category's distance, e.g. "10K". */
@@ -697,7 +770,8 @@ export type CheckInList = {
 /**
  * One event's runners for the check-in station, in bib order: the confirmed
  * ones, and those whose ATH Móvil payment is still under review (no bib yet,
- * so they come last). `organizerId` limits it to that organizer's events;
+ * so they come last). Children are listed as runners of their own; an adult
+ * who signed up only children is not, having nothing to check in. `organizerId` limits it to that organizer's events;
  * null opens anyone's, which only a platform admin's row-level security lets
  * through.
  *
@@ -726,7 +800,7 @@ export async function getCheckInList(
   const { data, error } = await selectAll((from, to) =>
     supabase
       .from("registrations")
-      .select("id, status, bib, first_name, last_name, category_id, gender, birth_date, shirt_size, ships_by_mail, shipped_at, checked_in_at")
+      .select("id, status, bib, racing, first_name, last_name, category_id, gender, birth_date, shirt_size, ships_by_mail, shipped_at, checked_in_at, children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, checked_in_at, cancelled_at, position)")
       .eq("event_id", event.id)
       .or("status.eq.confirmed,and(status.eq.pending,payment_submitted_at.not.is.null)")
       .order("bib", { ascending: true, nullsFirst: false })
@@ -739,20 +813,59 @@ export async function getCheckInList(
 
   const distances = new Map(event.event_categories.map((c) => [c.id, c.distance]));
   const raceDay = event.event_date ?? todayIso();
+  const runners: CheckInRunner[] = data.flatMap((r) => {
+    const guardianName = `${r.first_name} ${r.last_name}`;
+    const paymentUnderReview = r.status !== "confirmed";
+    return [
+      ...(r.racing
+        ? [
+            {
+              id: r.id,
+              kind: "runner" as const,
+              guardianName: null,
+              bib: r.bib,
+              name: guardianName,
+              distance: (r.category_id && distances.get(r.category_id)) || "",
+              gender: r.gender,
+              age: ageOn(r.birth_date, raceDay),
+              shirtSize: r.shirt_size,
+              kit: checkInKit(r.ships_by_mail, r.shipped_at),
+              paymentUnderReview,
+              checkedInAt: r.checked_in_at,
+            },
+          ]
+        : []),
+      ...r.children
+        .filter((c) => c.cancelled_at === null)
+        .sort((a, b) => a.position - b.position)
+        .map((c) => ({
+          id: c.id,
+          kind: "child" as const,
+          guardianName,
+          bib: c.bib,
+          name: `${c.first_name} ${c.last_name}`,
+          distance: distances.get(c.category_id) ?? "",
+          gender: c.gender,
+          age: ageOn(c.birth_date, raceDay),
+          // Children take no shirt or mailed kit: the bib is at the tent.
+          shirtSize: null,
+          kit: checkInKit(false, null),
+          paymentUnderReview,
+          checkedInAt: c.checked_in_at,
+        })),
+    ];
+  });
+  // Bib order over adults and children alike; those without one come last.
+  const order = new Map(runners.map((r, at) => [r.id, at]));
+  runners.sort(
+    (a, b) =>
+      (a.bib ?? Infinity) - (b.bib ?? Infinity) ||
+      (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0),
+  );
+
   return {
     event: { id: event.id, name: event.name, slug: event.slug },
-    runners: data.map((r) => ({
-      id: r.id,
-      bib: r.bib,
-      name: `${r.first_name} ${r.last_name}`,
-      distance: distances.get(r.category_id) ?? "",
-      gender: r.gender,
-      age: ageOn(r.birth_date, raceDay),
-      shirtSize: r.shirt_size,
-      kit: checkInKit(r.ships_by_mail, r.shipped_at),
-      paymentUnderReview: r.status !== "confirmed",
-      checkedInAt: r.checked_in_at,
-    })),
+    runners,
   };
 }
 
@@ -762,7 +875,8 @@ export type CancelledRegistrationRow = {
   bib: number | null;
   runnerName: string;
   email: string;
-  categoryId: string;
+  /** Null for an adult who signed up only children. */
+  categoryId: string | null;
   /** What they paid, in dollars. */
   amount: number;
   paymentMethod: "stripe" | "ath_movil" | null;

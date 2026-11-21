@@ -46,7 +46,7 @@ function readBatch(date: string, after: string | null) {
   let query = createAdminClient()
     .from("registrations")
     .select(
-      "id, runner_id, email, first_name, last_name, bib, events!inner(name, slug, status, event_date, end_date, start_time, anywhere, venue, city, region), event_categories(distance, start_time)",
+      "id, runner_id, email, first_name, last_name, bib, events!inner(name, slug, status, event_date, end_date, start_time, anywhere, venue, city, region), event_categories(distance, start_time), registration_children(first_name, last_name, bib, position, cancelled_at, category:event_categories!registration_children_category_id_fkey(distance))",
     )
     .eq("status", "confirmed")
     .is("reminder_email_sent_at", null)
@@ -182,6 +182,24 @@ async function remind(
       [t(k("date")), formatLongDate(date, locale)],
       [t(k("start")), start],
       ...(location ? [[t(k("location")), location] as [string, string]] : []),
+      // The children on the sign-up: who, what they run, and their bib. One
+      // reminder covers the order, and an adult who signed up only children
+      // gets it for them.
+      ...[...row.registration_children]
+        .filter((c) => c.cancelled_at === null)
+        .sort((a, b) => a.position - b.position)
+        .map(
+          (c) =>
+            [
+              `${c.first_name} ${c.last_name}`.trim(),
+              [
+                c.category ? distanceLabel(t, c.category.distance) : null,
+                c.bib !== null ? t(k("childBib"), { bib: c.bib }) : null,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+            ] as [string, string],
+        ),
     ];
 
     await sendEmail({

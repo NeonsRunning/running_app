@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { Fragment, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input } from "@/components/ui/field";
 import { Pagination, SectionHeading } from "@/components/ui/misc";
@@ -10,9 +10,10 @@ import { useFormat, useLocaleTag, useT } from "@/components/i18n/provider";
 import { toCsv } from "@/lib/csv";
 import { puertoRicoDate } from "@/lib/dates";
 import { distanceLabel, genderLabel } from "@/lib/i18n/labels";
-import type { EventRegistrationRow } from "@/lib/events/organizer";
+import type { EventChildRow, EventRegistrationRow } from "@/lib/events/organizer";
 import {
   removeRegistrationAction,
+  removeRegistrationChildAction,
   returnRegistrationToPendingAction,
 } from "@/lib/events/remove-registration";
 import {
@@ -80,6 +81,11 @@ const shipmentToMail = (row: EventRegistrationRow) => {
  * when the medal goes. "Shipments to mail" narrows the list to the ones ready.
  * A runner who cannot get finish evidence in is marked finished here, with
  * the time they give: the result is accepted at once, as a reviewed one.
+ *
+ * The children on a sign-up are listed under the adult who signed them up,
+ * each with their own bib and distance, and can be taken off one at a time.
+ * An adult who signed up only children has no bib or distance: they are the
+ * order's contact, shown as the guardian.
  */
 export function EventRegistrations({
   rows: initial,
@@ -117,6 +123,12 @@ export function EventRegistrations({
     null,
   );
   const [reverting, setReverting] = useState<EventRegistrationRow | null>(null);
+  // Children taken off an order here, ahead of the revalidation.
+  const [removedKids, setRemovedKids] = useState<ReadonlySet<string>>(new Set());
+  const [confirmingKid, setConfirmingKid] = useState<{
+    row: EventRegistrationRow;
+    child: EventChildRow;
+  } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [shipping, setShipping] = useState<EventRegistrationRow | null>(null);
   const [tracking, setTracking] = useState("");
@@ -156,6 +168,7 @@ export function EventRegistrations({
   if (initial !== prevInitial) {
     setPrevInitial(initial);
     setRemoved(new Set());
+    setRemovedKids(new Set());
     setShipped(new Map());
     setPickedUp(new Map());
     setFinished(new Set());
@@ -177,6 +190,9 @@ export function EventRegistrations({
               : r.medal;
           return {
             ...r,
+            children: r.children.some((c) => removedKids.has(c.id))
+              ? r.children.filter((c) => !removedKids.has(c.id))
+              : r.children,
             ...(done ? { hasAcceptedResult: true, hasPendingResult: false } : {}),
             ...(sent
               ? { shippedAt: sent.shippedAt, shippingTracking: sent.tracking }
@@ -191,20 +207,35 @@ export function EventRegistrations({
                 : medal,
           };
         }),
-    [initial, removed, shipped, pickedUp, finished],
+    [initial, removed, removedKids, shipped, pickedUp, finished],
   );
 
   // Whether this race tracks medals, or did when some went out.
   const hasMedals = rows.some((r) => r.medal !== null);
   const hasShipments = rows.some((r) => r.kitByMail || r.medal?.byMail);
+  const hasChildren = rows.some((r) => r.children.length > 0);
+  // Everyone running: the adults who are, and the children on their orders.
+  const runnerCount = rows.reduce(
+    (n, r) => n + (r.racing ? 1 : 0) + r.children.length,
+    0,
+  );
   const shipmentsToMail = rows.filter(shipmentToMail).length;
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     const listed = onlyToMail ? rows.filter(shipmentToMail) : rows;
     if (!q) return listed;
+    // An order is found by anyone on it: the adult, or a child's name or bib.
     return listed.filter((r) =>
-      `${r.bib ?? ""} ${r.runnerName} ${r.email} ${r.phone} ${r.club ?? ""}`
+      [
+        r.bib ?? "",
+        r.runnerName,
+        r.email,
+        r.phone,
+        r.club ?? "",
+        ...r.children.flatMap((c) => [c.bib ?? "", c.name]),
+      ]
+        .join(" ")
         .toLowerCase()
         .includes(q),
     );
@@ -224,7 +255,7 @@ export function EventRegistrations({
   }
 
   function distance(row: EventRegistrationRow) {
-    const name = categories[row.categoryId];
+    const name = row.categoryId ? categories[row.categoryId] : undefined;
     return name ? distanceLabel(t, name) : "—";
   }
 
@@ -270,6 +301,62 @@ export function EventRegistrations({
             body: t(`eventRegistrations.errors.${result.error}`),
             tone: "danger",
           },
+    );
+  }
+
+  async function removeKid(row: EventRegistrationRow, child: EventChildRow) {
+    setBusy(child.id);
+    const result = await removeRegistrationChildAction(child.id).catch(
+      () => ({ ok: false, error: "removeFailed" }) as const,
+    );
+    setBusy(null);
+
+    if (result.ok || result.error === "alreadyRemoved") {
+      setRemovedKids((ids) => new Set(ids).add(child.id));
+      // The button went with the child: land on the adult they were under.
+      focusSoon(focusKey(`name-${row.id}`));
+    }
+    toast(
+      result.ok
+        ? {
+            title: t("eventRegistrations.childRemovedTitle"),
+            body: t("eventRegistrations.removedBody", { name: child.name }),
+          }
+        : {
+            title: t("eventRegistrations.childErrors.title"),
+            body: t(`eventRegistrations.childErrors.${result.error}`),
+            tone: "danger",
+          },
+    );
+  }
+
+  function childDistance(child: EventChildRow) {
+    const name = categories[child.categoryId];
+    return name ? distanceLabel(t, name) : "—";
+  }
+
+  function removeKidButton(row: EventRegistrationRow, child: EventChildRow) {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={busy !== null}
+        aria-busy={busy === child.id}
+        aria-label={
+          busy === child.id
+            ? undefined
+            : t("eventRegistrations.removeChildAria", {
+                name: child.name,
+                guardian: row.runnerName,
+              })
+        }
+        onClick={() => setConfirmingKid({ row, child })}
+        className="hover:border-danger hover:text-danger"
+      >
+        {busy === child.id
+          ? t("eventRegistrations.working")
+          : t("eventRegistrations.remove")}
+      </Button>
     );
   }
 
@@ -563,7 +650,8 @@ export function EventRegistrations({
     }
     return (
       <div className="flex flex-wrap gap-2 md:justify-end">
-        {recordsResults ? (
+        {/* An adult who signed up only children ran nothing to record. */}
+        {recordsResults && row.racing ? (
           <Button
             variant="outline"
             size="sm"
@@ -648,11 +736,49 @@ export function EventRegistrations({
             t("eventRegistrations.columns.medalPickedUp"),
           ]
         : []),
+      ...(hasChildren ? [t("eventRegistrations.columns.registeredBy")] : []),
     ];
-    const body = shown.map((r) => [
+    // A child's own line, right under the adult's: their bib, distance,
+    // gender and age, the adult's contact details, and who signed them up.
+    // What was paid stays on the adult's line, which covers the order.
+    const childLine = (r: EventRegistrationRow, c: EventChildRow) => [
+      c.bib ?? "",
+      c.name,
+      childDistance(c),
+      genderLabel(t, c.gender),
+      c.age,
+      "",
+      "",
+      "",
+      "",
+      r.email,
+      r.phone,
+      "",
+      "",
+      "",
+      "",
+      ...(hasMedals ? ["", ""] : []),
+      r.runnerName,
+    ];
+    const body = shown.flatMap((r) => [adultLine(r), ...r.children.map((c) => childLine(r, c))]);
+    // Formula-safe: runners type their own names, clubs and addresses.
+    const csv = toCsv([header, ...body]);
+
+    // A BOM, so Excel opens accented names as UTF-8.
+    const blob = new Blob(["﻿", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}-registrations.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function adultLine(r: EventRegistrationRow) {
+    return [
       r.bib ?? "",
       r.runnerName,
-      distance(r),
+      r.racing ? distance(r) : t("eventRegistrations.guardian"),
       genderLabel(t, r.gender),
       r.age,
       r.shirtSize ?? "",
@@ -677,18 +803,8 @@ export function EventRegistrations({
             r.medal?.pickedUpAt ? puertoRicoDate(r.medal.pickedUpAt) : "",
           ]
         : []),
-    ]);
-    // Formula-safe: runners type their own names, clubs and addresses.
-    const csv = toCsv([header, ...body]);
-
-    // A BOM, so Excel opens accented names as UTF-8.
-    const blob = new Blob(["﻿", csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug}-registrations.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+      ...(hasChildren ? [""] : []),
+    ];
   }
 
   return (
@@ -700,7 +816,7 @@ export function EventRegistrations({
       <SectionHeading
         title={t("eventRegistrations.title")}
         kicker={t("eventRegistrations.count", {
-          count: fmt.number(rows.length),
+          count: fmt.number(runnerCount),
         })}
       />
 
@@ -783,12 +899,16 @@ export function EventRegistrations({
                   </thead>
                   <tbody>
                     {visible.map((row) => (
-                      <tr
-                        key={row.id}
-                        className="border-b-2 border-line align-top last:border-b-0"
-                      >
+                      <Fragment key={row.id}>
+                      <tr className="border-b-2 border-line align-top last:border-b-0">
                         <td className="px-4 py-3.5 font-mono text-sm font-bold text-neon-lime tabular-nums">
-                          {row.bib ?? "—"}
+                          {row.racing ? (
+                            (row.bib ?? "—")
+                          ) : (
+                            <span className="font-mono text-[10px] tracking-[0.14em] text-fg-dim uppercase">
+                              {t("eventRegistrations.guardian")}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3.5">
                           <p
@@ -832,6 +952,39 @@ export function EventRegistrations({
                         </td>
                         <td className="px-4 py-3 text-right">{actions(row)}</td>
                       </tr>
+                      {row.children.map((child) => (
+                        <tr
+                          key={child.id}
+                          className="border-b-2 border-line bg-carbon/40 align-top last:border-b-0"
+                        >
+                          <td className="px-4 py-3 font-mono text-sm font-bold text-neon-lime tabular-nums">
+                            {child.bib ?? "—"}
+                          </td>
+                          <td className="px-4 py-3 pl-8">
+                            <p className="text-sm font-bold wrap-break-word">
+                              {child.name}
+                            </p>
+                            <p className="text-[11px] text-fg-faint">
+                              {t("eventRegistrations.childOf", {
+                                name: row.runnerName,
+                              })}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 text-sm">{childDistance(child)}</td>
+                          <td className="px-4 py-3 text-sm">
+                            {genderLabel(t, child.gender)}
+                          </td>
+                          <td className="px-4 py-3 text-sm tabular-nums">
+                            {child.age}
+                          </td>
+                          {/* Shirt, method, amount and date are the order's, on the adult's row. */}
+                          <td colSpan={4} />
+                          <td className="px-4 py-3 text-right">
+                            {removeKidButton(row, child)}
+                          </td>
+                        </tr>
+                      ))}
+                      </Fragment>
                     ))}
                   </tbody>
                 </table>
@@ -863,13 +1016,19 @@ export function EventRegistrations({
                           </p>
                         ) : null}
                       </div>
-                      <span className="font-mono text-base font-bold text-neon-lime tabular-nums">
-                        #{row.bib ?? "—"}
-                      </span>
+                      {row.racing ? (
+                        <span className="font-mono text-base font-bold text-neon-lime tabular-nums">
+                          #{row.bib ?? "—"}
+                        </span>
+                      ) : (
+                        <span className="font-mono text-[10px] tracking-[0.14em] text-fg-dim uppercase">
+                          {t("eventRegistrations.guardian")}
+                        </span>
+                      )}
                     </div>
                     <p className="mt-2 font-mono text-[12px] text-fg-dim">
                       {[
-                        distance(row),
+                        row.racing ? distance(row) : null,
                         genderLabel(t, row.gender),
                         row.age,
                         row.shirtSize,
@@ -881,6 +1040,33 @@ export function EventRegistrations({
                         .join(" · ")}
                     </p>
                     <div className="mt-3">{actions(row)}</div>
+                    {row.children.length > 0 ? (
+                      <ul className="mt-4 border-t-2 border-line">
+                        {row.children.map((child) => (
+                          <li
+                            key={child.id}
+                            className="flex items-start justify-between gap-4 border-b-2 border-line py-3 last:border-b-0"
+                          >
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold wrap-break-word">
+                                <span className="font-mono text-neon-lime tabular-nums">
+                                  #{child.bib ?? "—"}
+                                </span>{" "}
+                                {child.name}
+                              </p>
+                              <p className="mt-0.5 font-mono text-[12px] text-fg-dim">
+                                {[
+                                  childDistance(child),
+                                  genderLabel(t, child.gender),
+                                  child.age,
+                                ].join(" · ")}
+                              </p>
+                            </div>
+                            {removeKidButton(row, child)}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
                   </li>
                 ))}
               </ul>
@@ -918,6 +1104,23 @@ export function EventRegistrations({
         })}
         description={t("eventRegistrations.removeDescription", {
           bib: confirming?.bib ?? "—",
+        })}
+        confirmLabel={t("eventRegistrations.remove")}
+        destructive
+      />
+
+      <ConfirmDialog
+        open={confirmingKid !== null}
+        onClose={() => setConfirmingKid(null)}
+        onConfirm={() => {
+          if (confirmingKid) void removeKid(confirmingKid.row, confirmingKid.child);
+        }}
+        title={t("eventRegistrations.removeTitle", {
+          name: confirmingKid?.child.name ?? "",
+        })}
+        description={t("eventRegistrations.removeChildDescription", {
+          bib: confirmingKid?.child.bib ?? "—",
+          guardian: confirmingKid?.row.runnerName ?? "",
         })}
         confirmLabel={t("eventRegistrations.remove")}
         destructive
