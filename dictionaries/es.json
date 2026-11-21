@@ -2503,6 +2503,11 @@
     "shipMedalTitle": "¿Marcar como enviada la medalla de {name}?",
     "shipKitOnlyDescription": "{name} no ha ganado su medalla, así que solo va el paquete. La medalla puede seguir si la gana. Le escribiremos a {name}. Esto no se puede deshacer.",
     "guardian": "Tutor",
+    "shipChildMedals": "Medallas de menores en este envío: {count}",
+    "childMedal": {
+      "byMail": "Medalla: va en el envío",
+      "shippedOn": "Medalla enviada el {date}"
+    },
     "childOf": "Menor · inscrito por {name}",
     "removeChildAria": "Eliminar a {name} de la inscripción de {guardian}",
     "removeChildDescription": "El número {bib} sale de la lista y el espacio vuelve a quedar disponible. El resto de la inscripción de {guardian} queda como está. Lo que se pagó por este menor no se reembolsa automáticamente — reembólsalo en Stripe o en la app ATH Móvil Business si hace falta. Esto no se puede deshacer.",

@@ -7,7 +7,8 @@ import { MAX_TRACKING_LENGTH } from "./vocabulary";
 
 /**
  * Handing over what a runner is owed, from the event's registration list: by
- * mail — their one shipment, kit and medal together, marked shipped, which
+ * mail — their one shipment, kit, medal and the medals of the children on
+ * their order together, marked shipped, which
  * emails the runner and only updates the tracking number after — or a medal in
  * person, marked picked up, which sends nothing. The event's organizer, or a
  * platform admin, may; `mark_shipment_shipped()` and `mark_medal_picked_up()`
@@ -35,6 +36,8 @@ export type ShipmentResult =
       tracking: string | null;
       /** When the medal left; null while it is still to come. */
       medalShippedAt: string | null;
+      /** The children's medals that have left with it, and when. */
+      childMedals: { id: string; shippedAt: string }[];
     }
   | { ok: false; error: ShipmentError };
 
@@ -83,6 +86,14 @@ export async function markShipmentShippedAction(
     return failure(error, `Marking the shipment for ${registrationId} shipped`);
   }
 
+  // The function answers with the sign-up alone. The list is revalidated
+  // below; this lets the row show the children's medals as gone before then.
+  const { data: kids } = await supabase
+    .from("registration_children")
+    .select("id, medal_shipped_at")
+    .eq("registration_id", registrationId)
+    .not("medal_shipped_at", "is", null);
+
   await scheduleShipmentEmail(data);
   revalidatePath("/", "layout");
   return {
@@ -90,6 +101,9 @@ export async function markShipmentShippedAction(
     shippedAt: data.shipped_at,
     tracking: data.shipping_tracking,
     medalShippedAt: data.medal_shipped_at,
+    childMedals: (kids ?? []).flatMap((k) =>
+      k.medal_shipped_at ? [{ id: k.id, shippedAt: k.medal_shipped_at }] : [],
+    ),
   };
 }
 

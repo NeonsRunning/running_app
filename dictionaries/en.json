@@ -2503,6 +2503,11 @@
     "shipMedalTitle": "Mark {name}’s medal as shipped?",
     "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone.",
     "guardian": "Guardian",
+    "shipChildMedals": "Children’s medals in this package: {count}",
+    "childMedal": {
+      "byMail": "Medal: goes in the mail",
+      "shippedOn": "Medal shipped {date}"
+    },
     "childOf": "Child · registered by {name}",
     "removeChildAria": "Remove {name} from {guardian}’s registration",
     "removeChildDescription": "Bib {bib} comes off the list and the spot goes back to the race. The rest of {guardian}’s registration stays as it is. What was paid for this child is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",

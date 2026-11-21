@@ -555,6 +555,11 @@ export type EventChildRow = {
   gender: Tables<"registrations">["gender"];
   /** On race day, or today for an undated event. */
   age: number;
+  /**
+   * This child's medal, when it rides in the order's shipment; null when it
+   * is not mailed. `shippedAt` is null until that shipment leaves with it.
+   */
+  medal: { shippedAt: string | null } | null;
 };
 
 export type EventRegistrationRow = {
@@ -594,6 +599,11 @@ export type EventRegistrationRow = {
   hasPendingResult: boolean;
   /** The finisher medal, on races that mail medals; null on the rest. */
   medal: MedalShipping | null;
+  /**
+   * The race's last day has passed: the children's medals, which wait for no
+   * result, can go.
+   */
+  raceOver: boolean;
 };
 
 export type MedalShipping = {
@@ -638,7 +648,7 @@ export async function getEventRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, racing, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status), children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, position, cancelled_at)",
+        "id, bib, racing, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status), children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, position, cancelled_at, medal_by_mail, medal_shipped_at)",
       )
       .eq("event_id", eventId)
       .eq("status", "confirmed")
@@ -673,6 +683,7 @@ export async function getEventRegistrations(
         categoryId: c.category_id,
         gender: c.gender,
         age: ageOn(c.birth_date, raceDay),
+        medal: c.medal_by_mail ? { shippedAt: c.medal_shipped_at } : null,
       })),
     runnerName: `${r.first_name} ${r.last_name}`,
     email: r.email,
@@ -684,8 +695,13 @@ export async function getEventRegistrations(
     club: r.club,
     kitByMail: r.ships_by_mail,
     // A picked-up medal may leave an address behind; it is nobody's shipment.
+    // An order of only children has one for their medals alone.
     mailingAddress:
-      r.ships_by_mail || r.medal_by_mail ? r.mailing_address : null,
+      r.ships_by_mail ||
+      r.medal_by_mail ||
+      r.children.some((c) => c.cancelled_at === null && c.medal_by_mail)
+        ? r.mailing_address
+        : null,
     shippedAt: r.shipped_at,
     shippingTracking: r.shipping_tracking,
     amount: Number(r.amount),
@@ -712,6 +728,7 @@ export async function getEventRegistrations(
             pickedUpAt: r.medal_picked_up_at,
           }
         : null,
+    raceOver,
   }));
 
   // Bib order across the whole list: an adult who is not racing has no bib,
