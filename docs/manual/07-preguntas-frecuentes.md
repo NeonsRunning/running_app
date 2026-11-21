@@ -38,6 +38,7 @@ los que muestra la app.
 | Quiero inscribir a otra persona | Cada adulto necesita su propia cuenta. A un **menor de 18 años** lo puedes inscribir tú, dentro de tu inscripción, si el evento lo permite (ver [2.4](02-corredor.md#inscribir-a-menores)). |
 | No veo la opción para inscribir a menores | El organizador no la activó para esa carrera. |
 | *"La edad de un menor el día de la carrera está fuera de los límites"* | El menor tiene que tener menos de 18 años el día de la carrera y al menos la edad mínima del evento. Revisa su fecha de nacimiento. Quien tiene 18 o más se inscribe con su propia cuenta. |
+| ¿Cómo reciben su medalla los menores? | La recogen en persona. En carreras que incluyen las medallas en el envío, añade **Envío por correo** al inscribirte y van en tu paquete, con un cargo por menor (ver [2.4](02-corredor.md#inscribir-a-menores)). |
 | Ya pagué y quiero añadir a otro menor, o correr yo también | No se puede añadir a una inscripción pagada. Escribe al organizador o al equipo desde **Contacto**. |
 
 ## 7.3 Corredor: resultados, medallas y envíos

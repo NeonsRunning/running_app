@@ -355,7 +355,8 @@
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}",
-      "medalMailed": "Finishers pick it up in person, coordinating the pickup with the organizer, or get it in the mail with their kit when they add “Send by mail” at sign-up and the medal is available for shipping. Additional shipping charges may apply."
+      "medalMailed": "Finishers pick it up in person, coordinating the pickup with the organizer, or get it in the mail with their kit when they add “Send by mail” at sign-up and the medal is available for shipping. Additional shipping charges may apply.",
+      "medalMailedChildren": "Children’s medals go in the same package, for {price} per child."
     },
     "anywhere": {
       "short": "Anywhere",
@@ -506,7 +507,11 @@
       "mailingAddressHint": "Street, city, state and ZIP code.",
       "mailingAddressRequired": "Enter the address to mail your package to.",
       "mailDetailWithMedal": "We mail your finisher medal and any extras you choose once you finish. Skip it and you’ll need to coordinate pickup of your medal and any extras with the organizer.",
-      "addMailWithMedal": "Send my kit and medal by mail"
+      "addMailWithMedal": "Send my kit and medal by mail",
+      "mailDetailChildren": "We mail the children’s finisher medals to you once the race is over. Skip it and you’ll need to coordinate their pickup with the organizer.",
+      "mailChildren": "Each child’s medal goes in the same package: {price} per child.",
+      "mailChildrenGuardian": "The shipping covers the first child’s medal. Each additional child adds {price}.",
+      "addMailChildren": "Send the children’s medals by mail"
     },
     "step4": {
       "title": "Payment",
@@ -522,6 +527,7 @@
       "donation": "Donation",
       "serviceFee": "Service fee",
       "shipping": "Shipping & handling",
+      "childShipping": "Shipping · children’s medals",
       "salesTax": "Sales tax (IVU 11.5%)",
       "total": "Total",
       "priceChanged": "The price of this registration changed while you were signing up. You will be charged {total}.",
@@ -642,6 +648,7 @@
       "donation": "Donation",
       "donationTo": "Donation to {recipient}",
       "mail": "Sent by mail",
+      "childMedalsMail": "Children’s medals by mail ({count})",
       "mailTo": "Mail to",
       "total": "Total charged",
       "cta": "View race details",
@@ -1090,6 +1097,9 @@
     "mail": "Mail",
     "mailKit": "Race kit",
     "mailMedal": "Finisher medal",
+    "mailChildMedals": "Children’s medals",
+    "childMedalsWaiting": "After the race",
+    "childMedalsStayByMail": "The children’s medals go by mail, whichever way you choose for yours.",
     "medalWaiting": "After you finish",
     "medalWaitingResult": "The organizer mails it once they accept your finish.",
     "medalWaitingRaceDay": "The organizer mails it after race day.",
@@ -1962,7 +1972,9 @@
     "medalMail": {
       "title": "Include finisher medals in the mail",
       "detail": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once race day is over. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras.",
-      "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras."
+      "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras.",
+      "childShippingPrice": "Shipping per child (USD)",
+      "childShippingPriceHint": "Added for each child's medal in the package. When the adult isn't running, the first child is covered by the shipping fee. Enter 0 to ship them free."
     },
     "categoryLocked": "Has sign-ups",
     "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is.",
@@ -2495,6 +2507,11 @@
     "shipMedalTitle": "Mark {name}’s medal as shipped?",
     "shipKitOnlyDescription": "{name} hasn’t earned their medal, so only the kit goes. The medal can follow if they earn it. We’ll email {name}. This can’t be undone.",
     "guardian": "Guardian",
+    "shipChildMedals": "Children’s medals in this package: {count}",
+    "childMedal": {
+      "byMail": "Medal: goes in the mail",
+      "shippedOn": "Medal shipped {date}"
+    },
     "childOf": "Child · registered by {name}",
     "removeChildAria": "Remove {name} from {guardian}’s registration",
     "removeChildDescription": "Bib {bib} comes off the list and the spot goes back to the race. The rest of {guardian}’s registration stays as it is. What was paid for this child is not refunded automatically — refund it in Stripe or the ATH Móvil Business app if needed. This can’t be undone.",

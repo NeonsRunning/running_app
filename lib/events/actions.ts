@@ -7,7 +7,12 @@ import { scheduleEventSavedEmails, type CategoryStart } from "@/lib/email/event-
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
 import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
-import { PHOTO_PRICE, SHIPPING_PRICE, SHIRT_PRICE } from "./pricing";
+import {
+  CHILD_SHIPPING_PRICE,
+  PHOTO_PRICE,
+  SHIPPING_PRICE,
+  SHIRT_PRICE,
+} from "./pricing";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
 import {
@@ -489,6 +494,11 @@ export async function saveEventAction(
   if (allowsChildren && !validPrice(childPrice)) fieldErrors.child_price = "priceInvalid";
   if (allowsChildren && minimumAge !== null && minimumAge >= 18)
     fieldErrors.allows_children = "childrenAgeInvalid";
+  // What mailing each child's medal adds to the shipping; charged only where
+  // children, the mail and medals by mail are all on.
+  const childShippingPrice = readDecimal(readText(formData, "child_shipping_price"));
+  if (allowsChildren && offersMail && mailsMedals && !validPrice(childShippingPrice))
+    fieldErrors.child_shipping_price = "priceInvalid";
 
   if (Number.isNaN(capacity)) fieldErrors.capacity = "numberInvalid";
   if (Number.isNaN(minimumAge)) fieldErrors.minimum_age = "numberInvalid";
@@ -608,6 +618,9 @@ export async function saveEventAction(
     child_price: validPrice(childPrice) ? childPrice : 0,
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
+    child_shipping_price: validPrice(childShippingPrice)
+      ? childShippingPrice
+      : CHILD_SHIPPING_PRICE,
     sold_out: soldOut,
     show_spots_left: showSpotsLeft,
     charges_sales_tax: chargesSalesTax,

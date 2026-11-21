@@ -86,6 +86,8 @@ const CHILD = {
 
 /** Laid over the sample sign-up, for a test about a different kind of one. */
 let registrationPatch: Record<string, unknown> = {};
+/** Laid over the sample child, likewise. */
+let childPatch: Record<string, unknown> = {};
 
 function sample(table: string): Record<string, unknown> {
   switch (table) {
@@ -101,6 +103,7 @@ function sample(table: string): Record<string, unknown> {
         last_name: "Rivera",
         bib: 43,
         category: { distance: "5K" },
+        ...childPatch,
       };
     case "profiles":
       return { full_name: "Olga Organiza", handle: "olga" };
@@ -310,6 +313,7 @@ beforeEach(() => {
   pending.length = 0;
   updates.length = 0;
   registrationPatch = {};
+  childPatch = {};
   sendEmail.mockClear();
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -381,6 +385,68 @@ describe("registration confirmed, with children", () => {
       expect(email.html).not.toContain("font-size:44px");
     },
   );
+});
+
+describe("registration confirmed, with children's medals by mail", () => {
+  it.each(["es", "en"] as const)(
+    "says where the medals go for an adult who signed up only children (%s)",
+    async (lang) => {
+      locale = lang;
+      // Nothing of the adult's own is mailed: the address is for the medals.
+      registrationPatch = {
+        category_id: null,
+        racing: false,
+        bib: null,
+        ships_by_mail: false,
+        shirt_size: null,
+      };
+      childPatch = { medal_by_mail: true };
+      const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+      expect(console.error).not.toHaveBeenCalled();
+      for (const part of [email.html, email.text]) {
+        expect(part).not.toMatch(RAW_KEY);
+        expect(part).not.toMatch(/\{\w+\}/);
+        expect(part).toContain("1 Calle Sol, San Juan, PR 00901");
+      }
+      expect(email.text).toContain(
+        lang === "es"
+          ? "Medallas de menores por correo (1)"
+          : "medals by mail (1)",
+      );
+    },
+  );
+
+  it("leaves the address out when no child's medal is mailed", async () => {
+    locale = "en";
+    registrationPatch = { category_id: null, racing: false, bib: null, ships_by_mail: false };
+    const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+    expect(email.text).not.toContain("1 Calle Sol");
+    expect(email.text).not.toContain("medals by mail");
+  });
+});
+
+describe("child removed, with a medal by mail", () => {
+  const mailed = { ...CHILD, medal_by_mail: true, shipping_price: 6 };
+
+  it("counts the mailing of a medal that has not left", async () => {
+    locale = "en";
+    const [email] = await render(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a sample row
+      scheduleChildRemovedEmail({ ...mailed, medal_shipped_at: null } as any),
+    );
+    expect(email.text).toContain("$16.00");
+  });
+
+  it("and only the place once the medal is on its way", async () => {
+    locale = "en";
+    const [email] = await render(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- a sample row
+      scheduleChildRemovedEmail({ ...mailed, medal_shipped_at: "2099-10-01T15:00:00Z" } as any),
+    );
+    expect(email.text).toContain("$10.00");
+  });
 });
 
 describe("race reminder, with children", () => {

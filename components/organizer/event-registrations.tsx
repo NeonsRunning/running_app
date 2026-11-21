@@ -54,20 +54,31 @@ const medalDue = (row: EventRegistrationRow) =>
 const kitDue = (row: EventRegistrationRow) =>
   row.kitByMail && !row.shippedAt;
 
-/** What marking the shipment would send now; both false means nothing new. */
+/** How many children's medals in this row's shipment have yet to leave. */
+const childMedalsDue = (row: EventRegistrationRow) =>
+  row.children.filter((c) => c.medal && !c.medal.shippedAt).length;
+
+/**
+ * What marking the shipment would send now, as `mark_shipment_shipped()`
+ * decides it; `any` false means nothing new.
+ */
 function shipmentNow(row: EventRegistrationRow) {
   const medal = medalDue(row) && Boolean(row.medal?.finished);
-  // A kit waits for its medal until the race is over.
+  // Children have no results: theirs go with the adult's medal, or once the
+  // race is over.
+  const kidsDue = childMedalsDue(row);
+  const childMedals = medal || row.raceOver ? kidsDue : 0;
+  // A kit waits for the medals, the runner's and the children's, until the
+  // race is over.
+  const waiting = (medalDue(row) && !medal) || kidsDue > childMedals;
   const kit =
-    kitDue(row) && (medal || !medalDue(row) || Boolean(row.medal?.raceEnded));
-  return { kit, medal };
+    kitDue(row) && (!waiting || (row.medal?.raceEnded ?? row.raceOver));
+  return { kit, medal, childMedals, any: kit || medal || childMedals > 0 };
 }
 
 /** A shipment that can go out, as it stands, to an address. */
-const shipmentToMail = (row: EventRegistrationRow) => {
-  const now = shipmentNow(row);
-  return Boolean((now.kit || now.medal) && row.mailingAddress);
-};
+const shipmentToMail = (row: EventRegistrationRow) =>
+  Boolean(shipmentNow(row).any && row.mailingAddress);
 
 /**
  * The organizer's completed registrations on one event: every paid sign-up,
@@ -142,6 +153,7 @@ export function EventRegistrations({
         shippedAt: string;
         tracking: string | null;
         medalShippedAt: string | null;
+        childMedals: { id: string; shippedAt: string }[];
       }
     >
   >(new Map());
@@ -190,9 +202,18 @@ export function EventRegistrations({
               : r.medal;
           return {
             ...r,
-            children: r.children.some((c) => removedKids.has(c.id))
-              ? r.children.filter((c) => !removedKids.has(c.id))
-              : r.children,
+            children:
+              r.children.some((c) => removedKids.has(c.id)) ||
+              sent?.childMedals.length
+                ? r.children
+                    .filter((c) => !removedKids.has(c.id))
+                    .map((c) => {
+                      const left = sent?.childMedals.find((m) => m.id === c.id);
+                      return left && c.medal
+                        ? { ...c, medal: { shippedAt: left.shippedAt } }
+                        : c;
+                    })
+                : r.children,
             ...(done ? { hasAcceptedResult: true, hasPendingResult: false } : {}),
             ...(sent
               ? { shippedAt: sent.shippedAt, shippingTracking: sent.tracking }
@@ -211,8 +232,12 @@ export function EventRegistrations({
   );
 
   // Whether this race tracks medals, or did when some went out.
-  const hasMedals = rows.some((r) => r.medal !== null);
-  const hasShipments = rows.some((r) => r.kitByMail || r.medal?.byMail);
+  const hasMedals = rows.some(
+    (r) => r.medal !== null || r.children.some((c) => c.medal),
+  );
+  const hasShipments = rows.some(
+    (r) => r.kitByMail || r.medal?.byMail || r.children.some((c) => c.medal),
+  );
   const hasChildren = rows.some((r) => r.children.length > 0);
   // Everyone running: the adults who are, and the children on their orders.
   const runnerCount = rows.reduce(
@@ -385,8 +410,9 @@ export function EventRegistrations({
   }
 
   function openShipping(row: EventRegistrationRow) {
-    // A medal following its kit gets its own number, not the kit's.
-    const following = row.shippedAt && shipmentNow(row).medal;
+    // Medals following their kit get their own number, not the kit's.
+    const now = shipmentNow(row);
+    const following = row.shippedAt && (now.medal || now.childMedals > 0);
     setTracking(following ? "" : (row.shippingTracking ?? ""));
     setShipping(row);
   }
@@ -404,13 +430,13 @@ export function EventRegistrations({
           shippedAt: result.shippedAt,
           tracking: result.tracking,
           medalShippedAt: result.medalShippedAt,
+          childMedals: result.childMedals,
         }),
       );
       setShipping(null);
     }
     // Marking it again, with nothing new to send, only changes the number.
-    const now = shipmentNow(row);
-    const again = !now.kit && !now.medal;
+    const again = !shipmentNow(row).any;
     toast(
       result.ok
         ? {
@@ -436,8 +462,7 @@ export function EventRegistrations({
 
   /** Why a shipment cannot go yet, or null when it can. */
   function shipmentHold(row: EventRegistrationRow) {
-    const now = shipmentNow(row);
-    if (now.kit || now.medal) {
+    if (shipmentNow(row).any) {
       return row.mailingAddress ? null : "eventRegistrations.noAddress";
     }
     // Nothing to send now, and nothing has left: it waits for the finish.
@@ -446,10 +471,15 @@ export function EventRegistrations({
 
   /** Whether the shipment has left, and the button to say so or to send more. */
   function shippingControl(row: EventRegistrationRow) {
-    if (!kitDue(row) && !medalDue(row) && !row.shippedAt) return null;
+    if (
+      !kitDue(row) &&
+      !medalDue(row) &&
+      childMedalsDue(row) === 0 &&
+      !row.shippedAt
+    )
+      return null;
 
-    const now = shipmentNow(row);
-    const toSend = now.kit || now.medal;
+    const toSend = shipmentNow(row).any;
     const hold = shipmentHold(row);
     const label = (key: string) => t(key, { name: row.runnerName });
 
@@ -499,6 +529,25 @@ export function EventRegistrations({
           </Button>
         )}
       </div>
+    );
+  }
+
+  /** A child's medal in the order's shipment: on its way there, or gone. */
+  function childMedalNote(child: EventChildRow) {
+    if (!child.medal) return null;
+    return (
+      <p
+        className={cn(
+          "mt-1 font-mono text-[11px] tracking-[0.08em] uppercase",
+          child.medal.shippedAt ? "text-neon-lime" : "text-fg-dim",
+        )}
+      >
+        {child.medal.shippedAt
+          ? t("eventRegistrations.childMedal.shippedOn", {
+              date: paidOn.format(new Date(child.medal.shippedAt)),
+            })
+          : t("eventRegistrations.childMedal.byMail")}
+      </p>
     );
   }
 
@@ -708,7 +757,7 @@ export function EventRegistrations({
 
   // What the shipping dialog is about.
   const sending = shipping ? shipmentNow(shipping) : null;
-  const sendsMore = Boolean(sending?.kit || sending?.medal);
+  const sendsMore = Boolean(sending?.any);
   const shipTitle = !sendsMore
     ? "eventRegistrations.trackingTitle"
     : shipping?.shippedAt
@@ -755,9 +804,12 @@ export function EventRegistrations({
       r.phone,
       "",
       "",
+      // Their medal, where it rides in the order's shipment.
+      c.medal?.shippedAt ? puertoRicoDate(c.medal.shippedAt) : "",
       "",
-      "",
-      ...(hasMedals ? ["", ""] : []),
+      ...(hasMedals
+        ? [c.medal ? t("eventRegistrations.medal.deliveryMail") : "", ""]
+        : []),
       r.runnerName,
     ];
     const body = shown.flatMap((r) => [adultLine(r), ...r.children.map((c) => childLine(r, c))]);
@@ -969,6 +1021,7 @@ export function EventRegistrations({
                                 name: row.runnerName,
                               })}
                             </p>
+                            {childMedalNote(child)}
                           </td>
                           <td className="px-4 py-3 text-sm">{childDistance(child)}</td>
                           <td className="px-4 py-3 text-sm">
@@ -1061,6 +1114,7 @@ export function EventRegistrations({
                                   child.age,
                                 ].join(" · ")}
                               </p>
+                              {childMedalNote(child)}
                             </div>
                             {removeKidButton(row, child)}
                           </li>
@@ -1255,6 +1309,13 @@ export function EventRegistrations({
             if (shipping) void ship(shipping);
           }}
         >
+          {sending && sending.childMedals > 0 ? (
+            <p className="mb-4 text-[13px] font-semibold text-fg">
+              {t("eventRegistrations.shipChildMedals", {
+                count: sending.childMedals,
+              })}
+            </p>
+          ) : null}
           {shipping?.mailingAddress ? (
             <p className="mb-4 text-[13px] whitespace-pre-line text-fg-dim">
               {t("eventRegistrations.mailTo", {

@@ -189,7 +189,10 @@ select ok(
   not has_table_privilege('anon', 'public.registration_children', 'SELECT, INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.registration_children', 'INSERT, UPDATE, DELETE')
   and not has_column_privilege('authenticated', 'public.registration_children', 'cancelled_by', 'SELECT')
-  and has_column_privilege('authenticated', 'public.registration_children', 'bib', 'SELECT'),
+  and has_column_privilege('authenticated', 'public.registration_children', 'bib', 'SELECT')
+  and has_column_privilege('authenticated', 'public.registration_children', 'medal_by_mail', 'SELECT')
+  and has_column_privilege('authenticated', 'public.registration_children', 'shipping_price', 'SELECT')
+  and has_column_privilege('authenticated', 'public.registration_children', 'medal_shipped_at', 'SELECT'),
   'nobody writes a child through the API, or sees who took one off an order'
 );
 

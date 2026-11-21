@@ -468,6 +468,7 @@ const MEDAL_PLACEHOLDER = "/medals/placeholder.svg";
  */
 function FinisherMedal({ event }: { event: RunningEvent }) {
   const t = useT();
+  const fmt = useFormat();
   const src = event.medalImage ?? MEDAL_PLACEHOLDER;
 
   return (
@@ -495,6 +496,13 @@ function FinisherMedal({ event }: { event: RunningEvent }) {
             : t("events.tabs.medalPending")}
           {event.mailsMedals && event.extras?.shippingPrice != null ? (
             <span className="mt-3 block text-fg">{t("events.tabs.medalMailed")}</span>
+          ) : null}
+          {event.extras?.childShippingPrice != null ? (
+            <span className="mt-3 block text-fg">
+              {t("events.tabs.medalMailedChildren", {
+                price: fmt.money(event.extras.childShippingPrice),
+              })}
+            </span>
           ) : null}
         </figcaption>
       </figure>

@@ -152,7 +152,8 @@ inscripción:
 - **Solo yo**: la inscripción de siempre.
 - **Yo y menores**: corres tú y añades hasta **3 menores**.
 - **Solo menores**: los inscribes tú y no corres. No eliges distancia ni
-  extras, y no recibes dorsal propio.
+  extras, y no recibes dorsal propio. En carreras que incluyen las medallas en
+  el envío puedes añadir **Envío por correo** para las medallas de los menores.
 
 Los menores no tienen cuenta: los inscribe un adulto de **18 años o más**. En
 el **paso 2**, debajo de tus datos, llena para cada menor:
@@ -169,6 +170,21 @@ que, como padre, madre o tutor legal, **aceptas el descargo en su nombre**.
 
 Cada menor cuesta el **precio por menor** del evento (puede ser gratis) y se
 suma a tu total. El cargo por servicio se cobra una sola vez.
+
+**Las medallas de los menores por correo.** En carreras que incluyen las
+medallas en el envío, si añades **Envío por correo** (paso 3) las medallas de
+los menores van en el mismo paquete, con un **envío por menor** que fija el
+organizador:
+
+| Quién corre | Qué pagas de envío |
+| --- | --- |
+| Tú y menores | El envío y manejo del evento, más el envío por menor **por cada menor** |
+| Solo menores | El envío y manejo del evento cubre al **primer menor**; cada menor adicional paga el envío por menor |
+
+Por ejemplo, con envío de $12 y $6 por menor: tú y 2 menores pagan $24 de
+envío; solo 3 menores pagan $24 ($12 + $6 + $6). Las medallas salen cuando
+termina la carrera, o junto con la tuya si la ganas antes. Si no eliges el
+envío, las recogen en persona.
 
 > **Importante:** revisa que estén todos antes de pagar. Después del pago no
 > puedes añadir a otro menor ni tu propia carrera a esa inscripción.
@@ -189,7 +205,9 @@ Solo aparecen los extras que ofrece el organizador de esa carrera:
 - **Envío por correo**: recibe el paquete de la carrera en tu casa, con un
   cargo de envío. En carreras que incluyen las medallas en el envío, el paquete
   y la medalla viajan juntos, en un solo envío, **cuando termines**. Si no lo
-  eliges, recoges ambos en persona.
+  eliges, recoges ambos en persona. Si inscribes a menores, sus medallas van en
+  el mismo envío con un cargo por menor (ver
+  [Inscribir a menores](#inscribir-a-menores)).
 
 Si eliges el envío, escribe la **Dirección postal** (calle, ciudad, estado y
 código postal). Si guardaste una en Ajustes, ya aparece escrita.
@@ -205,7 +223,9 @@ El **Resumen del pedido** aparece a la derecha en todos los pasos y se actualiza
    | Línea | Detalle |
    | --- | --- |
    | Inscripción · categoría | Precio de la categoría |
+   | Cada menor | El precio por menor del evento |
    | Camiseta, fotos, envío y manejo | Si los elegiste |
+   | Envío · medallas de menores | Si elegiste el envío y la carrera envía las medallas |
    | Cargo por servicio | $2.00 |
    | IVU (11.5 %) | Solo si la carrera lo cobra; sobre todo excepto la donación |
    | Donación | Sin IVU |
@@ -413,6 +433,11 @@ por correo**), elige **Envíenmela por correo** o **La recojo en persona**,
 escribe la dirección si hace falta y guarda. Puedes cambiarlo hasta que la
 medalla se envíe o la recojas. El correo es parte del extra pagado **Envío por
 correo**: sin él no puedes pasar a recibirla por correo.
+
+Si pagaste el envío de las **medallas de menores**, el envío las nombra
+(*Medallas de menores*). Salen cuando termina la carrera y siempre van por
+correo, elijas lo que elijas para la tuya. Si inscribiste solo a menores, el
+envío es solo de sus medallas.
 
 Cuando el organizador marca tu envío, recibes un correo con el número de
 rastreo.

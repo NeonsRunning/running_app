@@ -355,7 +355,8 @@
       "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
       "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}",
-      "medalMailed": "Quienes terminan la recogen en persona, coordinando la recogida con el organizador, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse y la medalla está disponible para envío. Pueden aplicar cargos adicionales por el envío."
+      "medalMailed": "Quienes terminan la recogen en persona, coordinando la recogida con el organizador, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse y la medalla está disponible para envío. Pueden aplicar cargos adicionales por el envío.",
+      "medalMailedChildren": "Las medallas de los menores van en el mismo envío, por {price} por menor."
     },
     "anywhere": {
       "short": "Cualquier lugar",
@@ -506,7 +507,11 @@
       "mailingAddressHint": "Calle, ciudad, estado y código postal.",
       "mailingAddressRequired": "Escribe la dirección a la que enviamos tu paquete.",
       "mailDetailWithMedal": "Te enviamos por correo tu medalla y los extras que elijas cuando termines. Si no lo eliges, debes coordinar con el organizador la recogida de tu medalla y de los extras que hayas elegido.",
-      "addMailWithMedal": "Enviar mi paquete y mi medalla por correo"
+      "addMailWithMedal": "Enviar mi paquete y mi medalla por correo",
+      "mailDetailChildren": "Te enviamos por correo las medallas de los menores cuando termine la carrera. Si no lo eliges, debes coordinar su recogida con el organizador.",
+      "mailChildren": "La medalla de cada menor va en el mismo envío: {price} por menor.",
+      "mailChildrenGuardian": "El envío cubre la medalla del primer menor. Cada menor adicional suma {price}.",
+      "addMailChildren": "Enviar las medallas de los menores por correo"
     },
     "step4": {
       "title": "Pago",
@@ -522,6 +527,7 @@
       "donation": "Donación",
       "serviceFee": "Cargo por servicio",
       "shipping": "Envío y manejo",
+      "childShipping": "Envío · medallas de menores",
       "salesTax": "IVU (11.5%)",
       "total": "Total",
       "priceChanged": "El precio de esta inscripción cambió mientras te inscribías. Se te cobrará {total}.",
@@ -642,6 +648,7 @@
       "donation": "Donativo",
       "donationTo": "Donativo a {recipient}",
       "mail": "Envío por correo",
+      "childMedalsMail": "Medallas de menores por correo ({count})",
       "mailTo": "Enviar a",
       "total": "Total cobrado",
       "cta": "Ver detalles de la carrera",
@@ -1090,6 +1097,9 @@
     "mail": "Correo",
     "mailKit": "Paquete de la carrera",
     "mailMedal": "Medalla",
+    "mailChildMedals": "Medallas de menores",
+    "childMedalsWaiting": "Después de la carrera",
+    "childMedalsStayByMail": "Las medallas de los menores van por correo, elijas lo que elijas para la tuya.",
     "medalWaiting": "Cuando termines",
     "medalWaitingResult": "El organizador la envía cuando acepte tu llegada.",
     "medalWaitingRaceDay": "El organizador la envía después del día de la carrera.",
@@ -1962,7 +1972,9 @@
     "medalMail": {
       "title": "Incluir las medallas en el envío",
       "detail": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando pase el día de la carrera. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras.",
-      "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras."
+      "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras.",
+      "childShippingPrice": "Envío por menor (USD)",
+      "childShippingPriceHint": "Se suma por la medalla de cada menor en el envío. Si el adulto no corre, el cargo de envío cubre al primer menor. Escribe 0 para enviarlas gratis."
     },
     "categoryLocked": "Tiene inscripciones",
     "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar.",
@@ -2495,6 +2507,11 @@
     "shipMedalTitle": "¿Marcar como enviada la medalla de {name}?",
     "shipKitOnlyDescription": "{name} no ha ganado su medalla, así que solo va el paquete. La medalla puede seguir si la gana. Le escribiremos a {name}. Esto no se puede deshacer.",
     "guardian": "Tutor",
+    "shipChildMedals": "Medallas de menores en este envío: {count}",
+    "childMedal": {
+      "byMail": "Medalla: va en el envío",
+      "shippedOn": "Medalla enviada el {date}"
+    },
     "childOf": "Menor · inscrito por {name}",
     "removeChildAria": "Eliminar a {name} de la inscripción de {guardian}",
     "removeChildDescription": "El número {bib} sale de la lista y el espacio vuelve a quedar disponible. El resto de la inscripción de {guardian} queda como está. Lo que se pagó por este menor no se reembolsa automáticamente — reembólsalo en Stripe o en la app ATH Móvil Business si hace falta. Esto no se puede deshacer.",

@@ -169,8 +169,9 @@ Cada categoría es una distancia con su **precio**, su **cupo máximo** y una
     por menor.
   - Cada menor elige su distancia, **ocupa un cupo** de esa distancia y del
     evento, y recibe su **propio dorsal** al confirmarse el pago.
-  - Los menores no llevan extras (camiseta, fotos ni envío) y no aparecen en
-    los resultados.
+  - Los menores no llevan camiseta ni fotos y no aparecen en los resultados.
+    Sus medallas pueden ir por correo si incluyes las medallas en el envío
+    (ver el [paso 9](#paso-9--medalla-y-resultados-opciones)).
   - Cambiarlo, o cambiar el precio, solo afecta las inscripciones nuevas: las
     ya pagadas conservan a sus menores y lo que pagaron.
 - **Aceptar pagos con tarjeta**: marcado por defecto. Desmárcalo si la carrera
@@ -237,6 +238,16 @@ iPhone de hasta 40 MB; la app la ajusta de tamaño y la convierte a WebP.
   correo** recibe su paquete y su medalla en un solo envío, cubierto por el
   cargo de envío; los demás recogen ambos. Requiere **Envío por correo** activo
   en los extras (ver [3.6](#36-enviar-kits-y-medallas)).
+  - **Envío por menor (USD)**: aparece si además permites menores. Es lo que
+    suma la medalla de **cada menor** al envío del adulto; por defecto **$6**.
+    Escribe **0** para enviarlas gratis. Paga IVU si el evento lo cobra.
+  - Si el adulto **corre**, paga tu envío y manejo más el envío por menor por
+    cada menor. Si inscribe **solo a menores**, tu envío y manejo cubre al
+    primer menor y cada menor adicional paga el envío por menor. Con $12 y $6:
+    un adulto con 2 menores paga $24 de envío; solo 3 menores, $24.
+  - Cambiarlo solo afecta las inscripciones nuevas. Si activas las medallas en
+    el envío después, los menores de pedidos ya pagados no entran: no se les
+    cobró.
 
 ### Paso 10 · Revisión y publicación
 
@@ -333,6 +344,9 @@ método de pago están en la fila del adulto, que cubre todo el pedido. Un
 adulto que inscribió solo a menores aparece como **Tutor**: no tiene dorsal ni
 distancia, y es el contacto del pedido.
 
+Si la medalla de un menor va por correo, su fila dice *Medalla: va en el
+envío* y, cuando sale, *Medalla enviada el …*.
+
 - **Buscar**: por nombre, número, correo, teléfono o club. También encuentra
   un pedido por el nombre o el dorsal de un menor.
 - **Exportar CSV**: descarga la tabla en un archivo para Excel u hojas de
@@ -393,7 +407,10 @@ Las acciones de envío aparecen en la fila de cada corredor, dentro de
 ### El envío del corredor
 
 Cada corredor tiene **un solo envío**, con una dirección y un número de rastreo:
-su paquete (kit), su medalla o ambos. La fila muestra *"Enviar a: …"*.
+su paquete (kit), su medalla o ambos, y las **medallas de los menores** de su
+pedido si pagó su envío. La fila muestra *"Enviar a: …"*. Un **Tutor** que
+inscribió solo a menores también tiene un envío, solo con esas medallas. Al
+marcarlo, el diálogo dice cuántas medallas de menores van en el paquete.
 
 1. Pulsa **Marcar enviado** y confirma. El corredor recibe el correo *"Tu envío
    de … va en camino"*. No se puede deshacer.
@@ -429,6 +446,12 @@ solo el paquete, para que no se quede retenido. Si la gana después, sigue como
 **"Terminar"** depende del evento: si acepta evidencia de llegada, cuando
 aceptas su resultado; si no, cuando pasa el día de la carrera.
 
+Las **medallas de los menores** no esperan un resultado: salen con la medalla
+del adulto cuando esta sale, o cuando termina la carrera. Hasta entonces el
+paquete las espera (*Esperando la llegada*). Se envían aunque el adulto no gane
+la suya, la recoja en persona o sea descalificado, y aunque después desactives
+las medallas en el envío: ya se cobraron.
+
 Marca **Envíos por hacer (n)** sobre la tabla para ver solo los envíos que ya
 pueden salir.
 
@@ -446,7 +469,9 @@ Para quitar a un solo menor y dejar el resto del pedido:
 Su número sale de la lista y el cupo vuelve a quedar libre. El adulto recibe
 el correo *"Se eliminó a un menor de tu inscripción en …"*. **Lo que se pagó
 por ese menor no se reembolsa automáticamente**: reembólsalo tú en Stripe o en
-ATH Móvil Business. No se puede deshacer.
+ATH Móvil Business. No se puede deshacer. El correo indica lo pagado por el
+menor, incluido el envío de su medalla si aún no ha salido; su medalla ya no
+va en el paquete.
 
 Si es el **único menor** de un adulto que no corre, no se puede quitar solo:
 elimina la inscripción completa del adulto.
