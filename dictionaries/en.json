@@ -1908,7 +1908,8 @@
       "paymentMethodRequired": "Runners need a way to pay. Pick an active ATH Móvil account, or leave card payments on.",
       "categoryDistanceLocked": "Runners are signed up for a category whose distance you changed. Put its distance back, or add a new category instead.",
       "eventCapacityBelowRegistered": "The event’s cap can’t go below the runners already registered or holding a spot.",
-      "closesInPast": "Registration would already be closed. Pick a closing date from today on."
+      "closesInPast": "Registration would already be closed. Pick a closing date from today on.",
+      "childrenAgeInvalid": "With a minimum age of 18 or more, nobody counts as a child. Lower the minimum age, or turn off children."
     },
     "editEvent": "Edit event",
     "editingAsAdmin": "Editing as admin",
@@ -1964,7 +1965,14 @@
       "detailResults": "Runners who add “Send by mail” get their kit and medal in one package, covered by the shipping fee, so it goes out once you accept their finish evidence. Everyone else picks up both. You mark each shipment shipped from the event page and we email the runner. Pickups you mark as runners collect them. Needs “Send by mail” on in the extras."
     },
     "categoryLocked": "Has sign-ups",
-    "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is."
+    "categoryDistanceLockedHint": "Runners signed up for this distance, so it stays as it is.",
+    "children": {
+      "title": "Allow children",
+      "detail": "An adult with an account can add up to 3 children to their registration, or register only children. Each child picks a distance, takes a spot and gets a bib. Changing it applies to new sign-ups only.",
+      "price": "Price per child (USD)",
+      "priceHint": "One price for every distance. Enter 0 for free.",
+      "ages": "Children are ages {min} to 17 on race day. To let younger children in, lower the minimum age above."
+    }
   },
   "organizerOnly": {
     "eyebrow": "Organizers only",

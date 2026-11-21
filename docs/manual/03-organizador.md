@@ -157,6 +157,22 @@ Cada categoría es una distancia con su **precio**, su **cupo máximo** y una
   sigues viendo los números en tu panel.
 - **Edad mínima** y **Edad máxima** (opcional): se comprueban con la edad del
   corredor el día de la carrera.
+- **Permitir menores**: desmarcado por defecto. Márcalo para que un adulto con
+  cuenta pueda añadir **hasta 3 menores** a su inscripción, o inscribir solo a
+  menores sin correr él. Los menores no tienen cuenta propia.
+  - Un menor tiene **menos de 18 años** el día de la carrera y al menos la
+    **edad mínima** del evento. Para aceptar a niños más pequeños, baja la
+    edad mínima. Con una edad mínima de 18 o más la opción no se puede guardar.
+  - **Precio por menor (USD)**: un solo precio para todas las distancias.
+    Escribe **0** si es gratis. Se suma al total del adulto y paga IVU si el
+    evento lo cobra. El cargo por servicio se cobra **una vez por pedido**, no
+    por menor.
+  - Cada menor elige su distancia, **ocupa un cupo** de esa distancia y del
+    evento, y recibe su **propio dorsal** al confirmarse el pago.
+  - Los menores no llevan extras (camiseta, fotos ni envío) y no aparecen en
+    los resultados.
+  - Cambiarlo, o cambiar el precio, solo afecta las inscripciones nuevas: las
+    ya pagadas conservan a sus menores y lo que pagaron.
 - **Aceptar pagos con tarjeta**: marcado por defecto. Desmárcalo si la carrera
   solo acepta ATH Móvil: los corredores ya no ven la opción de tarjeta al
   pagar y pasan directo a las instrucciones de ATH Móvil. Aplica a los pagos
@@ -311,9 +327,17 @@ La tabla muestra solo las **inscripciones completadas** (pagadas): número de
 dorsal, corredor (con correo, teléfono, club y dirección si aplica),
 distancia, género, edad, camiseta, método de pago, monto y fecha de pago.
 
-- **Buscar**: por nombre, número, correo, teléfono o club.
+Si el evento permite menores, cada menor aparece **debajo del adulto que lo
+inscribió**, con su propio dorsal, distancia, género y edad. El monto y el
+método de pago están en la fila del adulto, que cubre todo el pedido. Un
+adulto que inscribió solo a menores aparece como **Tutor**: no tiene dorsal ni
+distancia, y es el contacto del pedido.
+
+- **Buscar**: por nombre, número, correo, teléfono o club. También encuentra
+  un pedido por el nombre o el dorsal de un menor.
 - **Exportar CSV**: descarga la tabla en un archivo para Excel u hojas de
-  cálculo.
+  cálculo. Cada menor tiene su propia línea, con el correo y el teléfono del
+  adulto y la columna **Inscrito por**.
 - **Registro del día de la carrera**: abre el check-in (ver
   [3.7](#37-check-in-el-día-de-la-carrera)). No aparece en eventos virtuales.
 
@@ -331,6 +355,8 @@ puede deshacer.
 
 No se puede eliminar a un corredor cuyo resultado ya fue **aceptado** o
 **descalificado**: su inscripción se conserva como registro.
+
+Eliminar a un adulto elimina también a los menores de su inscripción.
 
 Los corredores eliminados quedan en la sección desplegable **Corredores
 removidos**, debajo de la tabla, con lo que pagaron y el estado del reembolso.
@@ -410,6 +436,23 @@ pueden salir.
 > `markMedalPickedUpAction` (`lib/events/shipment.ts`). El correo *shipment*
 > pasa por la cola de correos.
 
+### Eliminar a un menor
+
+Para quitar a un solo menor y dejar el resto del pedido:
+
+1. Pulsa **Eliminar** en la fila del menor.
+2. Lee el aviso y confirma con **Eliminar**.
+
+Su número sale de la lista y el cupo vuelve a quedar libre. El adulto recibe
+el correo *"Se eliminó a un menor de tu inscripción en …"*. **Lo que se pagó
+por ese menor no se reembolsa automáticamente**: reembólsalo tú en Stripe o en
+ATH Móvil Business. No se puede deshacer.
+
+Si es el **único menor** de un adulto que no corre, no se puede quitar solo:
+elimina la inscripción completa del adulto.
+
+Después de pagar, ni el adulto ni tú pueden **añadir** menores a un pedido.
+
 ## 3.7 Check-in el día de la carrera
 
 **Para qué sirve:** confirmar en la villa de salida que cada corredor llegó y
@@ -418,6 +461,11 @@ entregarle lo que le toca. Está pensado para usarse **en el teléfono**.
 **Dónde:** página del evento → **Inscripciones** → **Registro del día de la
 carrera** (`/organizer/events/<id>/checkin`). No existe en eventos virtuales ni
 en los de *cualquier lugar*.
+
+Los menores se registran **uno por uno**, como cualquier corredor: búscalos
+por su nombre, su dorsal o el nombre del adulto que los inscribió. Debajo del
+nombre verás *Con (nombre del adulto)*. Un adulto que inscribió solo a menores
+no aparece en el check-in.
 
 1. Escribe el **nombre o el número de dorsal** del corredor. Arriba a la
    derecha ves cuántos llevas registrados (por ejemplo *0 de 3*).

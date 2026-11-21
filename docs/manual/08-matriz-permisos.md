@@ -25,6 +25,7 @@ propios eventos**; el administrador las puede hacer en **cualquier** evento.
 | Tarea | Visitante | Corredor | Organizador | Admin |
 | --- | :---: | :---: | :---: | :---: |
 | Inscribirse y pagar (tarjeta o ATH Móvil) | — | ✅ | ✅ | ✅ |
+| Inscribir hasta 3 menores (si el evento lo permite; adulto de 18+) | — | ✅ | ✅ | ✅ |
 | Ver su perfil, inscripciones y envíos | — | 🔒 | 🔒 | 🔒 |
 | Enviar evidencia de llegada | — | 🔒 | 🔒 | 🔒 |
 | Elegir o cambiar la entrega de la medalla | — | 🔒 | 🔒 | 🔒 |
@@ -53,6 +54,7 @@ propios eventos**; el administrador las puede hacer en **cualquier** evento.
 | Confirmar o rechazar pagos de ATH Móvil | — | — | 🔒 ² | ✅ |
 | Volver un pago de ATH Móvil a pendiente | — | — | 🔒 | ✅ |
 | Eliminar a un corredor | — | — | 🔒 | ✅ |
+| Eliminar a un menor de una inscripción | — | — | 🔒 | ✅ |
 | Marcar kits y medallas enviados o recogidos | — | — | 🔒 | ✅ |
 | Check-in del día de la carrera | — | — | 🔒 | ✅ |
 | Aceptar o rechazar resultados | — | — | 🔒 | ✅ |

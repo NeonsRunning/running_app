@@ -72,6 +72,8 @@ const STEP_COLUMNS: [string, (keyof Event)[]][] = [
       "ath_movil_account_id",
       "accepts_card_payments",
       "charges_sales_tax",
+      "allows_children",
+      "child_price",
     ],
   ],
   [

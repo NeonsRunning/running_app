@@ -28,12 +28,13 @@ Cada enlace abre la pantalla **Confirma que eres tú** antes de usarse (ver
 
 | Asunto | Cuándo llega | Se puede desactivar con |
 | --- | --- | --- |
-| **¡Estás inscrito! …** | Se confirma el pago: con tarjeta al instante; con ATH Móvil cuando lo aprueban. Incluye el dorsal. | — |
-| **Mañana: …** | El día antes de la carrera: dorsal, hora de salida y lugar | **Recordatorios de carrera** |
+| **¡Estás inscrito! …** | Se confirma el pago: con tarjeta al instante; con ATH Móvil cuando lo aprueban. Incluye el dorsal y, si inscribiste a menores, el dorsal y la distancia de cada uno. | — |
+| **Mañana: …** | El día antes de la carrera: dorsal, hora de salida y lugar, y los menores que inscribiste | **Recordatorios de carrera** |
 | **Actualización: … cambió** | Cambió la fecha, la hora de salida o el lugar de una carrera publicada que aún no ha pasado. Dice qué era antes y qué es ahora. Como máximo 3 por evento al día. | **Actualizaciones del evento** |
 | **Tu pago por ATH Móvil para … no se confirmó** | Rechazaron tu pago por ATH Móvil. La página de inscripción muestra el aviso durante 7 días y deja pagar otra vez. | — |
 | **Tu pago para … está en revisión de nuevo** | El organizador o un administrador devolvió tu pago de ATH Móvil a pendiente. Conservas el cupo, no el dorsal. | — |
 | **Tu inscripción en … fue cancelada** | El organizador o un administrador te quitó de la carrera. El reembolso no es automático. | — |
+| **Se eliminó a un menor de tu inscripción en …** | El organizador o un administrador quitó a uno de los menores de tu inscripción. El resto no cambia. El reembolso no es automático. | — |
 | **Te reembolsamos tu pago para …** | La app cobró tu tarjeta pero no pudo confirmar la inscripción (la carrera se llenó o cerró mientras pagabas, cambió tu pedido, ya habías enviado un pago por ATH Móvil o pagaste dos veces) y te devolvió el pago completo. | — |
 | **Tu resultado de … es oficial** | Aceptaron tu resultado; la medalla ya está en tu perfil | **Resultados publicados** |
 | **Tu resultado de … necesita revisión** | Devolvieron tu resultado, con la nota del organizador si dejó una | **Resultados publicados** |

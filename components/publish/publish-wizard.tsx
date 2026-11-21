@@ -106,6 +106,8 @@ const FIELD_STEP: Record<string, number> = {
   capacity: 3,
   minimum_age: 3,
   maximum_age: 3,
+  allows_children: 3,
+  child_price: 3,
   ath_movil_account_id: 3,
   offers_shirt: 4,
   shirt_price: 4,
@@ -188,6 +190,10 @@ export function PublishWizard({
   const [acceptsCardPayments, setAcceptsCardPayments] = useState(
     initial.acceptsCardPayments,
   );
+  const [allowsChildren, setAllowsChildren] = useState(initial.allowsChildren);
+  // A child is under 18 and at least the minimum age: at 18 or more, nobody is.
+  const youngest = /^\d+$/.test(minimumAge.trim()) ? Number(minimumAge) : 0;
+  const noChildAges = youngest >= 18;
   const [imagePath, setImagePath] = useState(initial.imagePath);
   const [savedImagePath, setSavedImagePath] = useState(initial.imagePath);
   const [routeImagePath, setRouteImagePath] = useState(initial.routeImagePath);
@@ -1105,6 +1111,47 @@ export function PublishWizard({
                   />
                 )}
               </Field>
+            </div>
+
+            {/* Children on an adult's sign-up, right under the ages that
+                decide who counts as one. The price posts even while this is
+                off, so switching it back on restores it. */}
+            <div className="border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="allows_children"
+                checked={allowsChildren}
+                onChange={setAllowsChildren}
+                title={t("publish.children.title")}
+                detail={t("publish.children.detail")}
+              />
+              <div hidden={!allowsChildren} className="mt-5 flex flex-col gap-4 pl-8">
+                <div className="max-w-56">
+                  <Field
+                    label={t("publish.children.price")}
+                    hint={t("publish.children.priceHint")}
+                    error={fieldError("child_price")}
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="child_price"
+                        defaultValue={initial.childPrice}
+                        inputMode="decimal"
+                      />
+                    )}
+                  </Field>
+                </div>
+                {fieldError("allows_children") || noChildAges ? (
+                  <p role="alert" className="text-[13px] font-semibold text-danger">
+                    {fieldError("allows_children") ??
+                      t("publish.errors.childrenAgeInvalid")}
+                  </p>
+                ) : (
+                  <p className="text-sm text-fg-dim">
+                    {t("publish.children.ages", { min: youngest })}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Beside the limit it shows or hides. */}

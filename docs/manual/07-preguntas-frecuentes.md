@@ -35,7 +35,10 @@ los que muestra la app.
 | *"Ese número de referencia ya se usó"* | Escribe la referencia de **este** pago, tal como aparece en el recibo de ATH Móvil. |
 | Envié una cantidad distinta por ATH Móvil | No se podrá asociar a tu inscripción. Escribe al equipo con el recibo. |
 | Quiero cancelar mi inscripción o pedir un reembolso | No se puede desde la app. Por norma general no son reembolsables (ver la **Política de reembolsos**). Escribe al equipo desde **Contacto** con el nombre de la carrera y tu dorsal. |
-| Quiero inscribir a otra persona | Cada persona necesita su propia cuenta. |
+| Quiero inscribir a otra persona | Cada adulto necesita su propia cuenta. A un **menor de 18 años** lo puedes inscribir tú, dentro de tu inscripción, si el evento lo permite (ver [2.4](02-corredor.md#inscribir-a-menores)). |
+| No veo la opción para inscribir a menores | El organizador no la activó para esa carrera. |
+| *"La edad de un menor el día de la carrera está fuera de los límites"* | El menor tiene que tener menos de 18 años el día de la carrera y al menos la edad mínima del evento. Revisa su fecha de nacimiento. Quien tiene 18 o más se inscribe con su propia cuenta. |
+| Ya pagué y quiero añadir a otro menor, o correr yo también | No se puede añadir a una inscripción pagada. Escribe al organizador o al equipo desde **Contacto**. |
 
 ## 7.3 Corredor: resultados, medallas y envíos
 

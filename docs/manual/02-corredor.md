@@ -144,6 +144,38 @@ llenos con lo que tengas en tu perfil (ver [2.9](#29-ajustes-de-la-cuenta)).
 
 Pulsa **Continuar**. Si falta algo, el campo se marca en rojo.
 
+### Inscribir a menores
+
+Si el organizador lo permite, el **paso 1** pregunta para quién es la
+inscripción:
+
+- **Solo yo**: la inscripción de siempre.
+- **Yo y menores**: corres tú y añades hasta **3 menores**.
+- **Solo menores**: los inscribes tú y no corres. No eliges distancia ni
+  extras, y no recibes dorsal propio.
+
+Los menores no tienen cuenta: los inscribe un adulto de **18 años o más**. En
+el **paso 2**, debajo de tus datos, llena para cada menor:
+
+| Campo | Nota |
+| --- | --- |
+| Nombre y Apellidos | |
+| Fecha de nacimiento | Menos de 18 años el día de la carrera, y al menos la edad mínima del evento |
+| Género | |
+| Distancia | Cada menor elige la suya; las agotadas no se pueden elegir |
+
+Tu contacto de emergencia se usa también para ellos. Marca la casilla en la
+que, como padre, madre o tutor legal, **aceptas el descargo en su nombre**.
+
+Cada menor cuesta el **precio por menor** del evento (puede ser gratis) y se
+suma a tu total. El cargo por servicio se cobra una sola vez.
+
+> **Importante:** revisa que estén todos antes de pagar. Después del pago no
+> puedes añadir a otro menor ni tu propia carrera a esa inscripción.
+
+Al confirmarse el pago, cada menor recibe su **propio dorsal**. Los verás en
+la pantalla de confirmación y en el correo *"¡Estás inscrito! …"*.
+
 ### Paso 3 · Extras
 
 ![Paso 3: extras con camiseta, fotos y medalla por correo](img/corredor/inscripcion-3-extras.png)

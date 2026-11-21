@@ -481,6 +481,15 @@ export async function saveEventAction(
   else if (acceptsDonations && !donationRecipient)
     fieldErrors.donation_recipient = "donationRecipientRequired";
 
+  // Children on an adult's sign-up, at one price whatever the distance. A
+  // child is under 18 and at least the minimum age, so a race for adults
+  // only cannot take them; `save_event` checks the same.
+  const allowsChildren = formData.get("allows_children") === "on";
+  const childPrice = readDecimal(readText(formData, "child_price"));
+  if (allowsChildren && !validPrice(childPrice)) fieldErrors.child_price = "priceInvalid";
+  if (allowsChildren && minimumAge !== null && minimumAge >= 18)
+    fieldErrors.allows_children = "childrenAgeInvalid";
+
   if (Number.isNaN(capacity)) fieldErrors.capacity = "numberInvalid";
   if (Number.isNaN(minimumAge)) fieldErrors.minimum_age = "numberInvalid";
   if (Number.isNaN(maximumAge)) fieldErrors.maximum_age = "numberInvalid";
@@ -594,9 +603,9 @@ export async function saveEventAction(
     medal_image_path: medalImagePath || null,
     ath_movil_account_id: athMovilAccountId || null,
     accepts_card_payments: acceptsCardPayments,
-    // Children on a sign-up: off until the wizard offers the switch.
-    allows_children: false,
-    child_price: 0,
+    allows_children: allowsChildren,
+    // Kept while children are off, as an extra's price is.
+    child_price: validPrice(childPrice) ? childPrice : 0,
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
     sold_out: soldOut,
@@ -684,6 +693,8 @@ export async function saveEventAction(
     // Cards off, and the account picked is missing or has been retired.
     if (error?.code === RAISED && error.message === "paymentMethodRequired")
       return { fieldErrors: { ath_movil_account_id: "paymentMethodRequired" } };
+    if (error?.code === RAISED && error.message === "childrenAgeInvalid")
+      return { fieldErrors: { allows_children: "childrenAgeInvalid" } };
     if (error?.code === RAISED && error.message === "eventNotFound")
       return { error: "eventNotFound" };
     return { error: "saveFailed" };

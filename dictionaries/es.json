@@ -1908,7 +1908,8 @@
       "paymentMethodRequired": "Los corredores necesitan una forma de pagar. Elige una cuenta de ATH Móvil activa o deja activados los pagos con tarjeta.",
       "categoryDistanceLocked": "Hay corredores inscritos en una categoría cuya distancia cambiaste. Devuélvele su distancia o añade una categoría nueva.",
       "eventCapacityBelowRegistered": "El cupo del evento no puede quedar por debajo de los corredores ya inscritos o con un espacio reservado.",
-      "closesInPast": "La inscripción ya estaría cerrada. Elige una fecha de cierre de hoy en adelante."
+      "closesInPast": "La inscripción ya estaría cerrada. Elige una fecha de cierre de hoy en adelante.",
+      "childrenAgeInvalid": "Con una edad mínima de 18 o más, nadie cuenta como menor. Baja la edad mínima o desactiva los menores."
     },
     "editEvent": "Editar evento",
     "editingAsAdmin": "Editando como admin",
@@ -1964,7 +1965,14 @@
       "detailResults": "Quienes añaden “Envío por correo” reciben su paquete y su medalla en un solo envío, cubierto por el cargo de envío, que sale cuando aceptes su evidencia de llegada. Los demás recogen ambos. Marcas cada envío desde la página del evento y le escribimos al corredor. Las recogidas las marcas cuando las recogen. Requiere “Envío por correo” activo en los extras."
     },
     "categoryLocked": "Tiene inscripciones",
-    "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar."
+    "categoryDistanceLockedHint": "Hay corredores inscritos en esta distancia, así que no puede cambiar.",
+    "children": {
+      "title": "Permitir menores",
+      "detail": "Un adulto con cuenta puede añadir hasta 3 menores a su inscripción, o inscribir solo a menores. Cada menor elige una distancia, ocupa un espacio y recibe un número. Cambiarlo solo aplica a las inscripciones nuevas.",
+      "price": "Precio por menor (USD)",
+      "priceHint": "Un solo precio para todas las distancias. Escribe 0 si es gratis.",
+      "ages": "Los menores tienen de {min} a 17 años el día de la carrera. Para aceptar a menores más pequeños, baja la edad mínima de arriba."
+    }
   },
   "organizerOnly": {
     "eyebrow": "Solo organizadores",
