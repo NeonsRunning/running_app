@@ -505,6 +505,7 @@ export async function getEventForm(
     routeImagePath: event.route_image_path ?? "",
     medalImagePath: event.medal_image_path ?? "",
     athMovilAccountId: event.ath_movil_account_id ?? "",
+    acceptsCardPayments: event.accepts_card_payments,
     acceptsResults: event.accepts_results,
     mailsMedals: event.mails_medals,
     soldOut: event.sold_out,

@@ -1840,6 +1840,7 @@
       "imageUploadFailed": "Couldn’t upload the image — try again in a moment.",
       "imageInvalid": "That image can’t be used. Upload it again.",
       "athMovilAccountInvalid": "That ATH Móvil account is no longer available. Pick another one, or turn ATH Móvil off.",
+      "paymentMethodRequired": "Runners need a way to pay. Pick an active ATH Móvil account, or leave card payments on.",
       "categoryDistanceLocked": "Runners are signed up for a category whose distance you changed. Put its distance back, or add a new category instead.",
       "eventCapacityBelowRegistered": "The event’s cap can’t go below the runners already registered or holding a spot.",
       "closesInPast": "Registration would already be closed. Pick a closing date from today on."
@@ -1868,9 +1869,14 @@
     "deleteFailedTitle": "Couldn’t delete the event",
     "athMovilAccount": "ATH Móvil account",
     "athMovilAccountHint": "Runners can pay with ATH Móvil into this business account, besides card. You confirm each payment from the event page.",
+    "athMovilAccountHintOnly": "Runners pay with ATH Móvil into this business account. You confirm each payment from the event page.",
     "athMovilAccountNone": "No ATH Móvil accounts are set up yet, so runners pay by card. Contact the team to add one.",
     "athMovilAccountOff": "Don’t accept ATH Móvil",
     "athMovilAccountRetired": "retired",
+    "cardPayments": {
+      "title": "Accept card payments",
+      "detail": "Runners can pay by card at checkout, through Stripe. Turn off for a race that takes ATH Móvil only. Changing it applies to new checkouts only."
+    },
     "salesTax": {
       "title": "Charge sales tax (IVU 11.5%)",
       "detail": "Runners pay Puerto Rico sales tax on the registration, extras, service fee and shipping, but not on donations. It shows as its own line in their order summary. Changing it applies to new sign-ups only."

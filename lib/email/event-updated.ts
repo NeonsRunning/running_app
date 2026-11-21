@@ -70,6 +70,7 @@ const STEP_COLUMNS: [string, (keyof Event)[]][] = [
       "minimum_age",
       "maximum_age",
       "ath_movil_account_id",
+      "accepts_card_payments",
       "charges_sales_tax",
     ],
   ],
