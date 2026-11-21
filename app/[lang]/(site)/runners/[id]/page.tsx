@@ -577,8 +577,13 @@ export default async function RunnerProfilePage(
                             ? "runner.mailKitAndMedal"
                             : s.kit
                               ? "runner.mailKit"
-                              : "runner.mailMedal",
+                              : s.medal
+                                ? "runner.mailMedal"
+                                : "runner.mailChildMedals",
                         )}
+                        {s.childMedals > 0 && (s.kit || s.medal)
+                          ? ` + ${t("runner.mailChildMedals")}`
+                          : null}
                       </p>
                       {s.eventListed ? (
                         <Link
@@ -625,6 +630,11 @@ export default async function RunnerProfilePage(
                           paidMail={s.paidMail}
                         />
                       ) : null}
+                      {s.medalPending && s.childMedals > 0 ? (
+                        <p className="mt-3 max-w-[60ch] text-[14px] text-fg-muted">
+                          {t("runner.childMedalsStayByMail")}
+                        </p>
+                      ) : null}
                       {s.shippedAt ? (
                         <div className="mt-3">
                           {s.tracking ? (
@@ -653,7 +663,13 @@ export default async function RunnerProfilePage(
                     ) : s.status === "preparing" ? (
                       <Badge tone="outline">{t("runner.kitPreparing")}</Badge>
                     ) : (
-                      <Badge tone="outline">{t("runner.medalWaiting")}</Badge>
+                      <Badge tone="outline">
+                        {t(
+                          s.medalPending
+                            ? "runner.medalWaiting"
+                            : "runner.childMedalsWaiting",
+                        )}
+                      </Badge>
                     )}
                   </li>
                 ))}
