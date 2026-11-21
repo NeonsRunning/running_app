@@ -355,7 +355,8 @@
       "medalCaption": "Todo participante que complete el evento recibe esta medalla.",
       "medalPending": "Todo participante que complete el evento recibe una medalla. El organizador aún no ha compartido su diseño.",
       "aidStationLabel": "Avituallamiento {n}",
-      "medalMailed": "Quienes terminan la recogen en persona, coordinando la recogida con el organizador, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse y la medalla está disponible para envío. Pueden aplicar cargos adicionales por el envío."
+      "medalMailed": "Quienes terminan la recogen en persona, coordinando la recogida con el organizador, o la reciben por correo con su paquete si añaden “Envío por correo” al inscribirse y la medalla está disponible para envío. Pueden aplicar cargos adicionales por el envío.",
+      "medalMailedChildren": "Las medallas de los menores van en el mismo envío, por {price} por menor."
     },
     "anywhere": {
       "short": "Cualquier lugar",
@@ -506,7 +507,11 @@
       "mailingAddressHint": "Calle, ciudad, estado y código postal.",
       "mailingAddressRequired": "Escribe la dirección a la que enviamos tu paquete.",
       "mailDetailWithMedal": "Te enviamos por correo tu medalla y los extras que elijas cuando termines. Si no lo eliges, debes coordinar con el organizador la recogida de tu medalla y de los extras que hayas elegido.",
-      "addMailWithMedal": "Enviar mi paquete y mi medalla por correo"
+      "addMailWithMedal": "Enviar mi paquete y mi medalla por correo",
+      "mailDetailChildren": "Te enviamos por correo las medallas de los menores cuando termine la carrera. Si no lo eliges, debes coordinar su recogida con el organizador.",
+      "mailChildren": "La medalla de cada menor va en el mismo envío: {price} por menor.",
+      "mailChildrenGuardian": "El envío cubre la medalla del primer menor. Cada menor adicional suma {price}.",
+      "addMailChildren": "Enviar las medallas de los menores por correo"
     },
     "step4": {
       "title": "Pago",
@@ -522,6 +527,7 @@
       "donation": "Donación",
       "serviceFee": "Cargo por servicio",
       "shipping": "Envío y manejo",
+      "childShipping": "Envío · medallas de menores",
       "salesTax": "IVU (11.5%)",
       "total": "Total",
       "priceChanged": "El precio de esta inscripción cambió mientras te inscribías. Se te cobrará {total}.",

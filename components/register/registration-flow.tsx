@@ -45,6 +45,7 @@ import {
   SERVICE_FEE,
   parseDonation,
   registrationTotal,
+  shippingCharge,
 } from "@/lib/events/pricing";
 import {
   completeRegistrationPaymentAction,
@@ -225,6 +226,8 @@ export function RegistrationFlow({
   const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
   const photoPrice = extras.photoPrice;
   const shippingPrice = extras.shippingPrice;
+  // What each child's medal adds to the mail; null unless the race mails them.
+  const childShippingPrice = extras.childShippingPrice ?? null;
   // The medal rides in the same shipment, so the extra covers it too.
   const mailsMedals = Boolean(event.bookable && event.mailsMedals);
   const chargesSalesTax = Boolean(event.bookable && event.chargesSalesTax);
@@ -354,12 +357,18 @@ export function RegistrationFlow({
   const categoryFull = (c: (typeof event.categories)[number]) =>
     soldOut || c.full;
 
-  // The shirt, the photos and the mail are the runner's own: an adult who
-  // signs up only children is offered none, whatever was ticked before.
+  // The shirt and the photos are the runner's own: an adult who signs up only
+  // children is offered neither, whatever was ticked before. The mail is too,
+  // unless the race mails medals: then it carries the children's.
   const shirt = racing && wantsShirt;
   const photos = racing && wantsPhotos;
-  const mail = racing && wantsMail;
   const kidCount = withChildren ? kids.length : 0;
+  const mailsKidsMedals = childShippingPrice !== null && kidCount > 0;
+  const canMail = shippingPrice !== null && (racing || mailsKidsMedals);
+  const mail = canMail && wantsMail;
+  // What the mail adds to this order, and what it would if it were ticked.
+  const shipping = shippingCharge({ mail, racing, children: kidCount, extras });
+  const mailOffer = shippingCharge({ mail: true, racing, children: kidCount, extras });
 
   const { tax, total } = useMemo(
     () =>
@@ -373,6 +382,7 @@ export function RegistrationFlow({
         salesTax: chargesSalesTax,
         children: kidCount,
         childPrice,
+        racing,
       }),
     [
       racing,
@@ -1121,7 +1131,7 @@ export function RegistrationFlow({
 
               <div className="mt-8 border-2 border-line">
                 {/* An organizer may switch any extra off, or all of them. */}
-                {!(racing ? hasExtras : extras.donationRecipient !== null) ? (
+                {!(racing ? hasExtras : extras.donationRecipient !== null || canMail) ? (
                   <p className="p-5 text-[15px] text-fg-dim sm:p-7">
                     {t("register.step3.none")}
                   </p>
@@ -1287,7 +1297,7 @@ export function RegistrationFlow({
                   </div>
                 ) : null}
 
-                {racing && shippingPrice !== null ? (
+                {canMail ? (
                   <div className="border-t-2 border-line p-5 first:border-t-0 sm:p-7">
                     <div className="flex items-start justify-between gap-5">
                       <div>
@@ -1296,15 +1306,27 @@ export function RegistrationFlow({
                         </h2>
                         <p className="mt-1.5 text-sm text-fg-dim">
                           {t(
-                            mailsMedals
-                              ? "register.step3.mailDetailWithMedal"
-                              : "register.step3.mailDetail",
+                            !racing
+                              ? "register.step3.mailDetailChildren"
+                              : mailsMedals
+                                ? "register.step3.mailDetailWithMedal"
+                                : "register.step3.mailDetail",
                           )}
                         </p>
+                        {mailsKidsMedals && childShippingPrice !== null ? (
+                          <p className="mt-1.5 text-sm text-fg-dim">
+                            {t(
+                              racing
+                                ? "register.step3.mailChildren"
+                                : "register.step3.mailChildrenGuardian",
+                              { price: fmt.money(childShippingPrice) },
+                            )}
+                          </p>
+                        ) : null}
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="font-display text-xl font-black text-neon-yellow">
-                          {extraPrice(shippingPrice)}
+                          {extraPrice(mailOffer.base + mailOffer.children)}
                         </span>
                         <Checkbox
                           checked={wantsMail}
@@ -1315,16 +1337,18 @@ export function RegistrationFlow({
                           label={
                             <span className="sr-only">
                               {t(
-                                mailsMedals
-                                  ? "register.step3.addMailWithMedal"
-                                  : "register.step3.addMail",
+                                !racing
+                                  ? "register.step3.addMailChildren"
+                                  : mailsMedals
+                                    ? "register.step3.addMailWithMedal"
+                                    : "register.step3.addMail",
                               )}
                             </span>
                           }
                         />
                       </div>
                     </div>
-                    {wantsMail ? addressField : null}
+                    {mail ? addressField : null}
                   </div>
                 ) : null}
 
@@ -1525,7 +1549,13 @@ export function RegistrationFlow({
                 {mail ? (
                   <SummaryRow
                     label={t("register.summary.shipping")}
-                    value={fmt.money(shippingPrice ?? 0)}
+                    value={fmt.money(shipping.base)}
+                  />
+                ) : null}
+                {shipping.children > 0 ? (
+                  <SummaryRow
+                    label={t("register.summary.childShipping")}
+                    value={fmt.money(shipping.children)}
                   />
                 ) : null}
                 {chargesSalesTax ? (

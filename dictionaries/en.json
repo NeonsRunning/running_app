@@ -355,7 +355,8 @@
       "medalCaption": "Every participant who completes the event receives this medal.",
       "medalPending": "Every participant who completes the event receives a medal. The organizer hasn’t shared its design yet.",
       "aidStationLabel": "Aid station {n}",
-      "medalMailed": "Finishers pick it up in person, coordinating the pickup with the organizer, or get it in the mail with their kit when they add “Send by mail” at sign-up and the medal is available for shipping. Additional shipping charges may apply."
+      "medalMailed": "Finishers pick it up in person, coordinating the pickup with the organizer, or get it in the mail with their kit when they add “Send by mail” at sign-up and the medal is available for shipping. Additional shipping charges may apply.",
+      "medalMailedChildren": "Children’s medals go in the same package, for {price} per child."
     },
     "anywhere": {
       "short": "Anywhere",
@@ -506,7 +507,11 @@
       "mailingAddressHint": "Street, city, state and ZIP code.",
       "mailingAddressRequired": "Enter the address to mail your package to.",
       "mailDetailWithMedal": "We mail your finisher medal and any extras you choose once you finish. Skip it and you’ll need to coordinate pickup of your medal and any extras with the organizer.",
-      "addMailWithMedal": "Send my kit and medal by mail"
+      "addMailWithMedal": "Send my kit and medal by mail",
+      "mailDetailChildren": "We mail the children’s finisher medals to you once the race is over. Skip it and you’ll need to coordinate their pickup with the organizer.",
+      "mailChildren": "Each child’s medal goes in the same package: {price} per child.",
+      "mailChildrenGuardian": "The shipping covers the first child’s medal. Each additional child adds {price}.",
+      "addMailChildren": "Send the children’s medals by mail"
     },
     "step4": {
       "title": "Payment",
@@ -522,6 +527,7 @@
       "donation": "Donation",
       "serviceFee": "Service fee",
       "shipping": "Shipping & handling",
+      "childShipping": "Shipping · children’s medals",
       "salesTax": "Sales tax (IVU 11.5%)",
       "total": "Total",
       "priceChanged": "The price of this registration changed while you were signing up. You will be charged {total}.",
