@@ -255,7 +255,7 @@ async function sendRaceDayChangedEmails(
     if (whereBefore !== whereNow) {
       rows.push([t(k("whereNow")), whereNow], [t(k("whereBefore")), whereBefore]);
     }
-    const own = moved.get(runner.categoryId);
+    const own = (runner.categoryId ? moved.get(runner.categoryId) : undefined);
     if (own) {
       const [startBefore, startNow] = [
         startLine(own.before, before, t, locale),

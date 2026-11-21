@@ -67,11 +67,15 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
           )
           .eq("id", claimed.event_id)
           .single(),
-        admin
-          .from("event_categories")
-          .select("distance, start_time")
-          .eq("id", claimed.category_id)
-          .single(),
+        // An adult who signed up only children has no distance of their own;
+        // that email is not written yet, so it fails below and is retried.
+        claimed.category_id
+          ? admin
+              .from("event_categories")
+              .select("distance, start_time")
+              .eq("id", claimed.category_id)
+              .single()
+          : { data: null },
         admin
           .from("profile_private")
           .select("locale")

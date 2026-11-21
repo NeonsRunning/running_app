@@ -431,15 +431,37 @@ export async function getEventForm(
   const registered = new Map<string, number>();
   const locked = new Set<string>();
   let deletable = true;
+  // Sign-ups whose spots count: paid, or still held.
+  const live = new Set<string>();
   for (const r of regs) {
-    locked.add(r.category_id);
     const held =
       r.hold_expires_at !== null &&
       (r.hold_expires_at === "infinity" || Date.parse(r.hold_expires_at) > now);
-    if (r.status === "confirmed" || held) {
-      registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
+    if (r.status === "confirmed" || held) live.add(r.id);
+    // Null for an adult who signed up only children: no spot of their own.
+    if (r.category_id) {
+      locked.add(r.category_id);
+      if (live.has(r.id)) {
+        registered.set(r.category_id, (registered.get(r.category_id) ?? 0) + 1);
+      }
     }
     if (r.status !== "pending" || r.payment_submitted_at !== null) deletable = false;
+  }
+
+  // The children on those sign-ups take spots and lock distances as well.
+  const { data: children } = await selectAll((from, to) =>
+    admin
+      .from("registration_children")
+      .select("id, registration_id, category_id, cancelled_at")
+      .eq("event_id", event.id)
+      .order("id")
+      .range(from, to),
+  );
+  for (const c of children) {
+    locked.add(c.category_id);
+    if (c.cancelled_at === null && live.has(c.registration_id)) {
+      registered.set(c.category_id, (registered.get(c.category_id) ?? 0) + 1);
+    }
   }
 
   const categories = [...event.event_categories]
@@ -527,7 +549,8 @@ export type EventRegistrationRow = {
   runnerName: string;
   email: string;
   phone: string;
-  categoryId: string;
+  /** Null for an adult who signed up only children. */
+  categoryId: string | null;
   gender: Tables<"registrations">["gender"];
   /** On race day, or today for an undated event. */
   age: number;
@@ -745,7 +768,7 @@ export async function getCheckInList(
       id: r.id,
       bib: r.bib,
       name: `${r.first_name} ${r.last_name}`,
-      distance: distances.get(r.category_id) ?? "",
+      distance: (r.category_id && distances.get(r.category_id)) || "",
       gender: r.gender,
       age: ageOn(r.birth_date, raceDay),
       shirtSize: r.shirt_size,
@@ -762,7 +785,8 @@ export type CancelledRegistrationRow = {
   bib: number | null;
   runnerName: string;
   email: string;
-  categoryId: string;
+  /** Null for an adult who signed up only children. */
+  categoryId: string | null;
   /** What they paid, in dollars. */
   amount: number;
   paymentMethod: "stripe" | "ath_movil" | null;

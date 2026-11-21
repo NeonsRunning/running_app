@@ -93,7 +93,7 @@ const DEMO_RUNNER: Runner = {
 
 /** A registration already on file: what the confirmation screen shows. */
 export type ConfirmedRegistration = {
-  categoryId: string;
+  categoryId: string | null;
   bib: number;
   amount: number;
   email: string;
@@ -118,7 +118,7 @@ type PaymentMethod = "stripe" | "ath_movil";
 
 /** The runner's unpaid sign-up as ATH Móvil left it; see `getAthMovilStatus`. */
 export type AthMovilStatus =
-  | { state: "submitted"; categoryId: string; submission: AthMovilSubmission }
+  | { state: "submitted"; categoryId: string | null; submission: AthMovilSubmission }
   | { state: "rejected" }
   | null;
 

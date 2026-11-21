@@ -9,7 +9,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(14);
 
 -- Trigger functions cannot be called through the API, whatever their grants.
 select set_eq(
@@ -74,12 +74,14 @@ select set_eq(
     'register_for_event',
     'reinstate_race_result',
     'remove_registration',
+    'remove_registration_child',
     'request_account_deletion',
     'return_registration_to_pending',
     'review_ath_movil_payment',
     'review_race_result',
     'save_event',
     'set_checked_in',
+    'set_child_checked_in',
     'set_medal_delivery',
     'submit_ath_movil_payment',
     'submit_race_result'
@@ -99,7 +101,8 @@ select ok(
         'confirm_registration_payment', 'cancel_unpaid_registration',
         'hit_rate_limit', 'call_cron_route', 'purge_abandoned_registrations',
         'purge_rate_limits', 'purge_sent_emails', 'can_manage_event',
-        'medal_earned', 'next_handle', 'ath_reference_key', 'orphaned_evidence'
+        'medal_earned', 'next_handle', 'ath_reference_key', 'orphaned_evidence',
+        'next_bib', 'order_fits'
       )
       and has_function_privilege(r.role, p.oid, 'EXECUTE')
   ),
@@ -179,6 +182,21 @@ select is(
 select ok(
   has_column_privilege('service_role', 'public.registrations', 'payment_reviewed_by', 'SELECT'),
   'the server still reads the whole row'
+);
+
+-- Children: read through their sign-up, written by functions only.
+select ok(
+  not has_table_privilege('anon', 'public.registration_children', 'SELECT, INSERT, UPDATE, DELETE')
+  and not has_table_privilege('authenticated', 'public.registration_children', 'INSERT, UPDATE, DELETE')
+  and not has_column_privilege('authenticated', 'public.registration_children', 'cancelled_by', 'SELECT')
+  and has_column_privilege('authenticated', 'public.registration_children', 'bib', 'SELECT'),
+  'nobody writes a child through the API, or sees who took one off an order'
+);
+
+select ok(
+  not has_table_privilege('anon', 'public.event_spots', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.event_spots', 'INSERT, UPDATE, DELETE'),
+  'and the spots view is read-only, for signed-in users'
 );
 
 select * from finish();

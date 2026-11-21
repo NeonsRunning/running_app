@@ -119,7 +119,7 @@ export function EventPayments({
   }
 
   function distance(row: EventPaymentRow) {
-    const name = categories[row.categoryId];
+    const name = row.categoryId ? categories[row.categoryId] : undefined;
     return name ? distanceLabel(t, name) : "—";
   }
 

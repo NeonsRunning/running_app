@@ -594,6 +594,9 @@ export async function saveEventAction(
     medal_image_path: medalImagePath || null,
     ath_movil_account_id: athMovilAccountId || null,
     accepts_card_payments: acceptsCardPayments,
+    // Children on a sign-up: off until the wizard offers the switch.
+    allows_children: false,
+    child_price: 0,
     accepts_results: acceptsResults,
     mails_medals: mailsMedals,
     sold_out: soldOut,

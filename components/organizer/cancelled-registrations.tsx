@@ -93,7 +93,7 @@ export function CancelledRegistrations({
                     </p>
                   </td>
                   <td className="px-3 py-3 text-sm">
-                    {categories[row.categoryId]
+                    {row.categoryId && categories[row.categoryId]
                       ? distanceLabel(t, categories[row.categoryId])
                       : "—"}
                   </td>

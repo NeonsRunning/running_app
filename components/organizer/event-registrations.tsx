@@ -224,7 +224,7 @@ export function EventRegistrations({
   }
 
   function distance(row: EventRegistrationRow) {
-    const name = categories[row.categoryId];
+    const name = row.categoryId ? categories[row.categoryId] : undefined;
     return name ? distanceLabel(t, name) : "—";
   }
 

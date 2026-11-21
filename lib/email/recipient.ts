@@ -117,8 +117,8 @@ export type ConfirmedRunner = {
   firstName: string;
   name: string;
   amount: number;
-  /** The distance they signed up for. */
-  categoryId: string;
+  /** The distance they signed up for; null for an adult who signed up only children. */
+  categoryId: string | null;
   locale: Locale;
 };
 

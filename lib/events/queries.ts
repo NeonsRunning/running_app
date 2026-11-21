@@ -357,7 +357,8 @@ export async function getOwnRegistration(
   runnerId: string,
   eventId: string,
 ): Promise<{
-  categoryId: string;
+  /** Null when they signed up only children. */
+  categoryId: string | null;
   bib: number;
   amount: number;
   email: string;
@@ -397,7 +398,8 @@ export async function getAthMovilStatus(
 ): Promise<
   | {
       state: "submitted";
-      categoryId: string;
+      /** Null when they signed up only children. */
+      categoryId: string | null;
       submission: {
         amount: number;
         email: string;
