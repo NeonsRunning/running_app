@@ -128,6 +128,7 @@ select ok(
 select ok(
   not has_table_privilege('authenticated', 'public.events', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.event_categories', 'INSERT, UPDATE, DELETE')
+  and not has_table_privilege('authenticated', 'public.event_shirts', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.registrations', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.race_results', 'INSERT, UPDATE, DELETE')
   and not has_table_privilege('authenticated', 'public.race_result_corrections', 'INSERT, UPDATE, DELETE')

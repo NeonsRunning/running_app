@@ -379,6 +379,34 @@ export type Database = {
           },
         ];
       };
+      /**
+       * The shirt designs an event shows at sign-up: a picture and a name
+       * each, at the event's one shirt price. Written only by `save_event()`.
+       */
+      event_shirts: {
+        Row: {
+          id: string;
+          event_id: string;
+          name: string;
+          /** Object path in the event-images bucket. */
+          image_path: string;
+          /** Runners may pick it; off for a design withdrawn after someone chose it. */
+          offered: boolean;
+          position: number;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: "event_shirts_event_id_fkey";
+            columns: ["event_id"];
+            isOneToOne: false;
+            referencedRelation: "events";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       registrations: {
         Row: {
           id: string;
@@ -400,6 +428,8 @@ export type Database = {
           emergency_contact_phone: string;
           club: string | null;
           shirt_size: Database["public"]["Enums"]["shirt_size"] | null;
+          /** Which of the event's shirt designs; null without a shirt, or where the event shows none. */
+          shirt_design_id: string | null;
           wants_photos: boolean;
           ships_by_mail: boolean;
           mailing_address: string | null;
@@ -514,6 +544,13 @@ export type Database = {
             columns: ["ath_movil_account_id"];
             isOneToOne: false;
             referencedRelation: "ath_movil_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registrations_shirt_design_id_fkey";
+            columns: ["shirt_design_id"];
+            isOneToOne: false;
+            referencedRelation: "event_shirts";
             referencedColumns: ["id"];
           },
         ];
