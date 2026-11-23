@@ -73,6 +73,8 @@ export type RegistrationInput = {
   emergencyPhone: string;
   club: string;
   shirtSize: string | null;
+  /** Which of the race's shirt designs; null without a shirt, or where it shows none. */
+  shirtDesignId: string | null;
   wantsPhotos: boolean;
   donation: number;
   /** The paid mail extra: the kit, and the medal on a race that mails it. */
@@ -155,6 +157,7 @@ const KNOWN_ERRORS = new Set([
   "ageNotEligible",
   "extrasChanged",
   "shirtSizeUnavailable",
+  "shirtDesignUnavailable",
   "donationInvalid",
   "mailingAddressInvalid",
   "paymentUnderReview",
@@ -279,6 +282,8 @@ export async function startRegistrationPaymentAction(
     emergency_contact_phone: trim(input.emergencyPhone),
     club: trim(input.club),
     shirt_size: input.shirtSize,
+    // Only with a shirt; `register_for_event()` checks it is one of the race's.
+    shirt_design_id: input.shirtSize ? (input.shirtDesignId ?? null) : null,
     wants_photos: Boolean(input.wantsPhotos),
     donation: Number(input.donation),
     ships_by_mail: Boolean(input.shipsByMail),
@@ -331,6 +336,7 @@ export async function startRegistrationPaymentAction(
     !PHONE.test(details.emergency_contact_phone) ||
     details.club.length > 80 ||
     (details.shirt_size !== null && !isOneOf(SHIRT_SIZES, details.shirt_size)) ||
+    (details.shirt_design_id !== null && !UUID.test(String(details.shirt_design_id))) ||
     !Number.isFinite(details.donation) ||
     (details.ships_by_mail && !details.mailing_address) ||
     details.mailing_address.length > 300

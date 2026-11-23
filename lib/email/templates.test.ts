@@ -105,6 +105,8 @@ function sample(table: string): Record<string, unknown> {
         category: { distance: "5K" },
         ...childPatch,
       };
+    case "event_shirts":
+      return { name: "Tech blue" };
     case "profiles":
       return { full_name: "Olga Organiza", handle: "olga" };
     case "profile_private":
@@ -385,6 +387,28 @@ describe("registration confirmed, with children", () => {
       expect(email.html).not.toContain("font-size:44px");
     },
   );
+});
+
+describe("registration confirmed, with a shirt design", () => {
+  it.each(["es", "en"] as const)("names the design beside the size (%s)", async (lang) => {
+    locale = lang;
+    registrationPatch = { shirt_design_id: "design-1" };
+    const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+    expect(console.error).not.toHaveBeenCalled();
+    for (const part of [email.html, email.text]) {
+      expect(part).not.toMatch(RAW_KEY);
+      expect(part).toContain("(Tech blue, M)");
+    }
+  });
+
+  it("says only the size on a race that shows no designs", async () => {
+    locale = "en";
+    const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+    expect(email.text).toContain("Race shirt (M)");
+    expect(email.text).not.toContain("Tech blue");
+  });
 });
 
 describe("registration confirmed, with children's medals by mail", () => {

@@ -93,6 +93,7 @@ const input = {
   emergencyPhone: "787 555 0456",
   club: "",
   shirtSize: null,
+  shirtDesignId: null,
   wantsPhotos: false,
   donation: 0,
   shipsByMail: false,

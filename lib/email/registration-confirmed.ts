@@ -62,8 +62,13 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
   if (!claimed) return;
 
   try {
-    const [{ data: event }, { data: category }, { data: profile }, { data: kids }] =
-      await Promise.all([
+    const [
+      { data: event },
+      { data: category },
+      { data: profile },
+      { data: kids },
+      { data: design },
+    ] = await Promise.all([
         admin
           .from("events")
           .select(
@@ -92,6 +97,14 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
           .eq("registration_id", claimed.id)
           .is("cancelled_at", null)
           .order("position"),
+        // Which shirt, on a race that shows its designs.
+        claimed.shirt_design_id
+          ? admin
+              .from("event_shirts")
+              .select("name")
+              .eq("id", claimed.shirt_design_id)
+              .maybeSingle()
+          : { data: null },
       ]);
     if (!event || (claimed.category_id && !category)) {
       throw new Error("Event or category not found.");
@@ -113,6 +126,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       event,
       category,
       children,
+      shirtDesign: design?.name ?? null,
       locale,
       eventUrl: `${origin}${localizePath(`/events/${event.slug}`, locale)}`,
     });
@@ -146,6 +160,7 @@ async function composeEmail({
   event,
   category,
   children,
+  shirtDesign,
   locale,
   eventUrl,
 }: {
@@ -171,6 +186,8 @@ async function composeEmail({
     /** Their medal rides in the order's shipment. */
     medalByMail: boolean;
   }[];
+  /** The shirt design they chose, by name; null on a race that shows none. */
+  shirtDesign: string | null;
   locale: Locale;
   eventUrl: string;
 }): Promise<{ subject: string; html: string; text: string }> {
@@ -183,7 +200,11 @@ async function composeEmail({
   const kidMedals = children.filter((c) => c.medalByMail).length;
   const extras = [
     registration.shirt_size
-      ? t(k("shirt"), { size: registration.shirt_size })
+      ? t(k("shirt"), {
+          size: shirtDesign
+            ? `${shirtDesign}, ${registration.shirt_size}`
+            : registration.shirt_size,
+        })
       : null,
     registration.wants_photos ? t(k("photos")) : null,
     Number(registration.donation) > 0

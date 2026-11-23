@@ -6,6 +6,7 @@ import { isIsoDate, puertoRicoToday } from "@/lib/dates";
 import { scheduleEventSavedEmails, type CategoryStart } from "@/lib/email/event-updated";
 import { getProfile } from "@/lib/profile/queries";
 import { createClient } from "@/lib/supabase/server";
+import { MAX_SHIRT_DESIGNS, SHIRT_DESIGN_NAME_MAX } from "./form";
 import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
 import {
   CHILD_SHIPPING_PRICE,
@@ -49,6 +50,8 @@ export type EventFormState = {
     status: "draft" | "published";
     /** Stored category id by distance. */
     categoryIds: Record<string, string>;
+    /** The stored shirt designs: each upload has its own path, so it names one. */
+    shirtDesigns: { id: string; imagePath: string }[];
   };
 };
 
@@ -274,6 +277,58 @@ function readCategories(
   return { categories };
 }
 
+type ShirtDesign = {
+  id: string | null;
+  name: string;
+  image_path: string;
+  offered: boolean;
+};
+
+/** Keys `save_event()` raises that belong beside the shirt designs. */
+const SHIRT_DESIGN_ERRORS = new Set([
+  "shirtDesignsTooMany",
+  "shirtDesignIncomplete",
+  "shirtDesignInUse",
+]);
+
+/**
+ * The shirt designs, in display order. A row added and left blank is dropped;
+ * anything else needs both its name and its picture.
+ *
+ * `stored` maps the designs already on the event to their pictures: one of
+ * those stays acceptable as it is, as for the event's own images, and
+ * anything new must be in the caller's folder.
+ */
+function readShirtDesigns(
+  formData: FormData,
+  stored: Map<string, string>,
+  userId: string,
+): { designs: ShirtDesign[] } | { error: string } {
+  const ids = readAll(formData, "shirt_design_id");
+  const names = readAll(formData, "shirt_design_name");
+  const images = readAll(formData, "shirt_design_image");
+  const offered = readAll(formData, "shirt_design_offered");
+
+  const designs: ShirtDesign[] = [];
+  for (let i = 0; i < names.length; i++) {
+    const id = ids[i] ?? "";
+    const name = names[i];
+    const image = images[i] ?? "";
+    if (!id && !name && !image) continue;
+
+    if ((id && !stored.has(id)) || !name || name.length > SHIRT_DESIGN_NAME_MAX || !image) {
+      return { error: "shirtDesignIncomplete" };
+    }
+    if (image !== stored.get(id) && !isOwnImagePath(image, userId)) {
+      return { error: "imageInvalid" };
+    }
+    designs.push({ id: id || null, name, image_path: image, offered: offered[i] !== "false" });
+  }
+
+  if (designs.length > MAX_SHIRT_DESIGNS) return { error: "shirtDesignsTooMany" };
+  return { designs };
+}
+
 /**
  * The signed-in organizer's client and id, or the error to show instead.
  * Every action re-reads the user rather than trusting anything the form sent.
@@ -347,6 +402,20 @@ export async function saveEventAction(
           .eq("event_id", existing.id)
       ).data ?? [])
     : [];
+
+  // The shirt designs as stored, id to picture: what a save may keep as it
+  // is, and what to delete from storage once it no longer shows.
+  const designsBefore = new Map<string, string>(
+    existing
+      ? ((
+          await supabase
+            .from("event_shirts")
+            .select("id, image_path")
+            .eq("event_id", existing.id)
+        ).data ?? []
+        ).map((d) => [d.id, d.image_path])
+      : [],
+  );
 
   const publishing =
     readText(formData, "intent") === "publish" ||
@@ -478,6 +547,9 @@ export async function saveEventAction(
   if (offersShirt && !validPrice(shirtPrice)) fieldErrors.shirt_price = "priceInvalid";
   if (offersShirt && shirtSizes.length === 0)
     fieldErrors.shirt_sizes = "shirtSizesRequired";
+  // Saved while the shirt is off too, like its price and sizes.
+  const parsedDesigns = readShirtDesigns(formData, designsBefore, userId);
+  if ("error" in parsedDesigns) fieldErrors.shirt_designs = parsedDesigns.error;
   if (offersPhotos && !validPrice(photoPrice)) fieldErrors.photo_price = "priceInvalid";
   if (offersMail && !validPrice(shippingPrice))
     fieldErrors.shipping_price = "priceInvalid";
@@ -564,7 +636,11 @@ export async function saveEventAction(
   if (!acceptsCardPayments && !athMovilAccountId)
     fieldErrors.ath_movil_account_id = "paymentMethodRequired";
 
-  if (Object.keys(fieldErrors).length || "error" in parsedCategories) {
+  if (
+    Object.keys(fieldErrors).length ||
+    "error" in parsedCategories ||
+    "error" in parsedDesigns
+  ) {
     return { fieldErrors };
   }
 
@@ -639,17 +715,20 @@ export async function saveEventAction(
     const { data, error } = await supabase.rpc("save_event", {
       p_id: id,
       p_slug: slug,
-      p_event: event as unknown as Json,
+      // The shirt designs ride along inside the event (see `save_event()`).
+      p_event: { ...event, shirt_designs: parsedDesigns.designs } as unknown as Json,
       p_categories: parsedCategories.categories as unknown as Json,
     });
 
     if (data) {
       // A replaced or removed image is no longer shown anywhere. Best effort:
       // a leftover file costs storage, not correctness.
+      const shown = new Set(parsedDesigns.designs.map((d) => d.image_path));
       const replaced = [
         existing?.image_path !== data.image_path && existing?.image_path,
         existing?.route_image_path !== data.route_image_path && existing?.route_image_path,
         existing?.medal_image_path !== data.medal_image_path && existing?.medal_image_path,
+        ...[...designsBefore.values()].filter((p) => !shown.has(p)),
       ].filter((p): p is string => Boolean(p));
       if (replaced.length) {
         await supabase.storage.from(EVENT_IMAGE_BUCKET).remove(replaced);
@@ -660,6 +739,11 @@ export async function saveEventAction(
       const { data: rows } = await supabase
         .from("event_categories")
         .select("id, distance, start_time")
+        .eq("event_id", data.id);
+      // And the designs', for the same reason.
+      const { data: designRows } = await supabase
+        .from("event_shirts")
+        .select("id, image_path")
         .eq("event_id", data.id);
 
       if (existing) {
@@ -681,6 +765,10 @@ export async function saveEventAction(
           categoryIds: Object.fromEntries(
             (rows ?? []).map((r) => [r.distance, r.id]),
           ),
+          shirtDesigns: (designRows ?? []).map((d) => ({
+            id: d.id,
+            imagePath: d.image_path,
+          })),
         },
       };
     }
@@ -698,6 +786,8 @@ export async function saveEventAction(
       return { fieldErrors: { categories: "categoryHasRegistrations" } };
     if (error?.code === RAISED && CATEGORY_ERRORS.has(error.message))
       return { fieldErrors: { categories: error.message } };
+    if (error?.code === RAISED && SHIRT_DESIGN_ERRORS.has(error.message))
+      return { fieldErrors: { shirt_designs: error.message } };
     if (error?.code === RAISED && error.message === "eventCapacityBelowRegistered")
       return { fieldErrors: { capacity: error.message } };
     // Not a listed account, or retired while the wizard was open.
@@ -733,6 +823,12 @@ export async function deleteEventAction(
   const session = await organizerSession();
   if ("error" in session) return { error: session.error };
 
+  // Read first: the designs go with the event, and their pictures with them.
+  const { data: designs } = await session.supabase
+    .from("event_shirts")
+    .select("image_path")
+    .eq("event_id", id);
+
   const { data, error } = await session.supabase.rpc("delete_event", {
     p_event_id: id,
   });
@@ -751,6 +847,7 @@ export async function deleteEventAction(
       data.image_path,
       data.route_image_path,
       data.medal_image_path,
+      ...(designs ?? []).map((d) => d.image_path),
       // Arrives from the browser: only files in the caller's own folder.
       ...(Array.isArray(unsaved) ? unsaved : []).filter(
         (p) => typeof p === "string" && isOwnImagePath(p, session.userId),
