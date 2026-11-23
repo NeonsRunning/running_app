@@ -198,7 +198,9 @@ la pantalla de confirmación y en el correo *"¡Estás inscrito! …"*.
 
 Solo aparecen los extras que ofrece el organizador de esa carrera:
 
-- **Camiseta del evento**: márcala y elige la talla (XS a XXL).
+- **Camiseta del evento**: márcala y elige la talla (XS a XXL). Si el
+  organizador muestra varios diseños, verás la imagen de cada uno: elige el
+  que quieres antes de continuar. Todos cuestan lo mismo.
 - **Paquete de fotos de meta**.
 - **Donar**: elige una cantidad ($5, $10, $25) u **Otra cantidad**, hasta
   $1,000.
