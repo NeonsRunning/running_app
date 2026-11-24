@@ -154,6 +154,14 @@ export function createFormatters(locale: Locale) {
     clock: (time: string) => formatClock(time, locale),
     money: (amount: number) => formatMoney(amount, locale),
     moneyWhole: (amount: number) => formatMoneyWhole(amount, locale),
+    /**
+     * A headline price that may carry cents, as a sale price does: "$30",
+     * but "$31.50" rather than the "$32" `moneyWhole` would round it to.
+     */
+    price: (amount: number) =>
+      Number.isInteger(amount)
+        ? formatMoneyWhole(amount, locale)
+        : formatMoney(amount, locale),
     number: (value: number) => formatNumber(value, locale),
     distance: (km: number) => formatDistance(km, locale),
   };

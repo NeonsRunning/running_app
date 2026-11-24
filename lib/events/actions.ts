@@ -11,6 +11,9 @@ import { EVENT_IMAGE_BUCKET, isOwnImagePath } from "./images";
 import {
   CHILD_SHIPPING_PRICE,
   PHOTO_PRICE,
+  SALE_PERCENT,
+  SALE_PERCENT_MAX,
+  SALE_PERCENT_MIN,
   SHIPPING_PRICE,
   SHIRT_PRICE,
 } from "./pricing";
@@ -519,6 +522,40 @@ export async function saveEventAction(
   const parsedCategories = readCategories(formData, publishing);
   if ("error" in parsedCategories) fieldErrors.categories = parsedCategories.error;
 
+  /* Sale ------------------------------------------------------------------ */
+  // Like an extra, a switched-off sale still saves its percentage and dates,
+  // so they come back with the switch; only a sale that is on must be valid.
+  // `save_event` checks the range and the order of the dates too.
+  const onSale = formData.get("on_sale") === "on";
+  const salePercent = readInt(
+    readText(formData, "sale_percent"),
+    SALE_PERCENT_MIN,
+    SALE_PERCENT_MAX,
+  );
+  const saleStarts = readText(formData, "sale_starts");
+  const saleEnds = readText(formData, "sale_ends");
+  const saleDatesValid =
+    (!saleStarts || isDate(saleStarts)) &&
+    (!saleEnds || isDate(saleEnds)) &&
+    !(saleStarts && saleEnds && saleEnds < saleStarts);
+
+  if (onSale) {
+    if (salePercent === null || Number.isNaN(salePercent))
+      fieldErrors.sale_percent = "salePercentInvalid";
+    if (saleStarts && !isDate(saleStarts)) fieldErrors.sale_starts = "dateInvalid";
+    if (saleEnds && !isDate(saleEnds)) fieldErrors.sale_ends = "dateInvalid";
+    else if (saleEnds && isDate(saleStarts) && saleEnds < saleStarts)
+      fieldErrors.sale_ends = "saleEndsBeforeStart";
+    // A sale set to end before today would never run. One that has already
+    // run its course is left alone, so the event can still be edited.
+    else if (
+      saleEnds &&
+      saleEnds < today &&
+      !(existing?.on_sale && saleEnds === existing.sale_ends)
+    )
+      fieldErrors.sale_ends = "saleEndsInPast";
+  }
+
   /* Registration ---------------------------------------------------------- */
   const capacity = readInt(readText(formData, "capacity"), 1, 1000000);
   const minimumAge = readInt(readText(formData, "minimum_age"), 0, 99);
@@ -700,6 +737,13 @@ export async function saveEventAction(
     sold_out: soldOut,
     show_spots_left: showSpotsLeft,
     charges_sales_tax: chargesSalesTax,
+    on_sale: onSale,
+    // What a switched-off sale holds is kept when it is usable, and dropped
+    // when it is not, rather than failing the save over a hidden field.
+    sale_percent:
+      salePercent === null || Number.isNaN(salePercent) ? SALE_PERCENT : salePercent,
+    sale_starts: saleDatesValid ? saleStarts || null : null,
+    sale_ends: saleDatesValid ? saleEnds || null : null,
   };
 
   // A draft's slug follows its name; the save that publishes it fixes it,
@@ -796,6 +840,10 @@ export async function saveEventAction(
     // Cards off, and the account picked is missing or has been retired.
     if (error?.code === RAISED && error.message === "paymentMethodRequired")
       return { fieldErrors: { ath_movil_account_id: "paymentMethodRequired" } };
+    if (error?.code === RAISED && error.message === "salePercentInvalid")
+      return { fieldErrors: { sale_percent: "salePercentInvalid" } };
+    if (error?.code === RAISED && error.message === "saleEndsBeforeStart")
+      return { fieldErrors: { sale_ends: "saleEndsBeforeStart" } };
     if (error?.code === RAISED && error.message === "childrenAgeInvalid")
       return { fieldErrors: { allows_children: "childrenAgeInvalid" } };
     if (error?.code === RAISED && error.message === "eventNotFound")

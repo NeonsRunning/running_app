@@ -215,7 +215,9 @@
       "from": "FROM",
       "register": "Register",
       "new": "New event",
-      "endingSoon": "Ending soon"
+      "endingSoon": "Ending soon",
+      "sale": "Sale −{percent}%",
+      "fullPrice": "Regular price"
     },
     "save": {
       "saveAria": "Save {name}",
@@ -291,6 +293,8 @@
       "registerNow": "Register Now",
       "registrationOpensOn": "Registration opens {date}",
       "registrationOpensSoon": "Registration opens soon",
+      "saleEnds": "Sale ends {date}, 11:59 PM.",
+      "saleOn": "On sale for a limited time.",
       "registrationClosed": "Registration closed",
       "capacity": "Capacity",
       "capacityFull": "{percent}% full · {spots} spots left",
@@ -535,6 +539,7 @@
       "salesTax": "Sales tax (IVU 11.5%)",
       "total": "Total",
       "priceChanged": "The price of this registration changed while you were signing up. You will be charged {total}.",
+      "sale": "Sale · {percent}% off",
       "processing": "Processing…",
       "complete": "Complete Registration",
       "completeShort": "Complete",
@@ -1922,6 +1927,9 @@
       "categoryDuplicate": "Each distance can only be offered once.",
       "numberInvalid": "Enter a whole number.",
       "priceInvalid": "Enter a price from 0 to 1,000, like 22 or 22.50.",
+      "salePercentInvalid": "Enter a whole percentage from 5 to 90, like 20.",
+      "saleEndsBeforeStart": "The sale can’t end before it starts.",
+      "saleEndsInPast": "That end date has passed. Pick today or later, or leave it empty.",
       "shirtSizesRequired": "Pick at least one shirt size, or switch the shirt off.",
       "shirtDesignsTooMany": "You can show up to 6 shirt designs.",
       "shirtDesignCopyFailed": "That design couldn’t be copied. Try again, or upload its image.",
@@ -1985,6 +1993,21 @@
     "cardPayments": {
       "title": "Accept card payments",
       "detail": "Runners can pay by card at checkout, through Stripe. Turn off for a race that takes ATH Móvil only. Changing it applies to new checkouts only."
+    },
+    "sale": {
+      "title": "Put this event on sale",
+      "detail": "Runners get a percentage off every distance and the price per child, and the event wears a sale badge with the discount. Extras, shipping and the service fee stay at full price. It applies to new sign-ups only.",
+      "percent": "Discount (%)",
+      "percentHint": "A whole number from {min} to {max}.",
+      "starts": "Starts",
+      "startsHint": "Empty: it starts as soon as you save.",
+      "ends": "Ends",
+      "endsHint": "Its last day. Empty: it runs until you switch it off.",
+      "running": "On sale now, until you switch it off.",
+      "runningUntil": "On sale now, through {date}.",
+      "scheduled": "The sale starts {date}. Until then runners see the usual prices.",
+      "ended": "This sale ended {date}. Runners see the usual prices.",
+      "becomes": "becomes"
     },
     "salesTax": {
       "title": "Charge sales tax (IVU 11.5%)",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Badge, Eyebrow, FullPrice } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpecCell } from "@/components/ui/card";
 import { Tabs, TabPanel, useTabsId } from "@/components/ui/tabs";
@@ -252,7 +252,12 @@ export function EventDetailTabs({
                 </div>
                 <div className="text-right">
                   <p className="font-display text-xl font-black text-neon-yellow">
-                    {fmt.moneyWhole(c.price)}
+                    {c.fullPrice !== undefined ? (
+                      <FullPrice className="mr-2 font-sans text-sm">
+                        {fmt.price(c.fullPrice)}
+                      </FullPrice>
+                    ) : null}
+                    {fmt.price(c.price)}
                   </p>
                   {event.showSpotsLeft ? (
                     <p className="mt-1 font-mono text-[11px] text-fg-dim">

@@ -89,6 +89,42 @@ export function EndingSoonBadge({ className }: { className?: string }) {
   );
 }
 
+/** "Sale −20%", while an event is on sale; see `RunningEvent.sale`. */
+export function SaleBadge({
+  percent,
+  className,
+}: {
+  percent: number;
+  className?: string;
+}) {
+  const t = useT();
+  return (
+    <Badge tone="yellow" className={cn("whitespace-nowrap", className)}>
+      {t("events.card.sale", { percent })}
+    </Badge>
+  );
+}
+
+/**
+ * The price before a sale, struck through beside the sale price. The line is
+ * not read out, so the words say it too.
+ */
+export function FullPrice({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  const t = useT();
+  return (
+    <s className={cn("font-normal text-fg-dim tabular-nums", className)}>
+      <span className="sr-only">{t("events.card.fullPrice")} </span>
+      {children}
+    </s>
+  );
+}
+
 const DIFFICULTY_TONE: Record<Difficulty, BadgeTone> = {
   Easy: "green",
   Moderate: "lime",

@@ -139,6 +139,13 @@ export type EventFormValues = {
   showSpotsLeft: boolean;
   /** Runners pay Puerto Rico sales tax (IVU) on top of the registration. */
   chargesSalesTax: boolean;
+  /** On sale: `salePercent` off each distance and each child. */
+  onSale: boolean;
+  /** Whole percent off; kept while the sale is off. */
+  salePercent: string;
+  /** First and last day of the sale; empty leaves that end open. */
+  saleStarts: string;
+  saleEnds: string;
   categories: EventFormCategory[];
 };
 
@@ -196,6 +203,10 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   soldOut: false,
   showSpotsLeft: true,
   chargesSalesTax: false,
+  onSale: false,
+  salePercent: "20",
+  saleStarts: "",
+  saleEnds: "",
   categories: [
     { id: null, distance: "5K", km: "5", price: "", capacity: "", start: "", registered: 0, locked: false },
     { id: null, distance: "10K", km: "10", price: "", capacity: "", start: "", registered: 0, locked: false },
