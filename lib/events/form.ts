@@ -93,6 +93,8 @@ export type EventFormValues = {
   /** Extras: each can be switched off without losing its price or sizes. */
   offersShirt: boolean;
   shirtPrice: string;
+  /** Shipping charged for each shirt: shirts are always mailed. */
+  shirtShippingPrice: string;
   /** The shirts runners choose from; none sells the shirt by size alone. */
   shirtDesigns: EventFormShirtDesign[];
   offersPhotos: boolean;
@@ -175,6 +177,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   shirtSizes: ["S", "M", "L", "XL"],
   offersShirt: true,
   shirtPrice: "22",
+  shirtShippingPrice: "6",
   shirtDesigns: [],
   offersPhotos: false,
   photoPrice: "12",

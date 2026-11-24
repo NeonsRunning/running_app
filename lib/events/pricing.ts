@@ -7,11 +7,18 @@ import type { EventExtras } from "@/lib/types";
  * prices here are the starting values a new event gets, and what fixture
  * races charge. The registration flow uses these to show a running total; the
  * amount that is stored is computed again by `register_for_event()` in
- * `20261221120000_on_sale.sql`, which repeats the service fee, the sales tax
- * rate, how the mail is charged and what a sale takes off. Change them in
- * both places.
+ * `20261222120000_registration_shirts.sql`, which repeats the service fee,
+ * the sales tax rate, how the mail and the shirts are charged and what a sale
+ * takes off. Change them in both places.
  */
 export const SHIRT_PRICE = 22;
+/**
+ * Shipping for each shirt on an order: shirts are always mailed. The starting
+ * value of an event's own price (`events.shirt_shipping_price`).
+ */
+export const SHIRT_SHIPPING_PRICE = 6;
+/** Shirts a runner can put on one sign-up; `register_for_event()` enforces it too. */
+export const MAX_SHIRTS = 6;
 export const PHOTO_PRICE = 12;
 /** Shipping and handling for a kit sent by mail; added after the service fee. */
 export const SHIPPING_PRICE = 8;
@@ -85,6 +92,7 @@ export function parseDonation(text: string): number | null {
 /** Fixture races offer every extra at the starting prices. */
 export const FIXTURE_EXTRAS: EventExtras = {
   shirtPrice: SHIRT_PRICE,
+  shirtShippingPrice: SHIRT_SHIPPING_PRICE,
   photoPrice: PHOTO_PRICE,
   donationRecipient: "Fundación Corre PR",
   shippingPrice: null,
@@ -121,6 +129,25 @@ export function shippingCharge(opts: {
 }
 
 /**
+ * What an order's shirts cost, in dollars: `shirts` is the event's shirt
+ * price for each and `shipping` its shipping price per shirt for each. Every
+ * shirt is mailed, whether or not the runner takes the mail extra, so every
+ * one pays its shipping.
+ */
+export function shirtCharge(
+  count: number,
+  extras: EventExtras,
+): { shirts: number; shipping: number } {
+  if (count <= 0 || extras.shirtPrice === null) return { shirts: 0, shipping: 0 };
+  // In cents, so a price that is not exact in binary does not drift.
+  const cents = (price: number) => (Math.round(price * 100) * count) / 100;
+  return {
+    shirts: cents(extras.shirtPrice),
+    shipping: cents(extras.shirtShippingPrice ?? 0),
+  };
+}
+
+/**
  * The sign-up's sales tax (0 when the event doesn't charge it) and what the
  * runner pays in all, in dollars.
  */
@@ -131,7 +158,8 @@ export function registrationTotal(opts: {
    */
   price: number;
   extras: EventExtras;
-  shirt: boolean;
+  /** How many shirts are on the order; each also pays its shipping. */
+  shirts: number;
   photos: boolean;
   donation: number;
   mail: boolean;
@@ -149,10 +177,12 @@ export function registrationTotal(opts: {
     children: opts.children ?? 0,
     extras: opts.extras,
   });
+  const shirts = shirtCharge(opts.shirts, opts.extras);
   // In cents, so the tax rounds the way Postgres's round(x, 2) does.
   const taxable = Math.round(
     (opts.price +
-      (opts.shirt ? (opts.extras.shirtPrice ?? 0) : 0) +
+      shirts.shirts +
+      shirts.shipping +
       (opts.photos ? (opts.extras.photoPrice ?? 0) : 0) +
       (opts.children ?? 0) * (opts.childPrice ?? 0) +
       // Once per order, however many are on it.

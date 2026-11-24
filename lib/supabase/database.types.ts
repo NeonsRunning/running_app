@@ -207,6 +207,8 @@ export type Database = {
           child_price: number;
           /** Dollars of shipping per child's medal, on a race that mails medals. */
           child_shipping_price: number;
+          /** Dollars of shipping for each shirt on an order; shirts are always mailed. */
+          shirt_shipping_price: number;
           
           charges_sales_tax: boolean;created_at: string;
           updated_at: string;
@@ -268,6 +270,7 @@ export type Database = {
           allows_children?: boolean;
           child_price?: number;
           child_shipping_price?: number;
+          shirt_shipping_price?: number;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -329,6 +332,7 @@ export type Database = {
           allows_children?: boolean;
           child_price?: number;
           child_shipping_price?: number;
+          shirt_shipping_price?: number;
 
           charges_sales_tax?: boolean;created_at?: string;
           updated_at?: string;
@@ -442,9 +446,8 @@ export type Database = {
           emergency_contact_name: string;
           emergency_contact_phone: string;
           club: string | null;
-          shirt_size: Database["public"]["Enums"]["shirt_size"] | null;
-          /** Which of the event's shirt designs; null without a shirt, or where the event shows none. */
-          shirt_design_id: string | null;
+          /** The order's shirts (`registration_shirts`) go by mail, in its one shipment. */
+          shirts_by_mail: boolean;
           wants_photos: boolean;
           ships_by_mail: boolean;
           mailing_address: string | null;
@@ -563,9 +566,40 @@ export type Database = {
             referencedRelation: "ath_movil_accounts";
             referencedColumns: ["id"];
           },
+        ];
+      };
+      /**
+       * A shirt on a sign-up: its size, which of the event's designs, and what
+       * it and its shipping cost when the order was priced. Written only by
+       * `register_for_event()`.
+       */
+      registration_shirts: {
+        Row: {
+          id: string;
+          registration_id: string;
+          /** Order on the form, 1 to 6. */
+          position: number;
+          size: Database["public"]["Enums"]["shirt_size"];
+          /** Null on an event that showed no designs. */
+          design_id: string | null;
+          price: number;
+          /** 0 on shirts bought before shirts were mailed. */
+          shipping_price: number;
+          created_at: string;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [
           {
-            foreignKeyName: "registrations_shirt_design_id_fkey";
-            columns: ["shirt_design_id"];
+            foreignKeyName: "registration_shirts_registration_id_fkey";
+            columns: ["registration_id"];
+            isOneToOne: false;
+            referencedRelation: "registrations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "registration_shirts_design_id_fkey";
+            columns: ["design_id"];
             isOneToOne: false;
             referencedRelation: "event_shirts";
             referencedColumns: ["id"];

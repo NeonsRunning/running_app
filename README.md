@@ -338,6 +338,14 @@ and `lib/events/pricing.test.ts` price the same sign-up; change the fee or the
 tax rate in both places, or one of them fails. The tax is charged only on
 events with `charges_sales_tax` on, the organizer's checkbox in the wizard.
 
+A sign-up can carry up to six shirts, one row each in `registration_shirts`
+with its size, design, price and shipping. Shirts are always mailed: each
+adds the event's `shirt_shipping_price` ($6 unless the organizer changes it)
+on top of the shirt price, taxed like the rest of the shipping, and the order
+then needs a mailing address whether or not the runner took the "send by
+mail" extra. `supabase/tests/database/registration_shirts.test.sql` and the
+same vitest file price the same two-shirt sign-up.
+
 An event on sale (`events.on_sale`, with a percentage and optional dates)
 takes that percentage off each distance and the price per child, and off
 nothing else. Whether a sale is on and what it makes of a price are also
@@ -448,7 +456,7 @@ nothing is sent and everything else works as before.
 | `registration-changed` | Runner | Their sign-up is removed, or an ATH Móvil confirmation is undone |
 | `result-reviewed` | Runner | Their finish time is accepted or sent back, or the organizer records their finish without evidence |
 | `race-reminder` | Runner | The day before the race (see below) |
-| `shipment-shipped` | Runner | The organizer marks their shipment shipped, kit and medal together (tracking number optional); again if a medal follows its kit |
+| `shipment-shipped` | Runner | The organizer marks their shipment shipped, kit, shirts and medal together (tracking number optional); again if a medal follows its kit |
 | `review-requested` | Organizer | A runner sends an ATH Móvil payment or a finish time to review |
 | `event-removed` | Organizer | An admin removes their event, with the reason |
 | `event-cancelled` | Runners | An admin removes a race not yet run |

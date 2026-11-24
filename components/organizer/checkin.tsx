@@ -255,17 +255,13 @@ export function CheckInStation({ list }: { list: CheckInList }) {
               <CheckRow label={t("checkin.payment")} t={t} />
             )}
             {/* A mailed kit had the shirt in it: nothing to hand over. */}
-            {active.shirtSize && active.kit !== "mailed" ? (
-              <CheckRow
-                label={t("checkin.shirtRow", {
-                  // Which shirt to hand over, on a race with more than one.
-                  size: active.shirtDesign
-                    ? `${active.shirtSize} · ${active.shirtDesign}`
-                    : active.shirtSize,
-                })}
-                t={t}
-              />
-            ) : null}
+            {active.kit !== "mailed"
+              ? active.shirts.map((shirt, i) => (
+                  // Which shirt to hand over: its size, and its design on a
+                  // race with more than one.
+                  <CheckRow key={i} label={t("checkin.shirtRow", { size: shirt })} t={t} />
+                ))
+              : null}
             {active.kit === "mailed" ? (
               <CheckRow
                 label={t("checkin.kitRow")}
@@ -420,10 +416,10 @@ export function CheckInStation({ list }: { list: CheckInList }) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-base font-bold">{p.name}</span>
                       <span className="block font-mono text-[11px] text-fg-dim">
-                        {p.shirtSize
+                        {p.shirts.length > 0
                           ? t("checkin.listMeta", {
                               distance: distanceLabel(t, p.distance),
-                              shirt: p.shirtSize,
+                              shirt: p.shirts.join(", "),
                             })
                           : distanceLabel(t, p.distance)}
                       </span>

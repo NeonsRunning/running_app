@@ -426,7 +426,7 @@ export async function getEventForm(
   const { data: regs } = await selectAll((from, to) =>
     admin
       .from("registrations")
-      .select("id, category_id, shirt_design_id, status, hold_expires_at, payment_submitted_at")
+      .select("id, category_id, status, hold_expires_at, payment_submitted_at")
       .eq("event_id", event.id)
       .order("id")
       .range(from, to),
@@ -435,8 +435,6 @@ export async function getEventForm(
   const registered = new Map<string, number>();
   const locked = new Set<string>();
   let deletable = true;
-  // Shirt designs any sign-up chose: `save_event()` will not remove those.
-  const chosenDesigns = new Set<string>();
   // Sign-ups whose spots count: paid, or still held.
   const live = new Set<string>();
   for (const r of regs) {
@@ -452,8 +450,21 @@ export async function getEventForm(
       }
     }
     if (r.status !== "pending" || r.payment_submitted_at !== null) deletable = false;
-    if (r.shirt_design_id) chosenDesigns.add(r.shirt_design_id);
   }
+
+  // Shirt designs on any sign-up, lapsed or cancelled too: `save_event()`
+  // will not remove those. Read with the admin client for the same reason as
+  // the sign-ups above, and only ever as ids.
+  const { data: chosen } = await selectAll((from, to) =>
+    admin
+      .from("registration_shirts")
+      .select("id, design_id, registration:registrations!inner (event_id)")
+      .eq("registration.event_id", event.id)
+      .not("design_id", "is", null)
+      .order("id")
+      .range(from, to),
+  );
+  const chosenDesigns = new Set(chosen.flatMap((s) => (s.design_id ? [s.design_id] : [])));
 
   // Read as the caller: the event is theirs, so its designs are too.
   const { data: designs } = await supabase
@@ -519,6 +530,7 @@ export async function getEventForm(
     shirtSizes: event.shirt_sizes,
     offersShirt: event.offers_shirt,
     shirtPrice: decimal(event.shirt_price),
+    shirtShippingPrice: decimal(event.shirt_shipping_price),
     shirtDesigns: (designs ?? []).map((d) => ({
       id: d.id,
       name: d.name,
@@ -653,11 +665,13 @@ export type EventRegistrationRow = {
   gender: Tables<"registrations">["gender"];
   /** On race day, or today for an undated event. */
   age: number;
-  shirtSize: string | null;
-  /** The design they chose, by name; null on a race that shows none. */
-  shirtDesign: string | null;
+  /** The shirts on the order; `design` is null on a race that shows none. */
+  shirts: { size: string; design: string | null }[];
   club: string | null;
-  /** The runner paid to have their kit mailed. */
+  /**
+   * A package goes by mail: the kit of a runner who paid for the mail, or
+   * the shirts of one who bought some, which are always mailed.
+   */
   kitByMail: boolean;
   /** Where the shipment goes; null when nothing is mailed, or none given yet. */
   mailingAddress: string | null;
@@ -725,7 +739,7 @@ export async function getEventRegistrations(
     supabase
       .from("registrations")
       .select(
-        "id, bib, racing, first_name, last_name, email, phone, category_id, gender, birth_date, shirt_size, shirt_design:event_shirts!registrations_shirt_design_id_fkey (name), club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status), children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, position, cancelled_at, medal_by_mail, medal_shipped_at)",
+        "id, bib, racing, first_name, last_name, email, phone, category_id, gender, birth_date, shirts_by_mail, shirts:registration_shirts (position, size, design:event_shirts!registration_shirts_design_id_fkey (name)), club, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, amount, payment_method, paid_at, created_at, result:race_results!race_results_registration_id_fkey (status), children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, position, cancelled_at, medal_by_mail, medal_shipped_at)",
       )
       .eq("event_id", eventId)
       .eq("status", "confirmed")
@@ -768,14 +782,17 @@ export async function getEventRegistrations(
     categoryId: r.category_id,
     gender: r.gender,
     age: ageOn(r.birth_date, raceDay),
-    shirtSize: r.shirt_size,
-    shirtDesign: r.shirt_design?.name ?? null,
+    shirts: [...r.shirts]
+      .sort((a, b) => a.position - b.position)
+      .map((s) => ({ size: s.size, design: s.design?.name ?? null })),
     club: r.club,
-    kitByMail: r.ships_by_mail,
+    kitByMail: r.ships_by_mail || r.shirts_by_mail,
     // A picked-up medal may leave an address behind; it is nobody's shipment.
-    // An order of only children has one for their medals alone.
+    // An order of only children has one for their medals alone, and one with
+    // shirts for those.
     mailingAddress:
       r.ships_by_mail ||
+      r.shirts_by_mail ||
       r.medal_by_mail ||
       r.children.some((c) => c.cancelled_at === null && c.medal_by_mail)
         ? r.mailing_address
@@ -848,9 +865,11 @@ export type CheckInRunner = {
   gender: Tables<"registrations">["gender"];
   /** On race day, or today for an undated event. */
   age: number;
-  shirtSize: string | null;
-  /** The design they chose, by name; null on a race that shows none. */
-  shirtDesign: string | null;
+  /**
+   * The shirts to hand over at the tent, each as its size and, on a race that
+   * shows its designs, which one. Empty for shirts that go by mail.
+   */
+  shirts: string[];
   kit: CheckInKit;
   /**
    * An ATH Móvil payment still waiting on review: listed so the volunteer
@@ -898,7 +917,7 @@ export async function getCheckInList(
   const { data, error } = await selectAll((from, to) =>
     supabase
       .from("registrations")
-      .select("id, status, bib, racing, first_name, last_name, category_id, gender, birth_date, shirt_size, shirt_design:event_shirts!registrations_shirt_design_id_fkey (name), ships_by_mail, shipped_at, checked_in_at, children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, checked_in_at, cancelled_at, position)")
+      .select("id, status, bib, racing, first_name, last_name, category_id, gender, birth_date, shirts_by_mail, shirts:registration_shirts (position, size, design:event_shirts!registration_shirts_design_id_fkey (name)), ships_by_mail, shipped_at, checked_in_at, children:registration_children (id, first_name, last_name, bib, category_id, gender, birth_date, checked_in_at, cancelled_at, position)")
       .eq("event_id", event.id)
       .or("status.eq.confirmed,and(status.eq.pending,payment_submitted_at.not.is.null)")
       .order("bib", { ascending: true, nullsFirst: false })
@@ -926,8 +945,13 @@ export async function getCheckInList(
               distance: (r.category_id && distances.get(r.category_id)) || "",
               gender: r.gender,
               age: ageOn(r.birth_date, raceDay),
-              shirtSize: r.shirt_size,
-              shirtDesign: r.shirt_design?.name ?? null,
+              // Mailed shirts are not at the tent. Only orders from before
+              // shirts were mailed have any to hand over.
+              shirts: r.shirts_by_mail
+                ? []
+                : [...r.shirts]
+                    .sort((a, b) => a.position - b.position)
+                    .map((s) => (s.design ? `${s.size} · ${s.design.name}` : s.size)),
               kit: checkInKit(r.ships_by_mail, r.shipped_at),
               paymentUnderReview,
               checkedInAt: r.checked_in_at,
@@ -947,8 +971,7 @@ export async function getCheckInList(
           gender: c.gender,
           age: ageOn(c.birth_date, raceDay),
           // Children take no shirt or mailed kit: the bib is at the tent.
-          shirtSize: null,
-          shirtDesign: null,
+          shirts: [],
           kit: checkInKit(false, null),
           paymentUnderReview,
           checkedInAt: c.checked_in_at,

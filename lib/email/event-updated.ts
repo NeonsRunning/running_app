@@ -81,6 +81,7 @@ const STEP_COLUMNS: [string, (keyof Event)[]][] = [
     [
       "offers_shirt",
       "shirt_price",
+      "shirt_shipping_price",
       "shirt_sizes",
       "offers_photos",
       "photo_price",
