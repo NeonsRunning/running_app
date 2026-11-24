@@ -15,7 +15,8 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/cn";
 
 /**
- * An image field of the wizard: the cover, the route map and the medal.
+ * An image field of the wizard: the cover, the route map, the medal and each
+ * shirt design's picture.
  *
  * Picking a file converts it to a resized WebP — iPhone HEIC included — and
  * uploads it at once, from the browser, into the organizer's own folder of
@@ -35,11 +36,16 @@ export function ImageStep({
   error,
   disabled = false,
   onBusyChange,
+  square = false,
 }: {
   /** Form field that carries the path. */
-  name: "image_path" | "route_image_path" | "medal_image_path";
+  name: "image_path" | "route_image_path" | "medal_image_path" | "shirt_design_image";
   /** Dictionary section holding this field's labels. */
-  messages: "publish.image" | "publish.routeImage" | "publish.medalImage";
+  messages:
+    | "publish.image"
+    | "publish.routeImage"
+    | "publish.medalImage"
+    | "publish.shirtDesignImage";
   /** Current object path; empty for no image. */
   value: string;
   /** Path stored on the event as of the last save. */
@@ -61,6 +67,8 @@ export function ImageStep({
    * would delete that one as unclaimed.
    */
   onBusyChange?: (busy: boolean) => void;
+  /** A square drop zone, for a picture shown in a card rather than a banner. */
+  square?: boolean;
 }) {
   const t = useT();
   const inputId = useId();
@@ -191,11 +199,12 @@ export function ImageStep({
           htmlFor={inputId}
           {...dropHandlers}
           className={cn(
-            "relative flex aspect-video cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed bg-carbon px-6 text-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow",
+            "relative flex cursor-pointer flex-col items-center justify-center gap-3 border-2 border-dashed bg-carbon px-6 text-center transition-colors peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-neon-yellow",
             dragging || uploading
               ? "border-neon-lime"
               : "border-line-strong hover:border-neon-lime",
             uploading && "pointer-events-none",
+            square ? "aspect-square" : "aspect-video",
           )}
         >
           <PhotoIcon size={36} aria-hidden className="text-neon-lime" />

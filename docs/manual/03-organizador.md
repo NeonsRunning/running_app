@@ -199,10 +199,28 @@ Activa solo lo que ofreces; lo que esté desactivado no lo ven los corredores.
 
 | Extra | Qué configuras |
 | --- | --- |
-| **Camiseta del evento** | Precio (0 = incluida) y tallas ofrecidas (XS a XXL, al menos una) |
+| **Camiseta del evento** | Precio (0 = incluida), tallas ofrecidas (XS a XXL, al menos una) y, si quieres, los **diseños** que el corredor puede elegir |
 | **Paquete de fotos** | Precio (0 = incluido) |
 | **Donaciones** | A quién van las donaciones (obligatorio si está activo). Los corredores eligen $5, $10, $25 u otra cantidad. |
 | **Envío por correo** | Precio de envío y manejo del paquete (0 = gratis), que se suma al total del corredor |
+
+#### Diseños de camiseta
+
+Los diseños son opcionales. Sin ninguno, el corredor solo elige la talla, como
+siempre. Con al menos uno, el corredor ve las imágenes en el paso de extras de
+la inscripción y tiene que elegir uno.
+
+- Pulsa **Añadir un diseño**, sube la imagen y ponle un nombre (por ejemplo,
+  «Camiseta técnica negra»). El nombre se muestra tal como lo escribes, sin
+  traducir. Puedes tener hasta **6 diseños** por evento.
+- Todos los diseños comparten el **mismo precio** y las **mismas tallas** de
+  la camiseta del evento.
+- Cada corredor compra **una** camiseta. Los menores no llevan camiseta.
+- Puedes quitar un diseño mientras nadie lo haya elegido. Cuando un corredor
+  ya lo eligió, el botón de quitar se cambia por la casilla **Ofrecer este
+  diseño**: desmárcala para que deje de aparecer en la inscripción. Quienes ya
+  lo pidieron lo conservan.
+- Añadir o retirar un diseño no envía el correo de «evento actualizado».
 
 ### Paso 6 · Detalles del evento
 
@@ -336,7 +354,9 @@ la tarjeta del panel).
 
 La tabla muestra solo las **inscripciones completadas** (pagadas): número de
 dorsal, corredor (con correo, teléfono, club y dirección si aplica),
-distancia, género, edad, camiseta, método de pago, monto y fecha de pago.
+distancia, género, edad, camiseta (talla y, si el evento tiene diseños, el
+diseño elegido), método de pago, monto y fecha de pago. El archivo CSV trae el
+diseño en su propia columna, para contar el pedido de camisetas.
 
 Si el evento permite menores, cada menor aparece **debajo del adulto que lo
 inscribió**, con su propio dorsal, distancia, género y edad. El monto y el
@@ -498,7 +518,8 @@ no aparece en el check-in.
    ![Búsqueda en el check-in](img/organizador/checkin-buscar.png)
 
 2. Toca al corredor. Verás su dorsal, distancia, edad y una lista de
-   comprobación: **Inscripción**, **Pago**, **Camiseta · talla** y, si aplica,
+   comprobación: **Inscripción**, **Pago**, **Camiseta · talla** (con el
+   diseño, si el evento tiene varios) y, si aplica,
    el **Paquete de carrera**.
 
    ![Ficha del corredor en el check-in](img/organizador/checkin-corredor.png)

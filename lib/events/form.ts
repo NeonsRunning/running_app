@@ -29,6 +29,26 @@ export type EventFormCategory = {
   locked: boolean;
 };
 
+/** The most shirt designs an event shows; `save_event()` checks the same. */
+export const MAX_SHIRT_DESIGNS = 6;
+/** The longest a design's name may be; the table checks the same. */
+export const SHIRT_DESIGN_NAME_MAX = 60;
+
+export type EventFormShirtDesign = {
+  /** The stored row's id; null for a design added in this session. */
+  id: string | null;
+  name: string;
+  /** Path of its picture in the event-images bucket; empty until uploaded. */
+  imagePath: string;
+  /** Runners may pick it. Off for a design withdrawn after someone chose it. */
+  offered: boolean;
+  /**
+   * A sign-up chose it, cancelled or lapsed ones too: it cannot be removed,
+   * only withdrawn from offer.
+   */
+  locked: boolean;
+};
+
 export type EventFormValues = {
   /** Null until the first save. */
   id: string | null;
@@ -63,6 +83,8 @@ export type EventFormValues = {
   /** Extras: each can be switched off without losing its price or sizes. */
   offersShirt: boolean;
   shirtPrice: string;
+  /** The shirts runners choose from; none sells the shirt by size alone. */
+  shirtDesigns: EventFormShirtDesign[];
   offersPhotos: boolean;
   photoPrice: string;
   acceptsDonations: boolean;
@@ -136,6 +158,7 @@ export const EMPTY_EVENT_FORM: EventFormValues = {
   shirtSizes: ["S", "M", "L", "XL"],
   offersShirt: true,
   shirtPrice: "22",
+  shirtDesigns: [],
   offersPhotos: false,
   photoPrice: "12",
   acceptsDonations: false,

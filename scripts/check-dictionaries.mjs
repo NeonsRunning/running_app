@@ -53,6 +53,7 @@ const DYNAMIC_PREFIXES = [
   "publish.image.",
   "publish.routeImage.",
   "publish.medalImage.",
+  "publish.shirtDesignImage.",
   "register.steps.",
   "register.errors.",
   "adminPayments.errors.",

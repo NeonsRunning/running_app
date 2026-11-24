@@ -10,6 +10,7 @@ import {
   findEvent,
   getAthMovilStatus,
   getOwnRegistration,
+  getShirtDesigns,
 } from "@/lib/events/queries";
 import { localizePath } from "@/lib/i18n/config";
 import { getLocale, getT } from "@/lib/i18n/server";
@@ -60,11 +61,13 @@ export default async function RegisterPage(
   // Back from a payment that redirected, or one the payment step never heard
   // back about: confirm it first, so the page opens on the bib.
   await reconcilePendingPayment(user.id, event.id);
-  const [details, existing, athMovil, finish] = await Promise.all([
+  const [details, existing, athMovil, finish, shirtDesigns] = await Promise.all([
     getProfileDetails(user.id),
     getOwnRegistration(user.id, event.id),
     getAthMovilStatus(user.id, event.id),
     getOwnFinish(user.id, event.id),
+    // Only where there is a shirt to show them for.
+    event.extras?.shirtPrice != null ? getShirtDesigns(event.id) : [],
   ]);
 
   // Back from a payment page: Stripe adds the PaymentIntent and its client
@@ -110,6 +113,7 @@ export default async function RegisterPage(
       event={event}
       initialRunner={runner}
       initialShirtSize={details?.shirtSize ?? null}
+      shirtDesigns={shirtDesigns}
       initialMailingAddress={
         details?.mailingAddress
           ? formatMailingAddress(details.mailingAddress)

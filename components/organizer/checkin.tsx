@@ -257,7 +257,12 @@ export function CheckInStation({ list }: { list: CheckInList }) {
             {/* A mailed kit had the shirt in it: nothing to hand over. */}
             {active.shirtSize && active.kit !== "mailed" ? (
               <CheckRow
-                label={t("checkin.shirtRow", { size: active.shirtSize })}
+                label={t("checkin.shirtRow", {
+                  // Which shirt to hand over, on a race with more than one.
+                  size: active.shirtDesign
+                    ? `${active.shirtSize} · ${active.shirtDesign}`
+                    : active.shirtSize,
+                })}
                 t={t}
               />
             ) : null}

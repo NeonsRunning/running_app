@@ -20,6 +20,7 @@ import type {
   Runner,
   RunningEvent,
   ScheduleItem,
+  ShirtDesign,
 } from "@/lib/types";
 
 /**
@@ -322,6 +323,35 @@ export async function registrationCounts(eventIds: string[]): Promise<Counts> {
     p_event_ids: eventIds,
   });
   return new Map((data ?? []).map((r) => [r.category_id, Number(r.registered)]));
+}
+
+/**
+ * The shirt designs an event has on offer, in the organizer's order, for the
+ * sign-up's extras step. Empty when the event shows none — the shirt is then
+ * bought by size alone — and on a failed read, where `register_for_event()`
+ * still refuses a shirt without a design.
+ */
+export async function getShirtDesigns(eventId: string): Promise<ShirtDesign[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("event_shirts")
+    .select("id, name, image_path")
+    .eq("event_id", eventId)
+    .eq("offered", true)
+    .order("position")
+    .order("id");
+  if (error) {
+    // Most often a migration still to push.
+    console.error(`Shirt designs of ${eventId} failed to load:`, error.message);
+    return [];
+  }
+
+  return data.flatMap((d) => {
+    const image = eventImageUrl(d.image_path);
+    return image ? [{ id: d.id, name: d.name, image }] : [];
+  });
 }
 
 export type PlatformStats = {

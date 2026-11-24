@@ -192,6 +192,14 @@ export type EventExtras = {
   childShippingPrice?: number | null;
 };
 
+/** One of the shirts an event shows at sign-up, at the event's shirt price. */
+export type ShirtDesign = {
+  id: string;
+  /** As the organizer typed it; not translated. */
+  name: string;
+  image: string;
+};
+
 export type IncludedIcon =
   | "bib"
   | "chip"

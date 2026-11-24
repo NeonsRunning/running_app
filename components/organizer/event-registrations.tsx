@@ -769,6 +769,12 @@ export function EventRegistrations({
       ? "eventRegistrations.shipKitOnlyDescription"
       : "eventRegistrations.shipDescription";
 
+  // The size, and which shirt on a race that shows its designs.
+  const shirt = (r: EventRegistrationRow) =>
+    r.shirtSize && r.shirtDesign ? `${r.shirtSize} · ${r.shirtDesign}` : r.shirtSize;
+  // Its own column in the file, so the shirt order can be counted by design.
+  const hasDesigns = rows.some((r) => r.shirtDesign);
+
   function exportCsv() {
     // Contact details go in the file, where the table folds them under the name.
     const header = [
@@ -786,6 +792,7 @@ export function EventRegistrations({
           ]
         : []),
       ...(hasChildren ? [t("eventRegistrations.columns.registeredBy")] : []),
+      ...(hasDesigns ? [t("eventRegistrations.columns.shirtDesign")] : []),
     ];
     // A child's own line, right under the adult's: their bib, distance,
     // gender and age, the adult's contact details, and who signed them up.
@@ -811,6 +818,7 @@ export function EventRegistrations({
         ? [c.medal ? t("eventRegistrations.medal.deliveryMail") : "", ""]
         : []),
       r.runnerName,
+      ...(hasDesigns ? [""] : []),
     ];
     const body = shown.flatMap((r) => [adultLine(r), ...r.children.map((c) => childLine(r, c))]);
     // Formula-safe: runners type their own names, clubs and addresses.
@@ -856,6 +864,7 @@ export function EventRegistrations({
           ]
         : []),
       ...(hasChildren ? [""] : []),
+      ...(hasDesigns ? [r.shirtDesign ?? ""] : []),
     ];
   }
 
@@ -993,7 +1002,7 @@ export function EventRegistrations({
                           {row.age}
                         </td>
                         <td className="px-4 py-3.5 text-sm">
-                          {row.shirtSize ?? "—"}
+                          {shirt(row) ?? "—"}
                         </td>
                         <td className="px-4 py-3.5 text-sm">{method(row)}</td>
                         <td className="px-4 py-3.5 font-mono text-sm tabular-nums">
@@ -1084,7 +1093,7 @@ export function EventRegistrations({
                         row.racing ? distance(row) : null,
                         genderLabel(t, row.gender),
                         row.age,
-                        row.shirtSize,
+                        shirt(row),
                         method(row),
                         fmt.money(row.amount),
                         paidOn.format(new Date(row.paidAt)),

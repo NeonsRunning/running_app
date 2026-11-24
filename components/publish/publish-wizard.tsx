@@ -11,6 +11,11 @@ import {
 import { BrandLock } from "@/components/brand/logo";
 import { EventCover } from "@/components/events/event-card";
 import { ImageStep } from "@/components/publish/image-step";
+import {
+  ShirtDesigns,
+  toShirtDesignRows,
+  type ShirtDesignRow,
+} from "@/components/publish/shirt-designs";
 import { Badge, Eyebrow } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,6 +117,7 @@ const FIELD_STEP: Record<string, number> = {
   offers_shirt: 4,
   shirt_price: 4,
   shirt_sizes: 4,
+  shirt_designs: 4,
   photo_price: 4,
   donation_recipient: 4,
   shipping_price: 4,
@@ -180,6 +186,13 @@ export function PublishWizard({
   const [minimumAge, setMinimumAge] = useState(initial.minimumAge);
   const [sizes, setSizes] = useState<ShirtSize[]>(initial.shirtSizes);
   const [offersShirt, setOffersShirt] = useState(initial.offersShirt);
+  const [shirtDesigns, setShirtDesigns] = useState<ShirtDesignRow[]>(() =>
+    toShirtDesignRows(initial.shirtDesigns),
+  );
+  // The design pictures stored on the event as of the last save.
+  const [savedDesignPaths, setSavedDesignPaths] = useState<ReadonlySet<string>>(
+    () => new Set(initial.shirtDesigns.map((d) => d.imagePath)),
+  );
   const [offersPhotos, setOffersPhotos] = useState(initial.offersPhotos);
   const [acceptsDonations, setAcceptsDonations] = useState(initial.acceptsDonations);
   const [offersMail, setOffersMail] = useState(initial.offersMail);
@@ -289,6 +302,16 @@ export function PublishWizard({
         setCategories((list) =>
           list.map((c) => ({ ...c, id: saved.categoryIds[c.distance] ?? c.id })),
         );
+        // The same for the shirt designs, matched by picture: each upload has
+        // a path of its own. A row left blank was not saved, and is dropped.
+        const designIds = new Map(saved.shirtDesigns.map((d) => [d.imagePath, d.id]));
+        setSavedDesignPaths(new Set(designIds.keys()));
+        setShirtDesigns((list) =>
+          list.flatMap((d) => {
+            const id = designIds.get(d.imagePath);
+            return id ? [{ ...d, id }] : [];
+          }),
+        );
         // A new event now has an address of its own: put it in the URL, so a
         // reload or a later save edits this row instead of creating another.
         if (!initial.id) {
@@ -345,6 +368,7 @@ export function PublishWizard({
         imagePath !== savedImagePath && imagePath,
         routeImagePath !== savedRouteImagePath && routeImagePath,
         medalImagePath !== savedMedalImagePath && medalImagePath,
+        ...shirtDesigns.map((d) => !savedDesignPaths.has(d.imagePath) && d.imagePath),
       ].filter((p): p is string => Boolean(p));
       const result = await deleteEventAction(eventId, unsaved).catch(() => ({
         ok: undefined,
@@ -1291,6 +1315,17 @@ export function PublishWizard({
                       </p>
                     ) : null}
                   </fieldset>
+                  <ShirtDesigns
+                    designs={shirtDesigns}
+                    onChange={setShirtDesigns}
+                    savedPaths={savedDesignPaths}
+                    onBusyChange={(key, busy) =>
+                      markUploading(`shirt_design_${key}`, busy)
+                    }
+                    busy={(key) => uploading.has(`shirt_design_${key}`)}
+                    error={fieldError("shirt_designs")}
+                    disabled={pending}
+                  />
                 </div>
               </li>
 
