@@ -572,18 +572,15 @@ export default async function RunnerProfilePage(
                   >
                     <div className="min-w-0">
                       <p className="mb-1 font-mono text-[10px] tracking-[0.16em] text-fg-faint uppercase">
-                        {t(
-                          s.kit && s.medal
-                            ? "runner.mailKitAndMedal"
-                            : s.kit
-                              ? "runner.mailKit"
-                              : s.medal
-                                ? "runner.mailMedal"
-                                : "runner.mailChildMedals",
-                        )}
-                        {s.childMedals > 0 && (s.kit || s.medal)
-                          ? ` + ${t("runner.mailChildMedals")}`
-                          : null}
+                        {/* What the package holds, in the order it is packed. */}
+                        {[
+                          s.kit ? t("runner.mailKit") : null,
+                          s.shirts ? t("runner.mailShirts") : null,
+                          s.medal ? t("runner.mailMedal") : null,
+                          s.childMedals > 0 ? t("runner.mailChildMedals") : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" + ")}
                       </p>
                       {s.eventListed ? (
                         <Link

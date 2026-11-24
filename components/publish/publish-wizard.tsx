@@ -130,6 +130,7 @@ const FIELD_STEP: Record<string, number> = {
   ath_movil_account_id: 3,
   offers_shirt: 4,
   shirt_price: 4,
+  shirt_shipping_price: 4,
   shirt_sizes: 4,
   shirt_designs: 4,
   photo_price: 4,
@@ -1454,6 +1455,23 @@ export function PublishWizard({
                           {...p}
                           name="shirt_price"
                           defaultValue={initial.shirtPrice}
+                          inputMode="decimal"
+                        />
+                      )}
+                    </Field>
+                  </div>
+                  {/* Shirts are always mailed: each one on an order pays this. */}
+                  <div className="max-w-56">
+                    <Field
+                      label={t("publish.extras.shirtShippingPrice")}
+                      hint={t("publish.extras.shirtShippingPriceHint")}
+                      error={fieldError("shirt_shipping_price")}
+                    >
+                      {(p) => (
+                        <Input
+                          {...p}
+                          name="shirt_shipping_price"
+                          defaultValue={initial.shirtShippingPrice}
                           inputMode="decimal"
                         />
                       )}

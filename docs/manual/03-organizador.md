@@ -227,7 +227,7 @@ Activa solo lo que ofreces; lo que esté desactivado no lo ven los corredores.
 
 | Extra | Qué configuras |
 | --- | --- |
-| **Camiseta del evento** | Precio (0 = incluida), tallas ofrecidas (XS a XXL, al menos una) y, si quieres, los **diseños** que el corredor puede elegir |
+| **Camiseta del evento** | Precio (0 = incluida), **envío por camiseta** (por defecto $6; 0 = gratis), tallas ofrecidas (XS a XXL, al menos una) y, si quieres, los **diseños** que el corredor puede elegir |
 | **Paquete de fotos** | Precio (0 = incluido) |
 | **Donaciones** | A quién van las donaciones (obligatorio si está activo). Los corredores eligen $5, $10, $25 u otra cantidad. |
 | **Envío por correo** | Precio de envío y manejo del paquete (0 = gratis), que se suma al total del corredor |
@@ -247,7 +247,13 @@ la inscripción y tiene que elegir uno.
   afecta al otro.
 - Todos los diseños comparten el **mismo precio** y las **mismas tallas** de
   la camiseta del evento.
-- Cada corredor compra **una** camiseta. Los menores no llevan camiseta.
+- Cada corredor puede comprar **hasta 6** camisetas, cada una con su talla y
+  su diseño. Los menores no llevan camiseta.
+- Las camisetas **siempre se envían por correo**: cada una suma al total del
+  corredor el **envío por camiseta** que fijaste, con IVU si lo cobras, y el
+  corredor escribe su dirección postal aunque no añada el **Envío por
+  correo** del paquete. Con camisetas a $22 y envío a $6, dos camisetas suman
+  $56.
 - Puedes quitar un diseño mientras nadie lo haya elegido. Cuando un corredor
   ya lo eligió, el botón de quitar se cambia por la casilla **Ofrecer este
   diseño**: desmárcala para que deje de aparecer en la inscripción. Quienes ya
@@ -386,9 +392,10 @@ la tarjeta del panel).
 
 La tabla muestra solo las **inscripciones completadas** (pagadas): número de
 dorsal, corredor (con correo, teléfono, club y dirección si aplica),
-distancia, género, edad, camiseta (talla y, si el evento tiene diseños, el
-diseño elegido), método de pago, monto y fecha de pago. El archivo CSV trae el
-diseño en su propia columna, para contar el pedido de camisetas.
+distancia, género, edad, camisetas (la talla de cada una y, si el evento tiene
+diseños, el diseño elegido), método de pago, monto y fecha de pago. El archivo
+CSV trae los diseños en su propia columna, en el mismo orden que las tallas,
+para contar el pedido de camisetas.
 
 Si el evento permite menores, cada menor aparece **debajo del adulto que lo
 inscribió**, con su propio dorsal, distancia, género y edad. El monto y el
@@ -459,8 +466,10 @@ Las acciones de envío aparecen en la fila de cada corredor, dentro de
 ### El envío del corredor
 
 Cada corredor tiene **un solo envío**, con una dirección y un número de rastreo:
-su paquete (kit), su medalla o ambos, y las **medallas de los menores** de su
-pedido si pagó su envío. La fila muestra *"Enviar a: …"*. Un **Tutor** que
+su paquete (kit), sus **camisetas**, su medalla o todo junto, y las **medallas
+de los menores** de su pedido si pagó su envío. Quien compró camisetas tiene
+un envío aunque no haya añadido el **Envío por correo**: las camisetas siempre
+se envían. La fila muestra *"Enviar a: …"*. Un **Tutor** que
 inscribió solo a menores también tiene un envío, solo con esas medallas. Al
 marcarlo, el diálogo dice cuántas medallas de menores van en el paquete.
 
@@ -550,9 +559,10 @@ no aparece en el check-in.
    ![Búsqueda en el check-in](img/organizador/checkin-buscar.png)
 
 2. Toca al corredor. Verás su dorsal, distancia, edad y una lista de
-   comprobación: **Inscripción**, **Pago**, **Camiseta · talla** (con el
-   diseño, si el evento tiene varios) y, si aplica,
-   el **Paquete de carrera**.
+   comprobación: **Inscripción**, **Pago** y, si aplica, el **Paquete de
+   carrera**. Las camisetas se envían por correo, así que no se entregan en el
+   check-in; solo las de inscripciones anteriores a ese cambio aparecen aquí
+   como **Camiseta · talla** (con el diseño, si el evento tiene varios).
 
    ![Ficha del corredor en el check-in](img/organizador/checkin-corredor.png)
 

@@ -50,7 +50,7 @@ const medalDue = (row: EventRegistrationRow) =>
     !row.hasDisqualifiedResult,
   );
 
-/** The kit in this row's shipment that has yet to leave. */
+/** The package in this row's shipment, a mailed kit or shirts, that has yet to leave. */
 const kitDue = (row: EventRegistrationRow) =>
   row.kitByMail && !row.shippedAt;
 
@@ -769,11 +769,15 @@ export function EventRegistrations({
       ? "eventRegistrations.shipKitOnlyDescription"
       : "eventRegistrations.shipDescription";
 
-  // The size, and which shirt on a race that shows its designs.
+  // Each shirt's size, and which one on a race that shows its designs; null
+  // on an order without any.
   const shirt = (r: EventRegistrationRow) =>
-    r.shirtSize && r.shirtDesign ? `${r.shirtSize} · ${r.shirtDesign}` : r.shirtSize;
+    r.shirts.length > 0
+      ? r.shirts.map((s) => (s.design ? `${s.size} · ${s.design}` : s.size)).join(", ")
+      : null;
   // Its own column in the file, so the shirt order can be counted by design.
-  const hasDesigns = rows.some((r) => r.shirtDesign);
+  // Sizes and designs are listed in the same order.
+  const hasDesigns = rows.some((r) => r.shirts.some((s) => s.design));
 
   function exportCsv() {
     // Contact details go in the file, where the table folds them under the name.
@@ -841,7 +845,7 @@ export function EventRegistrations({
       r.racing ? distance(r) : t("eventRegistrations.guardian"),
       genderLabel(t, r.gender),
       r.age,
-      r.shirtSize ?? "",
+      r.shirts.map((s) => s.size).join(", "),
       method(r),
       r.amount.toFixed(2),
       puertoRicoDate(r.paidAt),
@@ -864,7 +868,7 @@ export function EventRegistrations({
           ]
         : []),
       ...(hasChildren ? [""] : []),
-      ...(hasDesigns ? [r.shirtDesign ?? ""] : []),
+      ...(hasDesigns ? [r.shirts.map((s) => s.design ?? "").join(", ")] : []),
     ];
   }
 

@@ -11,7 +11,7 @@ import { WAIVER_VERSION } from "@/lib/legal";
 import { LIMITS, withinLimits } from "@/lib/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 import { settlePayment } from "./payments";
-import { MAX_CHILDREN } from "./pricing";
+import { MAX_CHILDREN, MAX_SHIRTS } from "./pricing";
 import { SHIRT_SIZES, isOneOf } from "./vocabulary";
 
 /**
@@ -40,7 +40,18 @@ import { SHIRT_SIZES, isOneOf } from "./vocabulary";
  * sign-up, or sign up only them (`racing: false`). They are part of the one
  * order and the one payment. Their details go to the registration only:
  * nothing about a child is ever copied into the adult's profile.
+ *
+ * A runner can buy several shirts, each in its own size and design. Shirts
+ * are always mailed, so an order with one carries a mailing address whether
+ * or not the runner took the mail extra for their kit.
  */
+
+/** A shirt on the order, as picked on the extras step. */
+export type ShirtInput = {
+  size: string;
+  /** Which of the race's shirt designs; null where it shows none. */
+  designId: string | null;
+};
 
 /** A child the adult is signing up, as typed on the form. */
 export type ChildInput = {
@@ -72,14 +83,13 @@ export type RegistrationInput = {
   emergencyName: string;
   emergencyPhone: string;
   club: string;
-  shirtSize: string | null;
-  /** Which of the race's shirt designs; null without a shirt, or where it shows none. */
-  shirtDesignId: string | null;
+  /** Up to six; empty on a sign-up without a shirt. */
+  shirts: ShirtInput[];
   wantsPhotos: boolean;
   donation: number;
   /** The paid mail extra: the kit, and the medal on a race that mails it. */
   shipsByMail: boolean;
-  /** Where the shipment goes; empty otherwise. */
+  /** Where the shipment goes, or the shirts; empty with neither. */
   mailingAddress: string;
   /** The runner ticked the waiver on the first step. Required. */
   waiverAccepted: boolean;
@@ -158,6 +168,7 @@ const KNOWN_ERRORS = new Set([
   "extrasChanged",
   "shirtSizeUnavailable",
   "shirtDesignUnavailable",
+  "tooManyShirts",
   "donationInvalid",
   "mailingAddressInvalid",
   "paymentUnderReview",
@@ -281,15 +292,19 @@ export async function startRegistrationPaymentAction(
     emergency_contact_name: trim(input.emergencyName),
     emergency_contact_phone: trim(input.emergencyPhone),
     club: trim(input.club),
-    shirt_size: input.shirtSize,
-    // Only with a shirt; `register_for_event()` checks it is one of the race's.
-    shirt_design_id: input.shirtSize ? (input.shirtDesignId ?? null) : null,
     wants_photos: Boolean(input.wantsPhotos),
     donation: Number(input.donation),
     ships_by_mail: Boolean(input.shipsByMail),
-    // `register_for_event()` keeps it only with the extra.
+    // `register_for_event()` keeps it only with the extra, or with a shirt.
     mailing_address: trim(input.mailingAddress),
   };
+
+  // `register_for_event()` checks each size and design is one of the race's.
+  const picked = Array.isArray(input.shirts) ? input.shirts : [];
+  const shirts = picked.map((s) => ({
+    size: typeof s?.size === "string" ? s.size : "",
+    design_id: typeof s?.designId === "string" && s.designId ? s.designId : null,
+  }));
 
   const racing = input.racing !== false;
   const list = Array.isArray(input.children) ? input.children : [];
@@ -335,10 +350,15 @@ export async function startRegistrationPaymentAction(
     details.emergency_contact_name.length > 80 ||
     !PHONE.test(details.emergency_contact_phone) ||
     details.club.length > 80 ||
-    (details.shirt_size !== null && !isOneOf(SHIRT_SIZES, details.shirt_size)) ||
-    (details.shirt_design_id !== null && !UUID.test(String(details.shirt_design_id))) ||
+    shirts.length > MAX_SHIRTS ||
+    shirts.some(
+      (s) =>
+        !isOneOf(SHIRT_SIZES, s.size) ||
+        (s.design_id !== null && !UUID.test(s.design_id)),
+    ) ||
     !Number.isFinite(details.donation) ||
-    (details.ships_by_mail && !details.mailing_address) ||
+    // Shirts are mailed too.
+    ((details.ships_by_mail || shirts.length > 0) && !details.mailing_address) ||
     details.mailing_address.length > 300
   ) {
     return { ok: false, error: "detailsInvalid" };
@@ -421,7 +441,7 @@ export async function startRegistrationPaymentAction(
     p_category_id: categoryId,
     // The children ride along here and nowhere else: `rememberDetails()`
     // below is given the adult's own details only.
-    p_details: { ...details, racing, children },
+    p_details: { ...details, racing, children, shirts },
   });
 
   if (error || !reg) {
@@ -468,6 +488,8 @@ export async function startRegistrationPaymentAction(
 
   await rememberDetails(supabase, userData.user.id, {
     ...details,
+    // The first one is taken to be the runner's own.
+    shirt_size: shirts[0]?.size ?? null,
     gender: input.gender === "undisclosed" ? null : details.gender,
     locale: input.locale,
   });

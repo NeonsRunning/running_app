@@ -81,7 +81,8 @@ insert into public.event_shirts (id, event_id, name, image_path, offered, positi
   ('00000000-0000-4000-9000-0000000000d3', '00000000-0000-4000-9000-0000000000e1', 'Old tee',
    '00000000-0000-4000-8000-000000000001/00000000-0000-4000-a000-000000000003.webp', false, 2);
 
--- What a runner types at sign-up, with `p_extra` laid over it.
+-- What a runner types at sign-up, with `p_extra` laid over it. The address is
+-- for the shirts, which are mailed; a sign-up without any drops it.
 create or replace function tests.runner(p_name text, p_extra jsonb default '{}')
 returns jsonb
 language sql
@@ -91,7 +92,8 @@ as $$
     'email', lower(p_name) || '@example.com',
     'phone', '787-555-0103', 'birth_date', '1992-03-03', 'gender', 'f',
     'emergency_contact_name', 'Luis Figueroa', 'emergency_contact_phone', '787-555-0198',
-    'wants_photos', false, 'donation', 0
+    'wants_photos', false, 'donation', 0,
+    'mailing_address', '123 Calle Luna, San Juan, PR 00901'
   ) || p_extra;
 $$;
 
@@ -136,7 +138,9 @@ select ok(
 );
 
 select ok(
-  has_column_privilege('authenticated', 'public.registrations', 'shirt_design_id', 'SELECT'),
+  has_table_privilege('authenticated', 'public.registration_shirts', 'SELECT')
+  and not has_table_privilege('anon', 'public.registration_shirts', 'SELECT')
+  and not has_table_privilege('authenticated', 'public.registration_shirts', 'INSERT, UPDATE, DELETE'),
   'runners and organizers can read which design a sign-up chose'
 );
 
@@ -188,7 +192,7 @@ set local role authenticated;
 select throws_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c1',
-       tests.runner('Ana', '{"shirt_size": "M"}')) $$,
+       tests.runner('Ana', '{"shirts": [{"size": "M"}]}')) $$,
   'P0001', 'shirtDesignUnavailable',
   'a shirt on a race that shows its designs needs one picked'
 );
@@ -196,8 +200,8 @@ select throws_ok(
 select throws_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c1',
-       tests.runner('Ana', '{"shirt_size": "M",
-         "shirt_design_id": "00000000-0000-4000-9000-0000000000d3"}')) $$,
+       tests.runner('Ana', '{"shirts": [{"size": "M",
+         "design_id": "00000000-0000-4000-9000-0000000000d3"}]}')) $$,
   'P0001', 'shirtDesignUnavailable',
   'a withdrawn design cannot be picked'
 );
@@ -205,8 +209,8 @@ select throws_ok(
 select throws_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c2',
-       tests.runner('Ana', '{"shirt_size": "M",
-         "shirt_design_id": "00000000-0000-4000-9000-0000000000d1"}')) $$,
+       tests.runner('Ana', '{"shirts": [{"size": "M",
+         "design_id": "00000000-0000-4000-9000-0000000000d1"}]}')) $$,
   'P0001', 'shirtDesignUnavailable',
   'nor another race''s design'
 );
@@ -214,25 +218,26 @@ select throws_ok(
 select lives_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c1',
-       tests.runner('Ana', '{"shirt_size": "M",
-         "shirt_design_id": "00000000-0000-4000-9000-0000000000d1"}')) $$,
+       tests.runner('Ana', '{"shirts": [{"size": "M",
+         "design_id": "00000000-0000-4000-9000-0000000000d1"}]}')) $$,
   'a design on offer is taken'
 );
 
 select is(
-  (select shirt_design_id from public.registrations
-   where runner_id = '00000000-0000-4000-8000-000000000003'
-     and event_id = '00000000-0000-4000-9000-0000000000e1'),
+  (select s.design_id from public.registration_shirts s
+   join public.registrations r on r.id = s.registration_id
+   where r.runner_id = '00000000-0000-4000-8000-000000000003'
+     and r.event_id = '00000000-0000-4000-9000-0000000000e1'),
   '00000000-0000-4000-9000-0000000000d1'::uuid,
   'and kept on the sign-up'
 );
 
--- 30 + 22 + 2.00 fee, no sales tax.
+-- 30 + 22 + 6 to mail the shirt + 2.00 fee, no sales tax.
 select is(
   (select amount from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'
      and event_id = '00000000-0000-4000-9000-0000000000e1'),
-  54.00::numeric,
+  60.00::numeric,
   'the design changes nothing about the price'
 );
 
@@ -240,15 +245,16 @@ select is(
 select lives_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c1',
-       tests.runner('Ana', '{"shirt_size": "L",
-         "shirt_design_id": "00000000-0000-4000-9000-0000000000d2"}')) $$,
+       tests.runner('Ana', '{"shirts": [{"size": "L",
+         "design_id": "00000000-0000-4000-9000-0000000000d2"}]}')) $$,
   'a held sign-up can change its design'
 );
 
 select is(
-  (select shirt_design_id from public.registrations
-   where runner_id = '00000000-0000-4000-8000-000000000003'
-     and event_id = '00000000-0000-4000-9000-0000000000e1'),
+  (select s.design_id from public.registration_shirts s
+   join public.registrations r on r.id = s.registration_id
+   where r.runner_id = '00000000-0000-4000-8000-000000000003'
+     and r.event_id = '00000000-0000-4000-9000-0000000000e1'),
   '00000000-0000-4000-9000-0000000000d2'::uuid,
   'to the one picked last'
 );
@@ -256,7 +262,7 @@ select is(
 select lives_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c2',
-       tests.runner('Ana', '{"shirt_size": "M"}')) $$,
+       tests.runner('Ana', '{"shirts": [{"size": "M"}]}')) $$,
   'a race that shows no designs sells its shirt by size alone'
 );
 
@@ -265,20 +271,28 @@ reset role;
 select tests.act_as('00000000-0000-4000-8000-000000000004');
 set local role authenticated;
 
--- A design sent without a shirt means nothing.
+-- Each shirt on an order has its own design.
 select lives_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c1',
-       tests.runner('Beto', '{"shirt_design_id": "00000000-0000-4000-9000-0000000000d1"}')) $$,
-  'no shirt, no design'
+       tests.runner('Beto', '{"shirts": [
+         {"size": "M", "design_id": "00000000-0000-4000-9000-0000000000d1"},
+         {"size": "L", "design_id": "00000000-0000-4000-9000-0000000000d2"}]}')) $$,
+  'two shirts, one of each design'
 );
 
-select is(
-  (select shirt_design_id from public.registrations
-   where runner_id = '00000000-0000-4000-8000-000000000004'),
-  null::uuid,
-  'the design is dropped with the shirt'
+reset role;
+select results_eq(
+  $$ select s.position::integer, s.size::text, d.name
+     from public.registration_shirts s
+     join public.registrations r on r.id = s.registration_id
+     join public.event_shirts d on d.id = s.design_id
+     where r.runner_id = '00000000-0000-4000-8000-000000000004'
+     order by s.position $$,
+  $$ values (1, 'M', 'Black tee'), (2, 'L', 'Blue tee') $$,
+  'each is kept with the design picked for it'
 );
+set local role authenticated;
 
 reset role;
 
@@ -338,9 +352,10 @@ select results_eq(
 -- Read as the owner: an organizer does not see sign-ups still unpaid.
 reset role;
 select is(
-  (select shirt_design_id from public.registrations
-   where runner_id = '00000000-0000-4000-8000-000000000003'
-     and event_id = '00000000-0000-4000-9000-0000000000e1'),
+  (select s.design_id from public.registration_shirts s
+   join public.registrations r on r.id = s.registration_id
+   where r.runner_id = '00000000-0000-4000-8000-000000000003'
+     and r.event_id = '00000000-0000-4000-9000-0000000000e1'),
   '00000000-0000-4000-9000-0000000000d2'::uuid,
   'a withdrawn design stays on the sign-up that has it'
 );

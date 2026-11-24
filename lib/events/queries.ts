@@ -252,6 +252,10 @@ function toEvent(
     extras: {
       shirtPrice:
         row.offers_shirt && row.shirt_sizes.length ? Number(row.shirt_price) : null,
+      shirtShippingPrice:
+        row.offers_shirt && row.shirt_sizes.length
+          ? Number(row.shirt_shipping_price)
+          : null,
       photoPrice: row.offers_photos ? Number(row.photo_price) : null,
       donationRecipient:
         row.accepts_donations && row.donation_recipient
@@ -620,6 +624,8 @@ export type MailItem = {
   kind: "shipment" | "pickup";
   /** What the shipment holds. */
   kit: boolean;
+  /** The shirts on the order, which are always mailed. */
+  shirts: boolean;
   medal: boolean;
   /** How many medals of the children on the order ride in it. */
   childMedals: number;
@@ -651,7 +657,7 @@ export type MailItem = {
 
 /**
  * What the runner has coming, whatever the race date: one shipment per
- * sign-up, kit and medal together with the medals of the children on it, and
+ * sign-up, kit, shirts and medal together with the medals of the children on it, and
  * otherwise the finisher medal they pick up on a race that tracks them. An
  * adult who signed up only children ran nothing, so has no medal of their own. A tracking number matters after the race
  * leaves the calendar. A medal whose finish was disqualified is left out
@@ -667,7 +673,7 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
   const { data, error } = await supabase
     .from("registrations")
     .select(
-      "id, racing, ships_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, event:events(name, slug, event_date, last_day, status, mails_medals, accepts_results), result:race_results!race_results_registration_id_fkey (status), children:registration_children (medal_by_mail, medal_shipped_at, cancelled_at)",
+      "id, racing, ships_by_mail, shirts_by_mail, mailing_address, shipped_at, shipping_tracking, medal_by_mail, medal_shipped_at, medal_picked_up_at, event:events(name, slug, event_date, last_day, status, mails_medals, accepts_results), result:race_results!race_results_registration_id_fkey (status), children:registration_children (medal_by_mail, medal_shipped_at, cancelled_at)",
     )
     .eq("runner_id", runnerId)
     .eq("status", "confirmed");
@@ -701,7 +707,7 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
     );
     const kidsDue = kidMedals.some((c) => c.medal_shipped_at === null);
 
-    if (r.ships_by_mail || mailedMedal || kidMedals.length > 0) {
+    if (r.ships_by_mail || r.shirts_by_mail || mailedMedal || kidMedals.length > 0) {
       const raceOver = ev.last_day !== null && ev.last_day < today;
       // The same rule as `medal_earned()` for the mail.
       const finished = ev.accepts_results ? result === "accepted" : raceOver;
@@ -713,6 +719,7 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
         ...base,
         kind: "shipment",
         kit: r.ships_by_mail,
+        shirts: r.shirts_by_mail,
         medal: mailedMedal,
         childMedals: kidMedals.length,
         status: medalDue
@@ -750,6 +757,7 @@ export async function getMailItems(runnerId: string): Promise<MailItem[]> {
         ...base,
         kind: "pickup",
         kit: false,
+        shirts: false,
         medal: true,
         childMedals: 0,
         status: r.medal_picked_up_at ? "pickedUp" : "pickup",

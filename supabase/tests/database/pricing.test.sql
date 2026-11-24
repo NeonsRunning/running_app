@@ -105,10 +105,11 @@ grant execute on function tests.ana_details() to authenticated;
 
 select plan(5);
 
--- Every extra on: $30 race, $22 shirt, $12 photos, $8 shipping, and a $10
--- donation (not taxed). Taxable: 30 + 22 + 12 + 2 (service fee) + 8 = 74.
+-- Every extra on: $30 race, a $22 shirt and its $6 shipping, $12 photos, $8
+-- shipping for the kit, and a $10 donation (not taxed). Taxable:
+-- 30 + 22 + 6 + 12 + 2 (service fee) + 8 = 80.
 update public.events set
-  offers_shirt = true, shirt_sizes = '{M}', shirt_price = 22,
+  offers_shirt = true, shirt_sizes = '{M}', shirt_price = 22, shirt_shipping_price = 6,
   offers_photos = true, photo_price = 12,
   accepts_donations = true, donation_recipient = 'Fundación Corre PR',
   offers_mail = true, shipping_price = 8,
@@ -121,7 +122,7 @@ set local role authenticated;
 select public.register_for_event(
   '00000000-0000-4000-9000-0000000000c1',
   tests.ana_details() || jsonb_build_object(
-    'shirt_size', 'M', 'wants_photos', true, 'donation', 10,
+    'shirts', '[{"size": "M"}]'::jsonb, 'wants_photos', true, 'donation', 10,
     'ships_by_mail', true, 'mailing_address', '123 Calle Luna, San Juan, PR 00901'
   )
 );
@@ -138,19 +139,19 @@ select is(
 select is(
   (select sales_tax from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'),
-  8.51::numeric,
-  'sales tax is 11.5% of 74, rounded to the cent (SALES_TAX_RATE)'
+  9.20::numeric,
+  'sales tax is 11.5% of 80, rounded to the cent (SALES_TAX_RATE)'
 );
 
 select is(
   (select amount from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'),
-  92.51::numeric,
+  99.20::numeric,
   'the amount charged matches registrationTotal() for the same sign-up'
 );
 
 -- The organizer turns the sales tax off: the same sign-up, held again, is
--- the taxable 74 plus the donation, with no tax.
+-- the taxable 80 plus the donation, with no tax.
 update public.events set charges_sales_tax = false
 where id = '00000000-0000-4000-9000-0000000000e1';
 
@@ -160,7 +161,7 @@ set local role authenticated;
 select public.register_for_event(
   '00000000-0000-4000-9000-0000000000c1',
   tests.ana_details() || jsonb_build_object(
-    'shirt_size', 'M', 'wants_photos', true, 'donation', 10,
+    'shirts', '[{"size": "M"}]'::jsonb, 'wants_photos', true, 'donation', 10,
     'ships_by_mail', true, 'mailing_address', '123 Calle Luna, San Juan, PR 00901'
   )
 );
@@ -177,8 +178,8 @@ select is(
 select is(
   (select amount from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'),
-  84.00::numeric,
-  'without the tax the amount is the taxable 74 plus the $10 donation'
+  90.00::numeric,
+  'without the tax the amount is the taxable 80 plus the $10 donation'
 );
 
 select * from finish();

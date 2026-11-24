@@ -5,6 +5,7 @@ import {
   registrationTotal,
   salePrice,
   shippingCharge,
+  shirtCharge,
 } from "./pricing";
 
 const extras = { shirtPrice: 22, photoPrice: 12, shippingPrice: 8, donationRecipient: "" };
@@ -20,7 +21,7 @@ describe("registrationTotal", () => {
     const { tax, total } = registrationTotal({
       price: 45,
       extras,
-      shirt: true,
+      shirts: 1,
       photos: true,
       donation: 10,
       mail: true,
@@ -35,7 +36,7 @@ describe("registrationTotal", () => {
     const { tax, total } = registrationTotal({
       price: 0,
       extras,
-      shirt: false,
+      shirts: 0,
       photos: false,
       donation: 0,
       mail: false,
@@ -49,7 +50,7 @@ describe("registrationTotal", () => {
     const { total } = registrationTotal({
       price: 0.1 + 0.2,
       extras,
-      shirt: false,
+      shirts: 0,
       photos: false,
       donation: 0.07,
       mail: false,
@@ -62,7 +63,7 @@ describe("registrationTotal", () => {
 
 /**
  * The same sign-up `supabase/tests/database/pricing.test.sql` registers
- * through `register_for_event()`. Both must arrive at $92.51: if the fee or
+ * through `register_for_event()`. Both must arrive at $99.20: if the fee or
  * the tax rate changes in one place only, one of the two tests fails, so the
  * form never shows a total the database will not charge.
  */
@@ -71,7 +72,7 @@ describe("registrationTotal on an event without sales tax", () => {
     const { tax, total } = registrationTotal({
       price: 45,
       extras,
-      shirt: true,
+      shirts: 1,
       photos: true,
       donation: 10,
       mail: true,
@@ -84,18 +85,101 @@ describe("registrationTotal on an event without sales tax", () => {
 });
 
 describe("registrationTotal agrees with register_for_event()", () => {
-  it("prices the shared sign-up at $92.51", () => {
+  it("prices the shared sign-up at $99.20", () => {
     const { tax, total } = registrationTotal({
       price: 30,
-      extras: { shirtPrice: 22, photoPrice: 12, shippingPrice: 8, donationRecipient: "" },
-      shirt: true,
+      extras: {
+        shirtPrice: 22,
+        shirtShippingPrice: 6,
+        photoPrice: 12,
+        shippingPrice: 8,
+        donationRecipient: "",
+      },
+      shirts: 1,
       photos: true,
       donation: 10,
       mail: true,
       salesTax: true,
     });
-    expect(tax).toBe(8.51);
-    expect(total).toBe(92.51);
+    // 30 + 22 + 6 + 12 + 2 + 8 = 80; 80 × 0.115 = 9.20
+    expect(tax).toBe(9.2);
+    expect(total).toBe(99.2);
+  });
+});
+
+/**
+ * The orders `supabase/tests/database/registration_shirts.test.sql` registers
+ * through `register_for_event()`: a $30 race selling $22 shirts, each mailed
+ * for the event's shipping price per shirt. Both sides must arrive at the
+ * same totals.
+ */
+describe("registrationTotal with several shirts", () => {
+  const shirtsOnly = {
+    shirtPrice: 22,
+    shirtShippingPrice: 6,
+    photoPrice: null,
+    shippingPrice: null,
+    donationRecipient: null,
+  };
+  const order = {
+    price: 30,
+    extras: shirtsOnly,
+    photos: false,
+    donation: 0,
+    mail: false,
+    salesTax: true,
+  };
+
+  it("charges each shirt its price and its shipping, taxed", () => {
+    const { tax, total } = registrationTotal({ ...order, shirts: 2 });
+    // 30 + 2 × 22 + 2 × 6 + 2 = 88; 88 × 0.115 = 10.12
+    expect(tax).toBe(10.12);
+    expect(total).toBe(98.12);
+  });
+
+  it("charges one shirt once", () => {
+    const { tax, total } = registrationTotal({ ...order, shirts: 1 });
+    // 30 + 22 + 6 + 2 = 60; 60 × 0.115 = 6.90
+    expect(tax).toBe(6.9);
+    expect(total).toBe(66.9);
+  });
+
+  it("charges the shipping the organizer set", () => {
+    const { tax, total } = registrationTotal({
+      ...order,
+      extras: { ...shirtsOnly, shirtShippingPrice: 4.5 },
+      shirts: 3,
+    });
+    // 30 + 3 × 22 + 3 × 4.50 + 2 = 111.50; 111.50 × 0.115 = 12.8225 → 12.82
+    expect(tax).toBe(12.82);
+    expect(total).toBe(124.32);
+  });
+
+  it("adds the shirts' shipping to the kit's when the runner takes the mail too", () => {
+    const { total } = registrationTotal({
+      ...order,
+      extras: { ...shirtsOnly, shippingPrice: 8 },
+      shirts: 2,
+      mail: true,
+      salesTax: false,
+    });
+    // 30 + 2 × 22 + 2 × 6 + 2 + 8
+    expect(total).toBe(96);
+  });
+
+  it("splits the charge into the shirts and their shipping", () => {
+    expect(shirtCharge(0, shirtsOnly)).toEqual({ shirts: 0, shipping: 0 });
+    expect(shirtCharge(3, shirtsOnly)).toEqual({ shirts: 66, shipping: 18 });
+    // Free shipping, and an event that left the price out.
+    expect(shirtCharge(2, { ...shirtsOnly, shirtShippingPrice: 0 })).toEqual({
+      shirts: 44,
+      shipping: 0,
+    });
+    // A race that sells no shirt charges for none.
+    expect(shirtCharge(2, { ...shirtsOnly, shirtPrice: null })).toEqual({
+      shirts: 0,
+      shipping: 0,
+    });
   });
 });
 
@@ -111,7 +195,7 @@ describe("registrationTotal with children", () => {
     const { tax, total } = registrationTotal({
       price: 30,
       extras: none,
-      shirt: false,
+      shirts: 0,
       photos: false,
       donation: 0,
       mail: false,
@@ -128,7 +212,7 @@ describe("registrationTotal with children", () => {
     const { tax, total } = registrationTotal({
       price: 0,
       extras: none,
-      shirt: false,
+      shirts: 0,
       photos: false,
       donation: 0,
       mail: false,
@@ -145,7 +229,7 @@ describe("registrationTotal with children", () => {
     const { total } = registrationTotal({
       price: 0,
       extras: none,
-      shirt: false,
+      shirts: 0,
       photos: false,
       donation: 0,
       mail: false,
@@ -173,7 +257,7 @@ describe("registrationTotal with children's medals by mail", () => {
   };
   const order = {
     extras: mailsMedals,
-    shirt: false,
+    shirts: 0,
     photos: false,
     donation: 0,
     mail: true,
@@ -297,11 +381,12 @@ describe("salePrice", () => {
 
   it("prices the sign-up on_sale.test.sql registers", () => {
     // A $30 race and a $10.25 child at 15% off: 25.50 and 8.71. Taxable:
-    // 25.50 + 8.71 + 22 (shirt, not discounted) + 2 (fee) = 58.21.
+    // 25.50 + 8.71 + 22 (shirt) + 6 (its shipping), neither discounted, + 2
+    // (fee) = 64.21.
     const { tax, total } = registrationTotal({
       price: salePrice(30, 15),
-      extras,
-      shirt: true,
+      extras: { ...extras, shirtShippingPrice: 6 },
+      shirts: 1,
       photos: false,
       donation: 0,
       mail: false,
@@ -309,7 +394,7 @@ describe("salePrice", () => {
       children: 1,
       childPrice: salePrice(10.25, 15),
     });
-    expect(tax).toBe(6.69);
-    expect(total).toBe(64.9);
+    expect(tax).toBe(7.38);
+    expect(total).toBe(71.59);
   });
 });

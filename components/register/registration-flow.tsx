@@ -42,10 +42,12 @@ import {
   FIXTURE_EXTRAS,
   MAX_CHILDREN,
   MAX_DONATION,
+  MAX_SHIRTS,
   SERVICE_FEE,
   parseDonation,
   registrationTotal,
   shippingCharge,
+  shirtCharge,
 } from "@/lib/events/pricing";
 import {
   completeRegistrationPaymentAction,
@@ -148,6 +150,9 @@ export type AthMovilStatus =
 const EMPTY_ERRORS: Errors = {};
 const NO_DESIGNS: ShirtDesign[] = [];
 
+/** A shirt on the order: its size and, on a race that shows them, its design. */
+type ShirtLine = { key: number; size: string; designId: string | null };
+
 /**
  * The pattern `registrations` checks. Caught here so a short number is flagged
  * on this step rather than refused by the server after the payment step.
@@ -188,11 +193,11 @@ export function RegistrationFlow({
 }: {
   event: RunningEvent;
   initialRunner?: Runner;
-  /** The size saved on the runner's profile, preselected if this race offers it. */
+  /** The size saved on the runner's profile, preselected on each shirt if this race offers it. */
   initialShirtSize?: string | null;
   /** The shirts on offer; empty when the race sells its shirt by size alone. */
   shirtDesigns?: ShirtDesign[];
-  /** The address saved in the runner's settings, filled in if they pick mail. */
+  /** The address saved in the runner's settings, filled in for the mail and for shirts. */
   initialMailingAddress?: string;
   /** Set when the runner has already signed up: opens on the confirmation. */
   existing?: ConfirmedRegistration | null;
@@ -228,6 +233,8 @@ export function RegistrationFlow({
     ? (event.extras ?? FIXTURE_EXTRAS)
     : FIXTURE_EXTRAS;
   const shirtPrice = shirtSizes.length > 0 ? extras.shirtPrice : null;
+  // Shirts are always mailed: each one on the order pays this.
+  const shirtShippingPrice = extras.shirtShippingPrice ?? 0;
   const photoPrice = extras.photoPrice;
   const shippingPrice = extras.shippingPrice;
   // What each child's medal adds to the mail; null unless the race mails them.
@@ -307,20 +314,43 @@ export function RegistrationFlow({
     });
   }
   const [wantsShirt, setWantsShirt] = useState(false);
-  const [shirtSize, setShirtSize] = useState<string>(
-    initialShirtSize && shirtSizes.includes(initialShirtSize)
-      ? initialShirtSize
-      : shirtSizes.includes("M")
-        ? "M"
-        : (shirtSizes[0] ?? "M"),
-  );
-  // Which shirt, on a race that shows its designs. A lone design needs no
-  // picking; with several, the runner chooses before moving on.
-  const [shirtDesignId, setShirtDesignId] = useState<string | null>(
-    shirtDesigns.length === 1 ? shirtDesigns[0].id : null,
-  );
-  const [designError, setDesignError] = useState(false);
-  const shirtDesign = shirtDesigns.find((d) => d.id === shirtDesignId) ?? null;
+  // The shirts on the order, up to MAX_SHIRTS: each has its own size and, on
+  // a race that shows its designs, its own design.
+  const [shirtLines, setShirtLines] = useState<ShirtLine[]>([]);
+  const nextShirtKey = useRef(1);
+  /** The shirts still waiting for a design, by key. */
+  const [designErrors, setDesignErrors] = useState<number[]>([]);
+  /** A shirt as it is first shown: the runner's size, and a lone design picked. */
+  function newShirt(): ShirtLine {
+    return {
+      key: nextShirtKey.current++,
+      size:
+        initialShirtSize && shirtSizes.includes(initialShirtSize)
+          ? initialShirtSize
+          : shirtSizes.includes("M")
+            ? "M"
+            : (shirtSizes[0] ?? "M"),
+      // A lone design needs no picking; with several, the runner chooses
+      // before moving on.
+      designId: shirtDesigns.length === 1 ? shirtDesigns[0].id : null,
+    };
+  }
+  function toggleShirt(on: boolean) {
+    setWantsShirt(on);
+    // The first shirt is there to fill in as soon as the box is ticked.
+    if (on && shirtLines.length === 0) setShirtLines([newShirt()]);
+  }
+  function addShirt() {
+    if (shirtLines.length < MAX_SHIRTS) setShirtLines([...shirtLines, newShirt()]);
+  }
+  function updateShirt(key: number, change: Partial<ShirtLine>) {
+    setShirtLines((list) => list.map((s) => (s.key === key ? { ...s, ...change } : s)));
+    if (change.designId) setDesignErrors((keys) => keys.filter((k) => k !== key));
+  }
+  function removeShirt(key: number) {
+    setShirtLines((list) => list.filter((s) => s.key !== key));
+    setDesignErrors((keys) => keys.filter((k) => k !== key));
+  }
   const [wantsPhotos, setWantsPhotos] = useState(false);
   const [wantsMail, setWantsMail] = useState(false);
   const [mailingAddress, setMailingAddress] = useState(initialMailingAddress);
@@ -371,7 +401,9 @@ export function RegistrationFlow({
   // The shirt and the photos are the runner's own: an adult who signs up only
   // children is offered neither, whatever was ticked before. The mail is too,
   // unless the race mails medals: then it carries the children's.
-  const shirt = racing && wantsShirt;
+  const shirts = racing && wantsShirt && shirtPrice !== null ? shirtLines : [];
+  const shirtCount = shirts.length;
+  const shirtCost = shirtCharge(shirtCount, extras);
   const photos = racing && wantsPhotos;
   const kidCount = withChildren ? kids.length : 0;
   const mailsKidsMedals = childShippingPrice !== null && kidCount > 0;
@@ -380,13 +412,15 @@ export function RegistrationFlow({
   // What the mail adds to this order, and what it would if it were ticked.
   const shipping = shippingCharge({ mail, racing, children: kidCount, extras });
   const mailOffer = shippingCharge({ mail: true, racing, children: kidCount, extras });
+  // Shirts go by mail whether or not the mail extra is ticked.
+  const needsAddress = mail || shirtCount > 0;
 
   const { tax, total } = useMemo(
     () =>
       registrationTotal({
         price: racing ? category.price : 0,
         extras,
-        shirt,
+        shirts: shirtCount,
         photos,
         donation,
         mail,
@@ -399,7 +433,7 @@ export function RegistrationFlow({
       racing,
       category.price,
       extras,
-      shirt,
+      shirtCount,
       photos,
       donation,
       mail,
@@ -429,7 +463,7 @@ export function RegistrationFlow({
       ? t("register.step3.free")
       : `+${Number.isInteger(price) ? fmt.moneyWhole(price) : fmt.money(price)}`;
 
-  /** Where a mailed kit, or a mailed medal, goes. */
+  /** Where a mailed kit, a mailed medal, or the shirts go. */
   const addressField = (
     <Field
       label={t("register.step3.mailingAddress")}
@@ -547,12 +581,12 @@ export function RegistrationFlow({
       focusFirstInvalid();
       return;
     }
-    if (step === 3 && shirt && shirtDesigns.length > 0 && !shirtDesign) {
-      setDesignError(true);
+    if (step === 3 && shirtDesigns.length > 0 && shirts.some((s) => !s.designId)) {
+      setDesignErrors(shirts.filter((s) => !s.designId).map((s) => s.key));
       focusFirstInvalid();
       return;
     }
-    if (step === 3 && mail && !mailingAddress.trim()) {
+    if (step === 3 && needsAddress && !mailingAddress.trim()) {
       setAddressError(true);
       focusFirstInvalid();
       return;
@@ -575,12 +609,11 @@ export function RegistrationFlow({
             }))
           : [],
         guardianWaiverAccepted: withChildren && guardianWaiver,
-        shirtSize: shirt ? shirtSize : null,
-        shirtDesignId: shirt ? (shirtDesign?.id ?? null) : null,
+        shirts: shirts.map(({ size, designId }) => ({ size, designId })),
         wantsPhotos: photos,
         donation,
         shipsByMail: mail,
-        mailingAddress: mail ? mailingAddress : "",
+        mailingAddress: needsAddress ? mailingAddress : "",
         waiverAccepted: waiver,
         locale,
       })
@@ -1180,6 +1213,13 @@ export function RegistrationFlow({
                         <p className="mt-1.5 text-sm text-fg-dim">
                           {t("register.step3.shirtDetail")}
                         </p>
+                        <p className="mt-1.5 text-sm text-fg-dim">
+                          {shirtShippingPrice > 0
+                            ? t("register.step3.shirtShipping", {
+                                price: fmt.money(shirtShippingPrice),
+                              })
+                            : t("register.step3.shirtShippingFree")}
+                        </p>
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="font-display text-xl font-black text-neon-yellow">
@@ -1187,7 +1227,7 @@ export function RegistrationFlow({
                         </span>
                         <Checkbox
                           checked={wantsShirt}
-                          onChange={(e) => setWantsShirt(e.target.checked)}
+                          onChange={(e) => toggleShirt(e.target.checked)}
                           label={
                             <span className="sr-only">
                               {t("register.step3.addShirt")}
@@ -1196,94 +1236,130 @@ export function RegistrationFlow({
                         />
                       </div>
                     </div>
-                    {wantsShirt && shirtDesigns.length > 0 ? (
-                      <div className="mt-5">
-                        <p
-                          id="shirt-design-label"
-                          className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase"
+                    {/* One block per shirt: its design, where the race shows them, and its size. */}
+                    {shirts.map((line, i) => {
+                      const n = i + 1;
+                      const designError = designErrors.includes(line.key);
+                      return (
+                        <div
+                          key={line.key}
+                          role="group"
+                          aria-labelledby={`shirt-${line.key}-title`}
+                          className="mt-5 border-t-2 border-line pt-5"
                         >
-                          {t("register.step3.shirtDesign")}
-                        </p>
-                        <RadioGroup
-                          aria-labelledby="shirt-design-label"
-                          aria-describedby={designError ? "shirt-design-error" : undefined}
-                          aria-invalid={designError ? true : undefined}
-                          className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"
-                        >
-                          {shirtDesigns.map((d) => (
-                            <button
-                              key={d.id}
-                              type="button"
-                              role="radio"
-                              aria-checked={shirtDesignId === d.id}
-                              onClick={() => {
-                                setShirtDesignId(d.id);
-                                setDesignError(false);
-                              }}
-                              className={cn(
-                                "flex flex-col border-2 text-left",
-                                shirtDesignId === d.id
-                                  ? "border-neon-lime"
-                                  : "border-line-strong hover:border-fg-dim",
-                              )}
+                          <div className="flex items-center justify-between gap-4">
+                            <h3
+                              id={`shirt-${line.key}-title`}
+                              className="font-mono text-[11px] tracking-[0.18em] text-neon-lime uppercase"
                             >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={d.image}
-                                alt=""
-                                loading="lazy"
-                                className="aspect-square w-full bg-carbon object-contain"
-                              />
-                              <span
+                              {t("register.step3.shirtN", { n })}
+                            </h3>
+                            {shirts.length > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => removeShirt(line.key)}
+                                aria-label={t("register.step3.removeShirt", { n })}
+                                className="-my-2 min-h-11 px-2 text-xs font-bold tracking-wider text-fg-dim uppercase underline underline-offset-4 hover:text-fg"
+                              >
+                                {t("register.step3.removeShirtShort")}
+                              </button>
+                            ) : null}
+                          </div>
+                          {shirtDesigns.length > 0 ? (
+                            <div className="mt-4">
+                              <p
+                                id={`shirt-${line.key}-design-label`}
+                                className="font-mono text-[10px] tracking-[0.18em] text-fg-faint uppercase"
+                              >
+                                {t("register.step3.shirtDesign")}
+                              </p>
+                              <RadioGroup
+                                aria-labelledby={`shirt-${line.key}-design-label`}
+                                aria-describedby={
+                                  designError ? `shirt-${line.key}-design-error` : undefined
+                                }
+                                aria-invalid={designError ? true : undefined}
+                                className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3"
+                              >
+                                {shirtDesigns.map((d) => (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    role="radio"
+                                    aria-checked={line.designId === d.id}
+                                    onClick={() => updateShirt(line.key, { designId: d.id })}
+                                    className={cn(
+                                      "flex flex-col border-2 text-left",
+                                      line.designId === d.id
+                                        ? "border-neon-lime"
+                                        : "border-line-strong hover:border-fg-dim",
+                                    )}
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={d.image}
+                                      alt=""
+                                      loading="lazy"
+                                      className="aspect-square w-full bg-carbon object-contain"
+                                    />
+                                    <span
+                                      className={cn(
+                                        "px-3 py-2.5 text-[13px] font-bold break-words",
+                                        line.designId === d.id
+                                          ? "bg-neon-lime text-ink"
+                                          : "text-fg-muted",
+                                      )}
+                                    >
+                                      {d.name}
+                                    </span>
+                                  </button>
+                                ))}
+                              </RadioGroup>
+                              {designError ? (
+                                <p
+                                  id={`shirt-${line.key}-design-error`}
+                                  role="alert"
+                                  tabIndex={-1}
+                                  className="mt-3 flex items-center gap-2 text-[13px] font-semibold text-danger"
+                                >
+                                  <span aria-hidden="true">▲</span>
+                                  {t("register.errors.shirtDesignRequired")}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : null}
+                          <RadioGroup
+                            aria-label={t("register.step3.shirtSize")}
+                            className="mt-4 flex flex-wrap gap-2"
+                          >
+                            {shirtSizes.map((s) => (
+                              <button
+                                key={s}
+                                type="button"
+                                role="radio"
+                                aria-checked={line.size === s}
+                                onClick={() => updateShirt(line.key, { size: s })}
                                 className={cn(
-                                  "px-3 py-2.5 text-[13px] font-bold break-words",
-                                  shirtDesignId === d.id
-                                    ? "bg-neon-lime text-ink"
-                                    : "text-fg-muted",
+                                  "min-w-14 border-2 px-3 py-3 text-[13px] font-bold",
+                                  line.size === s
+                                    ? "border-neon-lime bg-neon-lime text-ink"
+                                    : "border-line-strong text-fg-muted hover:border-fg-dim",
                                 )}
                               >
-                                {d.name}
-                              </span>
-                            </button>
-                          ))}
-                        </RadioGroup>
-                        {designError ? (
-                          <p
-                            id="shirt-design-error"
-                            role="alert"
-                            tabIndex={-1}
-                            className="mt-3 flex items-center gap-2 text-[13px] font-semibold text-danger"
-                          >
-                            <span aria-hidden="true">▲</span>
-                            {t("register.errors.shirtDesignRequired")}
-                          </p>
-                        ) : null}
-                      </div>
+                                {s}
+                              </button>
+                            ))}
+                          </RadioGroup>
+                        </div>
+                      );
+                    })}
+                    {shirtCount > 0 && shirtCount < MAX_SHIRTS ? (
+                      <Button variant="outline" size="lg" className="mt-5" onClick={addShirt}>
+                        {t("register.step3.addAnotherShirt")}
+                      </Button>
                     ) : null}
-                    {wantsShirt ? (
-                      <RadioGroup
-                        aria-label={t("register.step3.shirtSize")}
-                        className="mt-5 flex flex-wrap gap-2"
-                      >
-                        {shirtSizes.map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            role="radio"
-                            aria-checked={shirtSize === s}
-                            onClick={() => setShirtSize(s)}
-                            className={cn(
-                              "min-w-14 border-2 px-3 py-3 text-[13px] font-bold",
-                              shirtSize === s
-                                ? "border-neon-lime bg-neon-lime text-ink"
-                                : "border-line-strong text-fg-muted hover:border-fg-dim",
-                            )}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </RadioGroup>
-                    ) : null}
+                    {/* With the mail extra ticked, the address is asked for there. */}
+                    {shirtCount > 0 && !mail ? addressField : null}
                   </div>
                 ) : null}
 
@@ -1627,19 +1703,23 @@ export function RegistrationFlow({
                     value={`−${fmt.money(saleDiscount)}`}
                   />
                 ) : null}
-                {shirt ? (
-                  <SummaryRow
-                    label={
-                      shirtDesign
-                        ? t("register.summary.shirtDesign", {
-                            design: shirtDesign.name,
-                            size: shirtSize,
-                          })
-                        : t("register.summary.shirt", { size: shirtSize })
-                    }
-                    value={fmt.money(shirtPrice ?? 0)}
-                  />
-                ) : null}
+                {shirts.map((line) => {
+                  const design = shirtDesigns.find((d) => d.id === line.designId);
+                  return (
+                    <SummaryRow
+                      key={line.key}
+                      label={
+                        design
+                          ? t("register.summary.shirtDesign", {
+                              design: design.name,
+                              size: line.size,
+                            })
+                          : t("register.summary.shirt", { size: line.size })
+                      }
+                      value={fmt.money(shirtPrice ?? 0)}
+                    />
+                  );
+                })}
                 {photos ? (
                   <SummaryRow
                     label={t("register.summary.photos")}
@@ -1667,6 +1747,12 @@ export function RegistrationFlow({
                   <SummaryRow
                     label={t("register.summary.childShipping")}
                     value={fmt.money(shipping.children)}
+                  />
+                ) : null}
+                {shirtCost.shipping > 0 ? (
+                  <SummaryRow
+                    label={t("register.summary.shirtShipping", { count: shirtCount })}
+                    value={fmt.money(shirtCost.shipping)}
                   />
                 ) : null}
                 {chargesSalesTax ? (

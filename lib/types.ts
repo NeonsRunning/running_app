@@ -196,6 +196,11 @@ export type RunningEvent = {
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */
 export type EventExtras = {
   shirtPrice: number | null;
+  /**
+   * Shipping for each shirt on an order: shirts are always mailed. Absent
+   * counts as free.
+   */
+  shirtShippingPrice?: number | null;
   photoPrice: number | null;
   /** Who receives donations. */
   donationRecipient: string | null;

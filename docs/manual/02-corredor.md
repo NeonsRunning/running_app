@@ -201,6 +201,13 @@ Solo aparecen los extras que ofrece el organizador de esa carrera:
 - **Camiseta del evento**: márcala y elige la talla (XS a XXL). Si el
   organizador muestra varios diseños, verás la imagen de cada uno: elige el
   que quieres antes de continuar. Todos cuestan lo mismo.
+  - Puedes comprar **más de una**: pulsa **Añadir otra camiseta** y elige la
+    talla y el diseño de cada una, hasta **6** por inscripción. Con
+    **Quitar** eliminas la que no quieras.
+  - Las camisetas **siempre se envían por correo**, a la dirección postal que
+    escribas, aunque no elijas el **Envío por correo** del paquete. Cada
+    camiseta suma un **cargo de envío** (por defecto $6; lo fija el
+    organizador).
 - **Paquete de fotos de meta**.
 - **Donar**: elige una cantidad ($5, $10, $25) u **Otra cantidad**, hasta
   $1,000.
@@ -211,8 +218,9 @@ Solo aparecen los extras que ofrece el organizador de esa carrera:
   el mismo envío con un cargo por menor (ver
   [Inscribir a menores](#inscribir-a-menores)).
 
-Si eliges el envío, escribe la **Dirección postal** (calle, ciudad, estado y
-código postal). Si guardaste una en Ajustes, ya aparece escrita.
+Si eliges el envío, o compras alguna camiseta, escribe la **Dirección postal**
+(calle, ciudad, estado y código postal). Si guardaste una en Ajustes, ya
+aparece escrita.
 
 Al pulsar **Continuar** se **reserva tu cupo por 30 minutos** mientras pagas.
 
@@ -226,7 +234,8 @@ El **Resumen del pedido** aparece a la derecha en todos los pasos y se actualiza
    | --- | --- |
    | Inscripción · categoría | Precio de la categoría |
    | Cada menor | El precio por menor del evento |
-   | Camiseta, fotos, envío y manejo | Si los elegiste |
+   | Camiseta, fotos, envío y manejo | Si los elegiste. Cada camiseta tiene su propia línea |
+   | Envío · camisetas × n | El cargo de envío por cada camiseta |
    | Envío · medallas de menores | Si elegiste el envío y la carrera envía las medallas |
    | Cargo por servicio | $2.00 |
    | IVU (11.5 %) | Solo si la carrera lo cobra; sobre todo excepto la donación |

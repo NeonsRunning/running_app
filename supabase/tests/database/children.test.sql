@@ -222,7 +222,7 @@ select throws_ok(
   $$ select public.register_for_event(
        '00000000-0000-4000-9000-0000000000c2',
        tests.adult('Ana', '1992-03-03')
-         || jsonb_build_object('racing', false, 'shirt_size', 'M',
+         || jsonb_build_object('racing', false, 'shirts', '[{"size": "M"}]'::jsonb,
               'children', jsonb_build_array(tests.kid('Lia', 10, 'c2')))) $$,
   'P0001', 'extrasChanged',
   'an adult who is not racing buys no shirt'

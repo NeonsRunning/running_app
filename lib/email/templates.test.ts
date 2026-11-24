@@ -47,7 +47,7 @@ const REGISTRATION = {
   status: "confirmed",
   amount: 35,
   donation: 5,
-  shirt_size: "M",
+  shirts_by_mail: false,
   wants_photos: true,
   ships_by_mail: true,
   mailing_address: "1 Calle Sol\nSan Juan, PR 00901",
@@ -88,6 +88,9 @@ const CHILD = {
 let registrationPatch: Record<string, unknown> = {};
 /** Laid over the sample child, likewise. */
 let childPatch: Record<string, unknown> = {};
+/** The shirts on the sample sign-up, as `registration_shirts` holds them. */
+const ONE_SHIRT = [{ size: "M", design: null as { name: string } | null }];
+let shirts = ONE_SHIRT;
 
 function sample(table: string): Record<string, unknown> {
   switch (table) {
@@ -105,8 +108,6 @@ function sample(table: string): Record<string, unknown> {
         category: { distance: "5K" },
         ...childPatch,
       };
-    case "event_shirts":
-      return { name: "Tech blue" };
     case "profiles":
       return { full_name: "Olga Organiza", handle: "olga" };
     case "profile_private":
@@ -157,7 +158,9 @@ function query(table: string) {
       Promise.resolve(
         head
           ? { data: null, count: 1, error: null }
-          : { data: empty ? [] : [sample(table)], error: null },
+          : table === "registration_shirts"
+            ? { data: shirts, error: null }
+            : { data: empty ? [] : [sample(table)], error: null },
       ).then(resolve, reject),
   });
   return builder;
@@ -316,6 +319,7 @@ beforeEach(() => {
   updates.length = 0;
   registrationPatch = {};
   childPatch = {};
+  shirts = ONE_SHIRT;
   sendEmail.mockClear();
   vi.spyOn(console, "warn").mockImplementation(() => {});
   vi.spyOn(console, "error").mockImplementation(() => {});
@@ -392,7 +396,7 @@ describe("registration confirmed, with children", () => {
 describe("registration confirmed, with a shirt design", () => {
   it.each(["es", "en"] as const)("names the design beside the size (%s)", async (lang) => {
     locale = lang;
-    registrationPatch = { shirt_design_id: "design-1" };
+    shirts = [{ size: "M", design: { name: "Tech blue" } }];
     const [email] = await render(() => scheduleRegistrationEmail(reg()));
 
     expect(console.error).not.toHaveBeenCalled();
@@ -401,6 +405,32 @@ describe("registration confirmed, with a shirt design", () => {
       expect(part).toContain("(Tech blue, M)");
     }
   });
+
+  it.each(["es", "en"] as const)(
+    "lists every shirt, and says they are mailed (%s)",
+    async (lang) => {
+      locale = lang;
+      // Shirts without the mail extra: they are mailed on their own.
+      registrationPatch = { ships_by_mail: false, shirts_by_mail: true };
+      shirts = [
+        { size: "M", design: { name: "Tech blue" } },
+        { size: "L", design: { name: "Neon lime" } },
+      ];
+      const [email] = await render(() => scheduleRegistrationEmail(reg()));
+
+      expect(console.error).not.toHaveBeenCalled();
+      for (const part of [email.html, email.text]) {
+        expect(part).not.toMatch(RAW_KEY);
+        expect(part).toContain("(Tech blue, M)");
+        expect(part).toContain("(Neon lime, L)");
+        // The address they go to.
+        expect(part).toContain("1 Calle Sol, San Juan, PR 00901");
+      }
+      expect(email.text).toContain(
+        lang === "en" ? "Shirts sent by mail" : "Camisetas enviadas por correo",
+      );
+    },
+  );
 
   it("says only the size on a race that shows no designs", async () => {
     locale = "en";
@@ -422,8 +452,8 @@ describe("registration confirmed, with children's medals by mail", () => {
         racing: false,
         bib: null,
         ships_by_mail: false,
-        shirt_size: null,
       };
+      shirts = [];
       childPatch = { medal_by_mail: true };
       const [email] = await render(() => scheduleRegistrationEmail(reg()));
 

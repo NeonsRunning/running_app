@@ -16,6 +16,7 @@ import {
   SALE_PERCENT_MIN,
   SHIPPING_PRICE,
   SHIRT_PRICE,
+  SHIRT_SHIPPING_PRICE,
 } from "./pricing";
 import type { Json, Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
@@ -577,11 +578,14 @@ export async function saveEventAction(
   const chargesSalesTax = formData.get("charges_sales_tax") === "on";
   const donationRecipient = readText(formData, "donation_recipient");
   const shirtPrice = readDecimal(readText(formData, "shirt_price"));
+  const shirtShippingPrice = readDecimal(readText(formData, "shirt_shipping_price"));
   const photoPrice = readDecimal(readText(formData, "photo_price"));
   const shippingPrice = readDecimal(readText(formData, "shipping_price"));
   const validPrice = (n: number) => !Number.isNaN(n) && n <= 1000;
 
   if (offersShirt && !validPrice(shirtPrice)) fieldErrors.shirt_price = "priceInvalid";
+  if (offersShirt && !validPrice(shirtShippingPrice))
+    fieldErrors.shirt_shipping_price = "priceInvalid";
   if (offersShirt && shirtSizes.length === 0)
     fieldErrors.shirt_sizes = "shirtSizesRequired";
   // Saved while the shirt is off too, like its price and sizes.
@@ -711,6 +715,10 @@ export async function saveEventAction(
     shirt_sizes: shirtSizes,
     offers_shirt: offersShirt,
     shirt_price: validPrice(shirtPrice) ? shirtPrice : SHIRT_PRICE,
+    // Kept while the shirt is off, as its price is.
+    shirt_shipping_price: validPrice(shirtShippingPrice)
+      ? shirtShippingPrice
+      : SHIRT_SHIPPING_PRICE,
     offers_photos: offersPhotos,
     photo_price: validPrice(photoPrice) ? photoPrice : PHOTO_PRICE,
     accepts_donations: acceptsDonations,

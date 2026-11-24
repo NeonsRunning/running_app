@@ -4,7 +4,7 @@
 -- The sale is priced twice, like the rest of a sign-up: here, by
 -- active_sale_percent() and sale_price(), and in lib/events/pricing.ts for
 -- what the pages show. This file and lib/events/pricing.test.ts price the
--- same sign-up on sale and expect the same $64.90.
+-- same sign-up on sale and expect the same $71.59.
 begin;
 create extension if not exists pgtap with schema extensions;
 -- Fixtures, the same in every test file: kept inline so each file runs on
@@ -134,7 +134,8 @@ as $$
   select public.register_for_event(
     '00000000-0000-4000-9000-0000000000c1',
     tests.ana_details() || jsonb_build_object(
-      'shirt_size', 'M',
+      'shirts', '[{"size": "M"}]'::jsonb,
+      'mailing_address', '123 Calle Luna, San Juan, PR 00901',
       'children', jsonb_build_array(tests.kid('Lia', 10))
     )
   );
@@ -144,12 +145,13 @@ grant execute on function tests.kid(text, integer) to authenticated;
 grant execute on function tests.save_with(uuid, jsonb) to authenticated;
 grant execute on function tests.ana_signs_up() to authenticated;
 
--- A $30 race with room, a $22 shirt, children at $10.25 and sales tax.
+-- A $30 race with room, a $22 shirt mailed for $6, children at $10.25 and
+-- sales tax.
 update public.event_categories set capacity = 50
 where id = '00000000-0000-4000-9000-0000000000c1';
 
 update public.events set
-  offers_shirt = true, shirt_sizes = '{M}', shirt_price = 22,
+  offers_shirt = true, shirt_sizes = '{M}', shirt_price = 22, shirt_shipping_price = 6,
   allows_children = true, child_price = 10.25, minimum_age = 5,
   charges_sales_tax = true
 where id = '00000000-0000-4000-9000-0000000000e1';
@@ -260,8 +262,8 @@ select is(
 
 -- register_for_event() --------------------------------------------------------
 
--- 15% off the $30 race is 25.50 and off the $10.25 child 8.71; the $22 shirt
--- and the $2 fee are not discounted. Taxable: 58.21; tax 6.69.
+-- 15% off the $30 race is 25.50 and off the $10.25 child 8.71; the $22 shirt,
+-- its $6 shipping and the $2 fee are not discounted. Taxable: 64.21; tax 7.38.
 select tests.act_as('00000000-0000-4000-8000-000000000003');
 set local role authenticated;
 select tests.ana_signs_up();
@@ -270,14 +272,14 @@ reset role;
 select is(
   (select amount from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'),
-  64.90::numeric,
+  71.59::numeric,
   'on sale, the amount charged matches registrationTotal() for the same sign-up'
 );
 
 select is(
   (select sales_tax from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'),
-  6.69::numeric,
+  7.38::numeric,
   'sales tax is charged on the discounted amount'
 );
 
@@ -315,7 +317,7 @@ select ok(
 );
 
 -- Held again before the sale starts, the same sign-up is priced in full:
--- 30 + 10.25 + 22 + 2 = 64.25, and 7.39 of tax.
+-- 30 + 10.25 + 22 + 6 + 2 = 70.25, and 8.08 of tax.
 select tests.act_as('00000000-0000-4000-8000-000000000003');
 set local role authenticated;
 select tests.ana_signs_up();
@@ -324,7 +326,7 @@ reset role;
 select is(
   (select amount from public.registrations
    where runner_id = '00000000-0000-4000-8000-000000000003'),
-  71.64::numeric,
+  78.33::numeric,
   'a sign-up held again outside the sale is priced in full'
 );
 

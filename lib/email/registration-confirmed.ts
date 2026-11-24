@@ -67,7 +67,7 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       { data: category },
       { data: profile },
       { data: kids },
-      { data: design },
+      { data: shirtRows },
     ] = await Promise.all([
         admin
           .from("events")
@@ -97,14 +97,12 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
           .eq("registration_id", claimed.id)
           .is("cancelled_at", null)
           .order("position"),
-        // Which shirt, on a race that shows its designs.
-        claimed.shirt_design_id
-          ? admin
-              .from("event_shirts")
-              .select("name")
-              .eq("id", claimed.shirt_design_id)
-              .maybeSingle()
-          : { data: null },
+        // The shirts on the order, and which design on a race that shows them.
+        admin
+          .from("registration_shirts")
+          .select("size, design:event_shirts!registration_shirts_design_id_fkey (name)")
+          .eq("registration_id", claimed.id)
+          .order("position"),
       ]);
     if (!event || (claimed.category_id && !category)) {
       throw new Error("Event or category not found.");
@@ -126,7 +124,10 @@ async function sendRegistrationEmail(registrationId: string, origin: string) {
       event,
       category,
       children,
-      shirtDesign: design?.name ?? null,
+      shirts: (shirtRows ?? []).map((s) => ({
+        size: s.size,
+        design: s.design?.name ?? null,
+      })),
       locale,
       eventUrl: `${origin}${localizePath(`/events/${event.slug}`, locale)}`,
     });
@@ -160,7 +161,7 @@ async function composeEmail({
   event,
   category,
   children,
-  shirtDesign,
+  shirts,
   locale,
   eventUrl,
 }: {
@@ -186,8 +187,8 @@ async function composeEmail({
     /** Their medal rides in the order's shipment. */
     medalByMail: boolean;
   }[];
-  /** The shirt design they chose, by name; null on a race that shows none. */
-  shirtDesign: string | null;
+  /** The shirts on the order; `design` is null on a race that shows none. */
+  shirts: { size: string; design: string | null }[];
   locale: Locale;
   eventUrl: string;
 }): Promise<{ subject: string; html: string; text: string }> {
@@ -199,13 +200,9 @@ async function composeEmail({
   // The children's medals that ride in the order's shipment.
   const kidMedals = children.filter((c) => c.medalByMail).length;
   const extras = [
-    registration.shirt_size
-      ? t(k("shirt"), {
-          size: shirtDesign
-            ? `${shirtDesign}, ${registration.shirt_size}`
-            : registration.shirt_size,
-        })
-      : null,
+    ...shirts.map((s) =>
+      t(k("shirt"), { size: s.design ? `${s.design}, ${s.size}` : s.size }),
+    ),
     registration.wants_photos ? t(k("photos")) : null,
     Number(registration.donation) > 0
       ? `${
@@ -215,12 +212,18 @@ async function composeEmail({
         } · ${formatMoney(Number(registration.donation), locale)}`
       : null,
     registration.ships_by_mail ? t(k("mail")) : null,
+    // Shirts are mailed on their own when the kit is not.
+    registration.shirts_by_mail && !registration.ships_by_mail
+      ? t(k("shirtsMail"))
+      : null,
     kidMedals > 0 ? t(k("childMedalsMail"), { count: kidMedals }) : null,
   ].filter((v): v is string => v !== null);
   // One line, so the text version reads as a single row too. An order of only
-  // children has an address for their medals alone.
+  // children has an address for their medals alone, and one with shirts for
+  // those.
   const mailTo =
-    (registration.ships_by_mail || kidMedals > 0) && registration.mailing_address
+    (registration.ships_by_mail || registration.shirts_by_mail || kidMedals > 0) &&
+    registration.mailing_address
       ? registration.mailing_address
           .split(/\s*\n\s*/)
           .filter(Boolean)
