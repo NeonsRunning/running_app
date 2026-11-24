@@ -16,7 +16,7 @@ import {
   toShirtDesignRows,
   type ShirtDesignRow,
 } from "@/components/publish/shirt-designs";
-import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Badge, Eyebrow, FullPrice, SaleBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Checkbox,
@@ -43,6 +43,13 @@ import {
   type ReusableShirtDesign,
 } from "@/lib/events/form";
 import { eventImageUrl } from "@/lib/events/images";
+import { puertoRicoToday } from "@/lib/dates";
+import {
+  SALE_PERCENT_MAX,
+  SALE_PERCENT_MIN,
+  activeSalePercent,
+  salePrice,
+} from "@/lib/events/pricing";
 import {
   COUNTRIES,
   DIFFICULTIES,
@@ -112,6 +119,9 @@ const FIELD_STEP: Record<string, number> = {
   postal_code: 1,
   country: 1,
   categories: 2,
+  sale_percent: 2,
+  sale_starts: 2,
+  sale_ends: 2,
   capacity: 3,
   minimum_age: 3,
   maximum_age: 3,
@@ -211,6 +221,10 @@ export function PublishWizard({
   const [acceptsCardPayments, setAcceptsCardPayments] = useState(
     initial.acceptsCardPayments,
   );
+  const [onSale, setOnSale] = useState(initial.onSale);
+  const [salePercent, setSalePercent] = useState(initial.salePercent);
+  const [saleStarts, setSaleStarts] = useState(initial.saleStarts);
+  const [saleEnds, setSaleEnds] = useState(initial.saleEnds);
   const [allowsChildren, setAllowsChildren] = useState(initial.allowsChildren);
   // A child is under 18 and at least the minimum age: at 18 or more, nobody is.
   const youngest = /^\d+$/.test(minimumAge.trim()) ? Number(minimumAge) : 0;
@@ -451,6 +465,35 @@ export function PublishWizard({
     .filter((c) => c.price.trim() !== "")
     .map((c) => Number(c.price.replace(",", ".")))
     .filter((p) => Number.isFinite(p) && p >= 0);
+
+  // The sale as typed, for the preview: what each distance would cost, and
+  // whether it is running today. Zero while the percentage is not one the
+  // server will take. `today` is the island's, as the sale's dates are.
+  const typedPercent = /^\d+$/.test(salePercent.trim()) ? Number(salePercent) : NaN;
+  const previewPercent =
+    typedPercent >= SALE_PERCENT_MIN && typedPercent <= SALE_PERCENT_MAX
+      ? typedPercent
+      : 0;
+  const today = puertoRicoToday();
+  const saleEndsEarly = Boolean(saleStarts && saleEnds && saleEnds < saleStarts);
+  const saleState =
+    !onSale || previewPercent === 0 || saleEndsEarly
+      ? null
+      : saleEnds && saleEnds < today
+        ? "ended"
+        : saleStarts && saleStarts > today
+          ? "scheduled"
+          : "running";
+  // What the listing preview shows: the sale only once it is running.
+  const listedPercent = activeSalePercent(
+    {
+      onSale: saleState !== null,
+      percent: previewPercent,
+      starts: saleStarts || null,
+      ends: saleEnds || null,
+    },
+    today,
+  );
 
   useFocusHeadingOnChange(justPublished);
 
@@ -1085,6 +1128,130 @@ export function PublishWizard({
                 {t("publish.addCategory")}
               </Button>
             ) : null}
+
+            {/* The sale, under the prices it takes its percentage off. Like
+                an extra, it posts its percentage and dates while switched
+                off, so switching it back on restores them. */}
+            <div className="mt-8 border-2 border-line bg-carbon p-5">
+              <ExtraToggle
+                name="on_sale"
+                checked={onSale}
+                onChange={setOnSale}
+                title={t("publish.sale.title")}
+                detail={t("publish.sale.detail")}
+              />
+              <div hidden={!onSale} className="mt-5 flex flex-col gap-5 pl-8">
+                <div className="grid items-start gap-5 sm:grid-cols-3">
+                  <Field
+                    label={t("publish.sale.percent")}
+                    hint={t("publish.sale.percentHint", {
+                      min: SALE_PERCENT_MIN,
+                      max: SALE_PERCENT_MAX,
+                    })}
+                    error={fieldError("sale_percent")}
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        name="sale_percent"
+                        value={salePercent}
+                        inputMode="numeric"
+                        autoComplete="off"
+                        onChange={(e) => setSalePercent(e.target.value)}
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label={t("publish.sale.starts")}
+                    hint={t("publish.sale.startsHint")}
+                    error={fieldError("sale_starts")}
+                    optional
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        type="date"
+                        name="sale_starts"
+                        value={saleStarts}
+                        onChange={(e) => setSaleStarts(e.target.value)}
+                      />
+                    )}
+                  </Field>
+                  <Field
+                    label={t("publish.sale.ends")}
+                    hint={t("publish.sale.endsHint")}
+                    error={
+                      fieldError("sale_ends") ??
+                      (saleEndsEarly
+                        ? t("publish.errors.saleEndsBeforeStart")
+                        : undefined)
+                    }
+                    optional
+                  >
+                    {(p) => (
+                      <Input
+                        {...p}
+                        type="date"
+                        name="sale_ends"
+                        value={saleEnds}
+                        min={saleStarts || undefined}
+                        onChange={(e) => setSaleEnds(e.target.value)}
+                      />
+                    )}
+                  </Field>
+                </div>
+
+                {/* What runners will pay, and when. */}
+                {saleState ? (
+                  <div aria-live="polite">
+                    <p
+                      className={cn(
+                        "text-sm font-semibold",
+                        saleState === "running" ? "text-neon-lime" : "text-fg-muted",
+                      )}
+                    >
+                      {saleState === "ended"
+                        ? t("publish.sale.ended", { date: fmt.mediumDate(saleEnds) })
+                        : saleState === "scheduled"
+                          ? t("publish.sale.scheduled", {
+                              date: fmt.mediumDate(saleStarts),
+                            })
+                          : saleEnds
+                            ? t("publish.sale.runningUntil", {
+                                date: fmt.mediumDate(saleEnds),
+                              })
+                            : t("publish.sale.running")}
+                    </p>
+                    {prices.length ? (
+                      <ul className="mt-3 flex flex-col gap-1.5 text-sm text-fg-muted">
+                        {categories.map((c) => {
+                          const price = Number(c.price.replace(",", "."));
+                          if (c.price.trim() === "" || !Number.isFinite(price) || price < 0)
+                            return null;
+                          return (
+                            <li key={c.key} className="flex gap-3 tabular-nums">
+                              <span className="min-w-24 font-bold text-fg">
+                                {distanceLabel(t, c.distance)}
+                              </span>
+                              <span>
+                                <s className="text-fg-dim">{fmt.price(price)}</s>
+                                <span aria-hidden="true"> → </span>
+                                <span className="sr-only">
+                                  {t("publish.sale.becomes")}
+                                </span>
+                                <b className="text-neon-yellow">
+                                  {fmt.price(salePrice(price, previewPercent))}
+                                </b>
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
 
           {/* 4 — Registration settings --------------------------------- */}
@@ -1695,9 +1862,27 @@ export function PublishWizard({
                       {t("publish.from")}
                     </span>
                     <span className="font-display text-2xl font-black text-neon-yellow">
-                      {prices.length ? fmt.moneyWhole(Math.min(...prices)) : "—"}
+                      {prices.length
+                        ? fmt.price(salePrice(Math.min(...prices), listedPercent))
+                        : "—"}
                     </span>
+                    {prices.length && listedPercent > 0 ? (
+                      <>
+                        <FullPrice className="text-sm">
+                          {fmt.price(Math.min(...prices))}
+                        </FullPrice>
+                        <SaleBadge percent={listedPercent} className="ml-auto" />
+                      </>
+                    ) : null}
                   </div>
+                  {/* A sale still to start shows nothing to runners yet. */}
+                  {saleState === "scheduled" ? (
+                    <p className="mt-3 text-[13px] text-fg-dim">
+                      {t("publish.sale.scheduled", {
+                        date: fmt.mediumDate(saleStarts),
+                      })}
+                    </p>
+                  ) : null}
                 </div>
               </article>
             </div>

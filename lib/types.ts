@@ -35,7 +35,10 @@ export type RaceCategory = {
   id: string;
   name: Distance;
   distanceKm: number;
+  /** What it costs today: the sale price while the event is on sale. */
   price: number;
+  /** The price before the sale; set only while the event is on sale. */
+  fullPrice?: number;
   /** Absent when the race has no start time; see `startTimeLabel`. */
   startTime?: string;
   wave: string;
@@ -173,8 +176,21 @@ export type RunningEvent = {
    * least `minimumAge`. Set on bookable races only.
    */
   allowsChildren?: boolean;
-  /** Dollars per child, whatever the distance; 0 is free. */
+  /** Dollars per child, whatever the distance; 0 is free. After the sale, like `price`. */
   childPrice?: number;
+  /**
+   * The sale on today, on a race still taking or about to take sign-ups:
+   * every `price`, `fromPrice` and `childPrice` already has it taken off.
+   */
+  sale?: {
+    /** Whole percent off each distance and each child. */
+    percent: number;
+    /** Its last day, ISO; absent when it runs until switched off. */
+    endsOn?: string;
+    /** `fromPrice` and `childPrice` before the sale. */
+    fromFullPrice: number;
+    childFullPrice: number;
+  };
 };
 
 /** Add-ons a runner can pick at sign-up. Null means not on offer. */

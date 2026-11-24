@@ -7,8 +7,9 @@ import type { EventExtras } from "@/lib/types";
  * prices here are the starting values a new event gets, and what fixture
  * races charge. The registration flow uses these to show a running total; the
  * amount that is stored is computed again by `register_for_event()` in
- * `20261218120000_children_medal_mail.sql`, which repeats the service fee,
- * the sales tax rate and how the mail is charged. Change them in both places.
+ * `20261221120000_on_sale.sql`, which repeats the service fee, the sales tax
+ * rate, how the mail is charged and what a sale takes off. Change them in
+ * both places.
  */
 export const SHIRT_PRICE = 22;
 export const PHOTO_PRICE = 12;
@@ -27,6 +28,47 @@ export const DONATIONS = [0, 5, 10, 25] as const;
 export const MAX_DONATION = 1000;
 /** Children an adult can add to one sign-up; `register_for_event()` enforces it too. */
 export const MAX_CHILDREN = 3;
+
+/**
+ * The least and most a sale takes off, in whole percent, and what a new
+ * event's sale starts at. `save_event()` and the table check the same range.
+ */
+export const SALE_PERCENT_MIN = 5;
+export const SALE_PERCENT_MAX = 90;
+export const SALE_PERCENT = 20;
+
+/** An event's sale as stored: the switch, the discount and its optional days. */
+export type SaleTerms = {
+  onSale: boolean;
+  /** Whole percent off each distance and each child. */
+  percent: number;
+  /** First and last day, YYYY-MM-DD and inclusive; null leaves that end open. */
+  starts: string | null;
+  ends: string | null;
+};
+
+/**
+ * Whole percent off on `today` (the island's, YYYY-MM-DD): 0 when the sale is
+ * switched off or the day falls outside its dates. The same rule as
+ * `active_sale_percent()` in `20261221120000_on_sale.sql`, which decides what
+ * is charged.
+ */
+export function activeSalePercent(sale: SaleTerms, today: string): number {
+  if (!sale.onSale) return 0;
+  // ISO dates compare as strings.
+  if (sale.starts && today < sale.starts) return 0;
+  if (sale.ends && today > sale.ends) return 0;
+  return sale.percent;
+}
+
+/**
+ * A price in dollars with a percentage off, to the cent, as `sale_price()`
+ * rounds it. Worked in whole cents so a half cent rounds up here as it does
+ * in Postgres.
+ */
+export function salePrice(price: number, percent: number): number {
+  return Math.round((Math.round(price * 100) * (100 - percent)) / 100) / 100;
+}
 
 /**
  * A typed-in donation in dollars, rounded to cents, or null when it isn't a
@@ -83,7 +125,10 @@ export function shippingCharge(opts: {
  * runner pays in all, in dollars.
  */
 export function registrationTotal(opts: {
-  /** The adult's distance; 0 when they sign up only children. */
+  /**
+   * The adult's distance; 0 when they sign up only children. On an event on
+   * sale this and `childPrice` are the prices after it (`salePrice()`).
+   */
   price: number;
   extras: EventExtras;
   shirt: boolean;

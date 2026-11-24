@@ -338,6 +338,15 @@ and `lib/events/pricing.test.ts` price the same sign-up; change the fee or the
 tax rate in both places, or one of them fails. The tax is charged only on
 events with `charges_sales_tax` on, the organizer's checkbox in the wizard.
 
+An event on sale (`events.on_sale`, with a percentage and optional dates)
+takes that percentage off each distance and the price per child, and off
+nothing else. Whether a sale is on and what it makes of a price are also
+worked out twice: `active_sale_percent()` and `sale_price()` in the database,
+`activeSalePercent()` and `salePrice()` in `lib/events/pricing.ts`.
+`supabase/tests/database/on_sale.test.sql` and the same vitest file price one
+sign-up on sale and must agree. Nothing is scheduled: a sale starts and ends
+by the island's date alone.
+
 ### Testing it
 
 `npm run test:db` runs the pgTAP tests in `supabase/tests` against a local

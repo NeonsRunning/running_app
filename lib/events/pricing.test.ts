@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { parseDonation, registrationTotal, shippingCharge } from "./pricing";
+import {
+  activeSalePercent,
+  parseDonation,
+  registrationTotal,
+  salePrice,
+  shippingCharge,
+} from "./pricing";
 
 const extras = { shirtPrice: 22, photoPrice: 12, shippingPrice: 8, donationRecipient: "" };
 
@@ -239,5 +245,71 @@ describe("parseDonation", () => {
 
   it.each(["-5", "1000.01", "abc", "1.234", "1e3"])("refuses %j", (text) => {
     expect(parseDonation(text)).toBeNull();
+  });
+});
+
+/**
+ * The sale's two rules, as `active_sale_percent()` and `sale_price()` hold
+ * them in the database; `supabase/tests/database/on_sale.test.sql` prices the
+ * same sign-up and must arrive at the same total.
+ */
+describe("activeSalePercent", () => {
+  const sale = { onSale: true, percent: 20, starts: null, ends: null };
+
+  it("is off while the switch is off, whatever the dates", () => {
+    expect(activeSalePercent({ ...sale, onSale: false }, "2026-12-05")).toBe(0);
+  });
+
+  it("runs without dates for as long as the switch is on", () => {
+    expect(activeSalePercent(sale, "2026-12-05")).toBe(20);
+  });
+
+  it("runs from its first day through its last, both included", () => {
+    const weekend = { ...sale, starts: "2026-12-05", ends: "2026-12-06" };
+    expect(activeSalePercent(weekend, "2026-12-04")).toBe(0);
+    expect(activeSalePercent(weekend, "2026-12-05")).toBe(20);
+    expect(activeSalePercent(weekend, "2026-12-06")).toBe(20);
+    expect(activeSalePercent(weekend, "2026-12-07")).toBe(0);
+  });
+
+  it("takes either date alone", () => {
+    expect(activeSalePercent({ ...sale, starts: "2026-12-05" }, "2026-12-04")).toBe(0);
+    expect(activeSalePercent({ ...sale, starts: "2026-12-05" }, "2027-01-01")).toBe(20);
+    expect(activeSalePercent({ ...sale, ends: "2026-12-06" }, "2026-12-01")).toBe(20);
+    expect(activeSalePercent({ ...sale, ends: "2026-12-06" }, "2026-12-07")).toBe(0);
+  });
+});
+
+describe("salePrice", () => {
+  it("takes the percentage off", () => {
+    expect(salePrice(30, 20)).toBe(24);
+    expect(salePrice(45, 0)).toBe(45);
+    expect(salePrice(0, 50)).toBe(0);
+  });
+
+  it("rounds a half cent up, as Postgres does", () => {
+    // 10.25 x 0.90 = 9.225; 0.15 x 0.90 = 0.135
+    expect(salePrice(10.25, 10)).toBe(9.23);
+    expect(salePrice(0.15, 10)).toBe(0.14);
+    // 45.55 is not exact in binary; 45.55 x 0.85 = 38.7175
+    expect(salePrice(45.55, 15)).toBe(38.72);
+  });
+
+  it("prices the sign-up on_sale.test.sql registers", () => {
+    // A $30 race and a $10.25 child at 15% off: 25.50 and 8.71. Taxable:
+    // 25.50 + 8.71 + 22 (shirt, not discounted) + 2 (fee) = 58.21.
+    const { tax, total } = registrationTotal({
+      price: salePrice(30, 15),
+      extras,
+      shirt: true,
+      photos: false,
+      donation: 0,
+      mail: false,
+      salesTax: true,
+      children: 1,
+      childPrice: salePrice(10.25, 15),
+    });
+    expect(tax).toBe(6.69);
+    expect(total).toBe(64.9);
   });
 });

@@ -9,6 +9,7 @@ import { getTranslator } from "@/lib/i18n/server";
 import type { Translate } from "@/lib/i18n/translate";
 import { initialsOf } from "@/lib/profile/queries";
 import { isEndingSoon, isNewEvent, registrationStatus } from "./availability";
+import { activeSalePercent, salePrice } from "./pricing";
 import { EVENTS_PAGE_SIZE, type EventPage, type EventSearch } from "./search";
 import { hasSupabaseEnv, supabaseEnv } from "@/lib/supabase/env";
 import { selectAll } from "@/lib/supabase/paginate";
@@ -115,12 +116,31 @@ function toEvent(
   // Hidden spots: the counts never reach the page, only whether a category
   // still has room.
   const shown = row.show_spots_left;
+  // The sale on today. A race no longer taking sign-ups shows its usual
+  // prices: there is nothing left to buy at the sale's.
+  const salePercent =
+    status === "closed" || status === "full"
+      ? 0
+      : activeSalePercent(
+          {
+            onSale: row.on_sale,
+            percent: row.sale_percent,
+            starts: row.sale_starts,
+            ends: row.sale_ends,
+          },
+          todayIso(),
+        );
   const shownCategories = categories.map((c) => ({
     ...c,
+    price: salePrice(c.price, salePercent),
+    ...(salePercent > 0 ? { fullPrice: c.price } : {}),
     capacity: shown ? c.capacity : 0,
     registered: shown ? c.registered : 0,
     full: row.sold_out || c.registered >= c.capacity,
   }));
+  const fromFullPrice = categories.length
+    ? Math.min(...categories.map((c) => c.price))
+    : 0;
   const [year, , day] = row.event_date.split("-");
   const description = row.description
     .split(/\r?\n\s*\r?\n/)
@@ -157,7 +177,16 @@ function toEvent(
     mailsMedals: row.mails_medals,
     chargesSalesTax: row.charges_sales_tax,
     allowsChildren: row.allows_children,
-    childPrice: Number(row.child_price),
+    childPrice: salePrice(Number(row.child_price), salePercent),
+    sale:
+      salePercent > 0
+        ? {
+            percent: salePercent,
+            endsOn: row.sale_ends ?? undefined,
+            fromFullPrice: fromFullPrice,
+            childFullPrice: Number(row.child_price),
+          }
+        : undefined,
     anywhere: row.anywhere,
     city: row.anywhere ? t("events.anywhere.short") : (row.city ?? ""),
     region: row.region,
@@ -207,9 +236,7 @@ function toEvent(
     minimumAge: row.minimum_age,
     categories: shownCategories,
     featuredDistance: categories[0]?.name ?? "5K",
-    fromPrice: categories.length
-      ? Math.min(...categories.map((c) => c.price))
-      : 0,
+    fromPrice: salePrice(fromFullPrice, salePercent),
     registered: shown ? registered : 0,
     capacity: shown ? capacity : 0,
     organizerId: row.organizer_id,

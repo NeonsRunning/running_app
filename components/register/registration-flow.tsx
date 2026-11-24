@@ -2,7 +2,7 @@
 
 import { Link } from "@/components/i18n/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Badge, Eyebrow } from "@/components/ui/badge";
+import { Badge, Eyebrow, FullPrice } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/field";
 import { focusFirstInvalid, useFocusHeadingOnChange } from "@/components/ui/focus";
@@ -408,6 +408,18 @@ export function RegistrationFlow({
       childPrice,
     ],
   );
+
+  // On sale, the summary lists the usual prices and takes the sale off on a
+  // line of its own; `category.price` and `childPrice` already have it off.
+  const sale = event.sale;
+  const categoryFullPrice = category.fullPrice ?? category.price;
+  const childFullPrice = sale?.childFullPrice ?? childPrice;
+  const saleDiscount =
+    Math.round(
+      ((racing ? categoryFullPrice - category.price : 0) +
+        kidCount * (childFullPrice - childPrice)) *
+        100,
+    ) / 100;
 
   const done = step === 5;
 
@@ -911,8 +923,13 @@ export function RegistrationFlow({
                           </span>
                         </span>
                       </span>
-                      <span className="font-display text-2xl font-black sm:text-3xl">
-                        {fmt.moneyWhole(c.price)}
+                      <span className="flex flex-col items-end font-display text-2xl font-black sm:text-3xl">
+                        {fmt.price(c.price)}
+                        {c.fullPrice !== undefined ? (
+                          <FullPrice className="font-sans text-sm">
+                            {fmt.price(c.fullPrice)}
+                          </FullPrice>
+                        ) : null}
                       </span>
                     </button>
                   );
@@ -1578,7 +1595,7 @@ export function RegistrationFlow({
                     label={t("register.summary.registration", {
                       category: distanceLabel(t, category.name),
                     })}
-                    value={fmt.money(category.price)}
+                    value={fmt.money(categoryFullPrice)}
                   />
                 ) : null}
                 {withChildren
@@ -1596,14 +1613,20 @@ export function RegistrationFlow({
                             category: distance ? distanceLabel(t, distance.name) : "",
                           })}
                           value={
-                            childPrice === 0
+                            childFullPrice === 0
                               ? t("register.step3.free")
-                              : fmt.money(childPrice)
+                              : fmt.money(childFullPrice)
                           }
                         />
                       );
                     })
                   : null}
+                {sale && saleDiscount > 0 ? (
+                  <SummaryRow
+                    label={t("register.summary.sale", { percent: sale.percent })}
+                    value={`−${fmt.money(saleDiscount)}`}
+                  />
+                ) : null}
                 {shirt ? (
                   <SummaryRow
                     label={

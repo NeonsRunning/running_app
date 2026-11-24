@@ -143,6 +143,34 @@ Cada categoría es una distancia con su **precio**, su **cupo máximo** y una
   su **distancia** ya no se puede cambiar, no puedes quitarla y su cupo no
   puede bajar de los inscritos.
 
+#### Poner el evento en oferta
+
+Debajo de las categorías está **Poner este evento en oferta**, desmarcado por
+defecto. Sirve para un especial de fin de semana o cualquier promoción: los
+corredores pagan menos y el evento muestra una insignia **Oferta −N%**.
+
+- **Descuento (%)**: un número entero de **5 a 90**. Se descuenta de **cada
+  distancia** y del **precio por menor**, redondeado al centavo.
+- **Empieza** y **Termina** (opcionales): los días que dura la oferta, ambos
+  incluidos, en hora de Puerto Rico. Sin *Empieza*, comienza al guardar; sin
+  *Termina*, dura hasta que la desmarques. La oferta empieza y termina sola
+  en esas fechas.
+- Debajo verás **lo que pagará el corredor** en cada distancia y si la oferta
+  está activa, programada o terminada.
+- **No se descuentan** la camiseta, las fotos, el envío, el cargo por servicio
+  ni la donación. El IVU, si lo cobras, se calcula sobre el precio ya
+  rebajado.
+- Mientras dura, la tarjeta y la página del evento muestran la insignia, el
+  precio regular tachado y, si pusiste fecha, *"La oferta termina el…"*. El
+  resumen de la inscripción muestra el descuento en su propia línea. Una
+  oferta programada no se muestra a los corredores hasta que empieza.
+- Aplica solo a **inscripciones nuevas**: quien ya pagó el precio regular no
+  recibe reembolso, y quien reservó su cupo durante la oferta conserva ese
+  precio mientras dure su reserva.
+- Un **administrador** puede poner o quitar la oferta al editar tu evento.
+- Si desmarcas la oferta, el porcentaje y las fechas se guardan para la
+  próxima vez.
+
 ### Paso 4 · Inscripciones
 
 ![Paso 4: inscripciones](img/organizador/wizard-04-inscripciones.png)

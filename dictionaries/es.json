@@ -215,7 +215,9 @@
       "from": "DESDE",
       "register": "Inscribirse",
       "new": "Evento nuevo",
-      "endingSoon": "Termina pronto"
+      "endingSoon": "Termina pronto",
+      "sale": "Oferta −{percent}%",
+      "fullPrice": "Precio regular"
     },
     "save": {
       "saveAria": "Guardar {name}",
@@ -291,6 +293,8 @@
       "registerNow": "Inscribirme ahora",
       "registrationOpensOn": "Inscripciones abren el {date}",
       "registrationOpensSoon": "Inscripciones abren pronto",
+      "saleEnds": "La oferta termina el {date} a las 11:59 p. m.",
+      "saleOn": "En oferta por tiempo limitado.",
       "registrationClosed": "Inscripciones cerradas",
       "capacity": "Capacidad",
       "capacityFull": "{percent} % lleno · {spots} cupos disponibles",
@@ -535,6 +539,7 @@
       "salesTax": "IVU (11.5%)",
       "total": "Total",
       "priceChanged": "El precio de esta inscripción cambió mientras te inscribías. Se te cobrará {total}.",
+      "sale": "Oferta · {percent}% de descuento",
       "processing": "Procesando…",
       "complete": "Completar inscripción",
       "completeShort": "Completar",
@@ -1922,6 +1927,9 @@
       "categoryDuplicate": "Cada distancia solo se puede ofrecer una vez.",
       "numberInvalid": "Escribe un número entero.",
       "priceInvalid": "Escribe un precio de 0 a 1,000, como 22 o 22.50.",
+      "salePercentInvalid": "Escribe un porcentaje entero de 5 a 90, como 20.",
+      "saleEndsBeforeStart": "La oferta no puede terminar antes de empezar.",
+      "saleEndsInPast": "Esa fecha de cierre ya pasó. Elige hoy o una fecha posterior, o déjala vacía.",
       "shirtSizesRequired": "Elige al menos una talla de camiseta o desactiva la camiseta.",
       "shirtDesignsTooMany": "Puedes mostrar hasta 6 diseños de camiseta.",
       "shirtDesignCopyFailed": "No se pudo copiar ese diseño. Inténtalo de nuevo o sube su imagen.",
@@ -1985,6 +1993,21 @@
     "cardPayments": {
       "title": "Aceptar pagos con tarjeta",
       "detail": "Los corredores pueden pagar con tarjeta al inscribirse, a través de Stripe. Desactívalo si la carrera solo acepta ATH Móvil. Cambiarlo solo aplica a los pagos que se inicien después."
+    },
+    "sale": {
+      "title": "Poner este evento en oferta",
+      "detail": "Los corredores reciben un porcentaje de descuento en cada distancia y en el precio por menor, y el evento muestra una insignia de oferta con el descuento. Los extras, el envío y el cargo por servicio se mantienen a precio completo. Aplica solo a inscripciones nuevas.",
+      "percent": "Descuento (%)",
+      "percentHint": "Un número entero de {min} a {max}.",
+      "starts": "Empieza",
+      "startsHint": "Vacío: empieza en cuanto guardes.",
+      "ends": "Termina",
+      "endsHint": "Su último día. Vacío: dura hasta que la desactives.",
+      "running": "En oferta ahora, hasta que la desactives.",
+      "runningUntil": "En oferta ahora, hasta el {date}.",
+      "scheduled": "La oferta empieza el {date}. Hasta entonces los corredores ven los precios regulares.",
+      "ended": "Esta oferta terminó el {date}. Los corredores ven los precios regulares.",
+      "becomes": "pasa a"
     },
     "salesTax": {
       "title": "Cobrar IVU (11.5%)",

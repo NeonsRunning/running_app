@@ -558,6 +558,10 @@ export async function getEventForm(
     soldOut: event.sold_out,
     showSpotsLeft: event.show_spots_left,
     chargesSalesTax: event.charges_sales_tax,
+    onSale: event.on_sale,
+    salePercent: String(event.sale_percent),
+    saleStarts: event.sale_starts ?? "",
+    saleEnds: event.sale_ends ?? "",
     // A draft saved before any category was priced reopens with the starter
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,

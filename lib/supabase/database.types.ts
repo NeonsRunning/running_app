@@ -192,6 +192,13 @@ export type Database = {
           sold_out: boolean;
           /** Runners see the spots left, capacity bar and runner count. */
           show_spots_left: boolean;
+          /** The event is on sale: sale_percent off each distance and each child. */
+          on_sale: boolean;
+          /** Whole percent off, 5 to 90; kept while the sale is off. */
+          sale_percent: number;
+          /** First and last day of the sale, inclusive; null leaves that end open. */
+          sale_starts: string | null;
+          sale_ends: string | null;
           /** Runners may pay by card; off for an ATH Móvil-only race. */
           accepts_card_payments: boolean;
           /** Adults may add children (under 18, at least the minimum age) to their sign-up. */
@@ -253,6 +260,10 @@ export type Database = {
           mails_medals?: boolean;
           sold_out?: boolean;
           show_spots_left?: boolean;
+          on_sale?: boolean;
+          sale_percent?: number;
+          sale_starts?: string | null;
+          sale_ends?: string | null;
           accepts_card_payments?: boolean;
           allows_children?: boolean;
           child_price?: number;
@@ -310,6 +321,10 @@ export type Database = {
           mails_medals?: boolean;
           sold_out?: boolean;
           show_spots_left?: boolean;
+          on_sale?: boolean;
+          sale_percent?: number;
+          sale_starts?: string | null;
+          sale_ends?: string | null;
           accepts_card_payments?: boolean;
           allows_children?: boolean;
           child_price?: number;
@@ -438,6 +453,8 @@ export type Database = {
           service_fee: number;
           /** Puerto Rico sales tax (IVU) included in the amount. */
           sales_tax: number;
+          /** The sale the order was priced with, in whole percent; 0 for none. */
+          sale_percent: number;
           amount: number;
           created_at: string;
           status: Database["public"]["Enums"]["registration_status"];

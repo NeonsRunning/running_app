@@ -12,7 +12,9 @@ import type { RunningEvent } from "@/lib/types";
 import {
   Badge,
   EndingSoonBadge,
+  FullPrice,
   NewEventBadge,
+  SaleBadge,
   StatusBadge,
 } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -184,6 +186,7 @@ export function EventRow({ event }: { event: RunningEvent }) {
           />
           {event.isNew ? <NewEventBadge /> : null}
           {event.endingSoon ? <EndingSoonBadge /> : null}
+          {event.sale ? <SaleBadge percent={event.sale.percent} /> : null}
           <span className="font-mono text-[11px] tracking-[0.14em] text-fg-faint uppercase">
             {event.place}
           </span>
@@ -222,13 +225,18 @@ export function EventRow({ event }: { event: RunningEvent }) {
       </div>
 
       <div className="flex flex-row items-center justify-between gap-4 border-t-2 border-line p-5 md:flex-col md:items-stretch md:justify-center md:border-t-0 md:border-l-2 sm:p-6">
-        <div className="flex items-baseline gap-2">
+        <div className="flex flex-wrap items-baseline gap-x-2">
           <span className="font-mono text-[11px] tracking-[0.14em] text-fg-dim">
             {t("events.card.from")}
           </span>
           <span className="font-display text-2xl font-black tracking-[-0.02em] text-neon-yellow">
-            {fmt.moneyWhole(event.fromPrice)}
+            {fmt.price(event.fromPrice)}
           </span>
+          {event.sale ? (
+            <FullPrice className="text-sm">
+              {fmt.price(event.sale.fromFullPrice)}
+            </FullPrice>
+          ) : null}
         </div>
         <div className="flex gap-2.5">
           <Button
@@ -270,11 +278,18 @@ export function EventCardCompact({
           size="sm"
           className="absolute top-2.5 right-2.5"
         />
-        {event.isNew || event.endingSoon ? (
+        {event.isNew || event.endingSoon || event.sale ? (
           <div className="absolute bottom-0 left-0 flex">
             {event.isNew ? <NewEventBadge /> : null}
             {/* The danger tone is translucent; back it so a photo can't show through. */}
             {event.endingSoon ? <EndingSoonBadge className="bg-ink" /> : null}
+            {/* Yellow like "New event": a rule keeps the two apart. */}
+            {event.sale ? (
+              <SaleBadge
+                percent={event.sale.percent}
+                className={event.isNew ? "border-l-2 border-ink" : undefined}
+              />
+            ) : null}
           </div>
         ) : null}
       </EventCover>
@@ -300,8 +315,13 @@ export function EventCardCompact({
             : ` · ${t("events.card.runners", { count: fmt.number(event.registered) })}`}
         </div>
         <div className="mt-auto flex items-center justify-between gap-3 border-t-2 border-line pt-4">
-          <span className="font-display text-lg font-black text-neon-yellow">
-            {fmt.moneyWhole(event.fromPrice)}
+          <span className="flex flex-wrap items-baseline gap-x-2 font-display text-lg font-black text-neon-yellow">
+            {fmt.price(event.fromPrice)}
+            {event.sale ? (
+              <FullPrice className="font-sans text-xs">
+                {fmt.price(event.sale.fromFullPrice)}
+              </FullPrice>
+            ) : null}
           </span>
           <Button href={`/events/${event.slug}/register`} size="sm">
             {t("events.card.register")}

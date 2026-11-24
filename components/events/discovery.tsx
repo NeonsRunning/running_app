@@ -14,7 +14,9 @@ import { Chip, Input, Radio, SegmentedControl } from "@/components/ui/field";
 import {
   EndingSoonBadge,
   Eyebrow,
+  FullPrice,
   NewEventBadge,
+  SaleBadge,
   StatusBadge,
 } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/misc";
@@ -732,17 +734,23 @@ function MapView({ events }: { events: RunningEvent[] }) {
                 {e.name}
               </Link>
             </h3>
-            <div className="mt-1.5 flex items-center gap-3">
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1.5">
               <StatusBadge status={e.registrationStatus} label={e.statusLabel} />
               {e.isNew ? <NewEventBadge /> : null}
               {e.endingSoon ? <EndingSoonBadge /> : null}
+              {e.sale ? <SaleBadge percent={e.sale.percent} /> : null}
               <span className="text-xs text-fg-dim">{e.city}</span>
             </div>
-            <div className="mt-4 flex items-center justify-between">
-              <span className="font-display text-lg font-black text-neon-yellow">
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span className="flex flex-wrap items-baseline gap-x-2 font-display text-lg font-black text-neon-yellow">
                 {t("events.discovery.from", {
-                  price: fmt.moneyWhole(e.fromPrice),
+                  price: fmt.price(e.fromPrice),
                 })}
+                {e.sale ? (
+                  <FullPrice className="font-sans text-xs">
+                    {fmt.price(e.sale.fromFullPrice)}
+                  </FullPrice>
+                ) : null}
               </span>
               <Button href={`/events/${e.slug}`} variant="outline" size="sm">
                 {t("events.discovery.details")}
@@ -777,7 +785,7 @@ function MapMarker({
       onClick={onSelect}
       aria-pressed={active}
       // Starts with the visible text so voice control can target it.
-      aria-label={`${distanceLabel(t, e.featuredDistance)} · ${fmt.moneyWhole(e.fromPrice)} — ${e.name}, ${e.place}`}
+      aria-label={`${distanceLabel(t, e.featuredDistance)} · ${fmt.price(e.fromPrice)} — ${e.name}, ${e.place}`}
       style={style}
       className={cn(
         "border-2 px-2 py-1 text-[10px] font-black whitespace-nowrap transition-colors sm:px-2.5 sm:py-1.5 sm:text-[11px]",
@@ -787,7 +795,7 @@ function MapMarker({
         className,
       )}
     >
-      {distanceLabel(t, e.featuredDistance)} · {fmt.moneyWhole(e.fromPrice)}
+      {distanceLabel(t, e.featuredDistance)} · {fmt.price(e.fromPrice)}
     </button>
   );
 }

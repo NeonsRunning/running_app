@@ -4,7 +4,9 @@ import {
   Badge,
   EndingSoonBadge,
   Eyebrow,
+  FullPrice,
   NewEventBadge,
+  SaleBadge,
 } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { SpecCell } from "@/components/ui/card";
@@ -200,6 +202,7 @@ export default async function EventDetailPage(
             <Badge tone="yellow">{event.statusLabel}</Badge>
             {event.isNew ? <NewEventBadge /> : null}
             {event.endingSoon ? <EndingSoonBadge /> : null}
+            {event.sale ? <SaleBadge percent={event.sale.percent} /> : null}
             <Badge tone="outline" className="bg-ink/60 text-fg">
               {eventTypeLabel(t, event.type)}
             </Badge>
@@ -268,7 +271,7 @@ export default async function EventDetailPage(
         ) : null}
         <SpecCell
           label={t("events.detail.specFrom")}
-          value={fmt.moneyWhole(event.fromPrice)}
+          value={fmt.price(event.fromPrice)}
           accent="yellow"
           // Five facts leave a gap in the two- and three-column rows: the
           // last one stretches across it.
@@ -351,16 +354,31 @@ export default async function EventDetailPage(
             ) : null}
 
             <div className="border-b-2 border-line px-5 py-7 sm:px-7">
-              <div className="flex items-baseline gap-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <span className="font-display text-5xl font-black tracking-[-0.03em] text-neon-yellow">
-                  {fmt.moneyWhole(featured.price)}
+                  {fmt.price(featured.price)}
                 </span>
+                {featured.fullPrice !== undefined ? (
+                  <FullPrice className="text-xl">
+                    {fmt.price(featured.fullPrice)}
+                  </FullPrice>
+                ) : null}
                 <span className="font-mono text-[12px] tracking-widest text-fg-dim uppercase">
                   {t("events.detail.entry", {
                     category: distanceLabel(t, featured.name),
                   })}
                 </span>
               </div>
+              {event.sale ? (
+                <p className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[13px] text-fg-muted">
+                  <SaleBadge percent={event.sale.percent} />
+                  {event.sale.endsOn
+                    ? t("events.detail.saleEnds", {
+                        date: fmt.longDate(event.sale.endsOn),
+                      })
+                    : t("events.detail.saleOn")}
+                </p>
+              ) : null}
 
               {canRegister ? (
                 <Button
@@ -429,7 +447,12 @@ export default async function EventDetailPage(
                           isFeatured ? "text-neon-lime" : "text-fg-muted"
                         }
                       >
-                        {fmt.moneyWhole(c.price)}
+                        {c.fullPrice !== undefined ? (
+                          <FullPrice className="mr-2 text-[13px]">
+                            {fmt.price(c.fullPrice)}
+                          </FullPrice>
+                        ) : null}
+                        {fmt.price(c.price)}
                       </span>
                     </li>
                   );
@@ -485,8 +508,13 @@ export default async function EventDetailPage(
       >
         <div className="px-4 py-3">
           <span className="font-display text-xl font-black text-neon-yellow">
-            {fmt.moneyWhole(featured.price)}
+            {fmt.price(featured.price)}
           </span>
+          {featured.fullPrice !== undefined ? (
+            <FullPrice className="ml-2 text-xs">
+              {fmt.price(featured.fullPrice)}
+            </FullPrice>
+          ) : null}
         </div>
         {canRegister ? (
           <Button
