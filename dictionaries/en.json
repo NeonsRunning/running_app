@@ -1794,6 +1794,11 @@
       "lockedHint": "Runners have chosen this design, so it can’t be removed. Switch it off to stop offering it.",
       "remove": "Remove design",
       "add": "Add a design",
+      "copy": "Copy from another event",
+      "copyIntro": "Designs from your other events. A copy belongs to this event only: changing or removing it here doesn’t affect the event it came from.",
+      "copyOne": "Copy",
+      "copyOneLabel": "Copy {name} from {event}",
+      "copying": "Copying…",
       "limit": "Up to {max} designs."
     },
     "shirtDesignImage": {
@@ -1919,6 +1924,7 @@
       "priceInvalid": "Enter a price from 0 to 1,000, like 22 or 22.50.",
       "shirtSizesRequired": "Pick at least one shirt size, or switch the shirt off.",
       "shirtDesignsTooMany": "You can show up to 6 shirt designs.",
+      "shirtDesignCopyFailed": "That design couldn’t be copied. Try again, or upload its image.",
       "shirtDesignIncomplete": "Each shirt design needs a picture and a name of up to 60 characters. Complete it or remove it.",
       "shirtDesignInUse": "Runners have chosen a design you removed. Reload the page, then switch it off instead of removing it.",
       "donationRecipientRequired": "Enter who receives the donations, or switch donations off.",

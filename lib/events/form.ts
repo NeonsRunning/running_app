@@ -49,6 +49,16 @@ export type EventFormShirtDesign = {
   locked: boolean;
 };
 
+/** A design on another of the organizer's events, offered to copy into this one. */
+export type ReusableShirtDesign = {
+  /** The stored design's id: a key for the list, nothing is linked to it. */
+  id: string;
+  name: string;
+  imagePath: string;
+  /** The event it is on, to tell two designs of the same name apart. */
+  eventName: string;
+};
+
 export type EventFormValues = {
   /** Null until the first save. */
   id: string | null;

@@ -37,7 +37,11 @@ import {
   type EventFormState,
 } from "@/lib/events/actions";
 import type { AthMovilAccountRow } from "@/lib/ath-movil/queries";
-import { EMPTY_EVENT_FORM, type EventFormValues } from "@/lib/events/form";
+import {
+  EMPTY_EVENT_FORM,
+  type EventFormValues,
+  type ReusableShirtDesign,
+} from "@/lib/events/form";
 import { eventImageUrl } from "@/lib/events/images";
 import {
   COUNTRIES,
@@ -145,6 +149,7 @@ export function PublishWizard({
   initial = EMPTY_EVENT_FORM,
   athMovilAccounts = [],
   asAdmin = false,
+  reusableShirtDesigns = [],
 }: {
   initial?: EventFormValues;
   /** The ATH Móvil Business accounts admins listed, retired ones included. */
@@ -154,6 +159,8 @@ export function PublishWizard({
    * removes from /admin/events instead), and the way out leads back there.
    */
   asAdmin?: boolean;
+  /** Shirt designs on the organizer's other events, to copy into this one. */
+  reusableShirtDesigns?: ReusableShirtDesign[];
 }) {
   const home = asAdmin ? "/admin/events" : "/organizer";
   const [step, setStep] = useState(0);
@@ -1319,6 +1326,7 @@ export function PublishWizard({
                     designs={shirtDesigns}
                     onChange={setShirtDesigns}
                     savedPaths={savedDesignPaths}
+                    reusable={reusableShirtDesigns}
                     onBusyChange={(key, busy) =>
                       markUploading(`shirt_design_${key}`, busy)
                     }

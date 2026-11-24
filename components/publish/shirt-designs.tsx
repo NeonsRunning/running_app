@@ -1,5 +1,6 @@
 "use client";
 
+import { useId, useState } from "react";
 import { useT } from "@/components/i18n/provider";
 import { ImageStep } from "@/components/publish/image-step";
 import { Button } from "@/components/ui/button";
@@ -8,12 +9,16 @@ import {
   MAX_SHIRT_DESIGNS,
   SHIRT_DESIGN_NAME_MAX,
   type EventFormShirtDesign,
+  type ReusableShirtDesign,
 } from "@/lib/events/form";
-import { EVENT_IMAGE_BUCKET } from "@/lib/events/images";
+import { EVENT_IMAGE_BUCKET, EVENT_IMAGE_TYPE, eventImageUrl } from "@/lib/events/images";
 import { createClient } from "@/lib/supabase/client";
 
 /** A form row: the stored design plus a key that survives removals. */
 export type ShirtDesignRow = EventFormShirtDesign & { key: number };
+
+/** The busy key of a copy in progress; row keys start at 1. */
+const COPYING = 0;
 
 /** Keys for design rows; only needs to be unique within a session. */
 let nextDesignKey = 1;
@@ -30,11 +35,16 @@ export function toShirtDesignRows(designs: EventFormShirtDesign[]): ShirtDesignR
  * and `_offered` — which `saveEventAction` reads back as a list. A design a
  * runner already chose (`locked`) cannot be removed, as `save_event()` would
  * refuse: it gets a switch to stop offering it instead.
+ *
+ * `reusable` lists the designs on the organizer's other events. Copying one
+ * uploads its picture again under a new name, so the copy is this event's
+ * own: replacing or removing it here never touches the event it came from.
  */
 export function ShirtDesigns({
   designs,
   onChange,
   savedPaths,
+  reusable = [],
   onBusyChange,
   busy,
   error,
@@ -44,6 +54,8 @@ export function ShirtDesigns({
   onChange: (update: (designs: ShirtDesignRow[]) => ShirtDesignRow[]) => void;
   /** Pictures stored on the event as of the last save; see `ImageStep`. */
   savedPaths: ReadonlySet<string>;
+  /** Designs on the organizer's other events, offered to copy. */
+  reusable?: ReusableShirtDesign[];
   /** A row's picture is converting or uploading; the wizard holds its save. */
   onBusyChange: (key: number, busy: boolean) => void;
   /** Rows whose picture is converting or uploading. */
@@ -55,6 +67,59 @@ export function ShirtDesigns({
 }) {
   const t = useT();
   const full = designs.length >= MAX_SHIRT_DESIGNS;
+  const copyPanelId = useId();
+  const [copyOpen, setCopyOpen] = useState(false);
+  /** The design being copied, by its id; null when idle. */
+  const [copying, setCopying] = useState<string | null>(null);
+  /** A key under `publish.errors`. */
+  const [copyError, setCopyError] = useState<string>();
+
+  /** Add one of the organizer's other designs, with a picture of its own. */
+  async function copy(source: ReusableShirtDesign) {
+    const url = eventImageUrl(source.imagePath);
+    if (!url || copying) return;
+    setCopyError(undefined);
+    setCopying(source.id);
+    onBusyChange(COPYING, true);
+    try {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return setCopyError("sessionExpired");
+
+      const response = await fetch(url);
+      if (!response.ok) return setCopyError("shirtDesignCopyFailed");
+      const path = `${data.user.id}/${crypto.randomUUID()}.webp`;
+      const { error: storageError } = await supabase.storage
+        .from(EVENT_IMAGE_BUCKET)
+        .upload(path, await response.blob(), {
+          contentType: EVENT_IMAGE_TYPE,
+          cacheControl: "31536000",
+        });
+      if (storageError) return setCopyError("shirtDesignCopyFailed");
+
+      onChange((list) =>
+        // Checked again: the list may have filled up while this uploaded.
+        list.length >= MAX_SHIRT_DESIGNS
+          ? list
+          : [
+              ...list,
+              {
+                key: nextDesignKey++,
+                id: null,
+                name: source.name,
+                imagePath: path,
+                offered: true,
+                locked: false,
+              },
+            ],
+      );
+    } catch {
+      setCopyError("shirtDesignCopyFailed");
+    } finally {
+      setCopying(null);
+      onBusyChange(COPYING, false);
+    }
+  }
 
   function update(key: number, patch: Partial<ShirtDesignRow>) {
     onChange((list) => list.map((d) => (d.key === key ? { ...d, ...patch } : d)));
@@ -172,10 +237,69 @@ export function ShirtDesigns({
         <Button variant="outline" size="md" disabled={full || disabled} onClick={add}>
           {t("publish.shirtDesigns.add")}
         </Button>
+        {reusable.length > 0 ? (
+          <Button
+            variant="ghost"
+            size="md"
+            aria-expanded={copyOpen}
+            aria-controls={copyPanelId}
+            onClick={() => setCopyOpen((open) => !open)}
+          >
+            {t("publish.shirtDesigns.copy")}
+          </Button>
+        ) : null}
         <p className="text-[13px] text-fg-dim">
           {t("publish.shirtDesigns.limit", { max: MAX_SHIRT_DESIGNS })}
         </p>
       </div>
+
+      {reusable.length > 0 ? (
+        <div id={copyPanelId} hidden={!copyOpen} className="mt-4 border-2 border-line p-4">
+          <p className="text-sm text-fg-dim">{t("publish.shirtDesigns.copyIntro")}</p>
+          {copyError ? (
+            <p
+              role="alert"
+              className="mt-3 flex items-center gap-2 text-[13px] font-semibold text-danger"
+            >
+              <span aria-hidden="true">▲</span>
+              {t(`publish.errors.${copyError}`)}
+            </p>
+          ) : null}
+          <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {reusable.map((source) => (
+              <li key={source.id} className="flex flex-col border-2 border-line bg-ink">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={eventImageUrl(source.imagePath)}
+                  alt=""
+                  loading="lazy"
+                  className="aspect-square w-full bg-carbon object-contain"
+                />
+                <div className="flex flex-1 flex-col gap-2 p-3">
+                  <p className="text-[13px] font-bold break-words">{source.name}</p>
+                  <p className="text-[12px] break-words text-fg-dim">{source.eventName}</p>
+                  <div className="mt-auto pt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={full || disabled || copying !== null}
+                      aria-label={t("publish.shirtDesigns.copyOneLabel", {
+                        name: source.name,
+                        event: source.eventName,
+                      })}
+                      onClick={() => void copy(source)}
+                    >
+                      {copying === source.id
+                        ? t("publish.shirtDesigns.copying")
+                        : t("publish.shirtDesigns.copyOne")}
+                    </Button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </fieldset>
   );
 }
