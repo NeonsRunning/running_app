@@ -3,7 +3,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import type { Tables } from "@/lib/supabase/database.types";
 import type { AidStation, ScheduleItem } from "@/lib/types";
-import { EMPTY_EVENT_FORM, type EventFormValues } from "./form";
+import {
+  EMPTY_EVENT_FORM,
+  type EventFormValues,
+  type ReusableShirtDesign,
+} from "./form";
 import { addDays, puertoRicoMidnight } from "@/lib/dates";
 import { selectAll } from "@/lib/supabase/paginate";
 import { checkInKit, type CheckInKit } from "./check-in-station";
@@ -558,6 +562,55 @@ export async function getEventForm(
     // rows rather than an empty list.
     categories: categories.length ? categories : EMPTY_EVENT_FORM.categories,
   };
+}
+
+/** The most designs the wizard offers to copy: the newest events' first. */
+const REUSABLE_DESIGNS_LIMIT = 60;
+
+/**
+ * The shirt designs on the organizer's other events, newest event first, for
+ * the wizard to copy from. A copy is the event's own: its picture is uploaded
+ * again, so neither event's edits or removal touch the other's.
+ *
+ * `exceptEventId` leaves out the event being edited. Empty on any failure:
+ * the organizer can still upload the picture again by hand.
+ */
+export async function getReusableShirtDesigns(
+  organizerId: string,
+  exceptEventId: string | null,
+): Promise<ReusableShirtDesign[]> {
+  if (!hasSupabaseEnv()) return [];
+
+  const supabase = await createClient();
+  let query = supabase
+    .from("event_shirts")
+    .select(
+      "id, name, image_path, position, event:events!inner(id, name, organizer_id, status, created_at)",
+    )
+    .eq("event.organizer_id", organizerId)
+    // A removed event is the platform's now.
+    .neq("event.status", "removed");
+  if (exceptEventId) query = query.neq("event_id", exceptEventId);
+  const { data, error } = await query.limit(500);
+  if (error) {
+    console.error("Reusable shirt designs failed to load:", error.message);
+    return [];
+  }
+
+  return data
+    .sort(
+      (a, b) =>
+        b.event.created_at.localeCompare(a.event.created_at) ||
+        a.event.id.localeCompare(b.event.id) ||
+        a.position - b.position,
+    )
+    .slice(0, REUSABLE_DESIGNS_LIMIT)
+    .map((d) => ({
+      id: d.id,
+      name: d.name,
+      imagePath: d.image_path,
+      eventName: d.event.name,
+    }));
 }
 
 /* -------------------------------------------------------------------------- */

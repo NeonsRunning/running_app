@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PublishWizard } from "@/components/publish/publish-wizard";
 import { listAthMovilAccounts } from "@/lib/ath-movil/queries";
+import { getReusableShirtDesigns } from "@/lib/events/organizer";
 import { getT } from "@/lib/i18n/server";
 import { requireOrganizer } from "@/lib/auth/session";
 import { OrganizerOnly } from "@/components/organizer/organizer-only";
@@ -14,7 +15,17 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PublishPage() {
-  if (!(await requireOrganizer("/publish"))) return <OrganizerOnly />;
+  const account = await requireOrganizer("/publish");
+  if (!account) return <OrganizerOnly />;
 
-  return <PublishWizard athMovilAccounts={await listAthMovilAccounts()} />;
+  const [athMovilAccounts, reusableShirtDesigns] = await Promise.all([
+    listAthMovilAccounts(),
+    getReusableShirtDesigns(account.user.id, null),
+  ]);
+  return (
+    <PublishWizard
+      athMovilAccounts={athMovilAccounts}
+      reusableShirtDesigns={reusableShirtDesigns}
+    />
+  );
 }

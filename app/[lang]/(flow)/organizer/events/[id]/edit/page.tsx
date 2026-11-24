@@ -4,7 +4,7 @@ import { PublishWizard } from "@/components/publish/publish-wizard";
 import { OrganizerOnly } from "@/components/organizer/organizer-only";
 import { listAthMovilAccounts } from "@/lib/ath-movil/queries";
 import { isOrganizer, isPlatformAdmin, requireAccount } from "@/lib/auth/session";
-import { getEventForm } from "@/lib/events/organizer";
+import { getEventForm, getReusableShirtDesigns } from "@/lib/events/organizer";
 import { getT } from "@/lib/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,10 +22,12 @@ export default async function EditEventPage(
 
   // A platform admin opens any organizer's event. For everyone else,
   // someone else's event reads the same as a missing one.
-  const [initial, athMovilAccounts] = await Promise.all([
+  const [initial, athMovilAccounts, ownShirtDesigns] = await Promise.all([
     getEventForm(admin ? null : account.user.id, id),
     // Retired ones too: the event may still be using one.
     listAthMovilAccounts({ includeRetired: true }),
+    // The caller's own, from their other events.
+    getReusableShirtDesigns(account.user.id, id),
   ]);
   if (!initial) notFound();
 
@@ -36,6 +38,11 @@ export default async function EditEventPage(
       initial={initial}
       athMovilAccounts={athMovilAccounts}
       asAdmin={initial.organizerId !== account.user.id}
+      // An admin editing someone else's event has none of that organizer's
+      // to offer: a copy lands in the uploader's own folder.
+      reusableShirtDesigns={
+        initial.organizerId === account.user.id ? ownShirtDesigns : []
+      }
     />
   );
 }

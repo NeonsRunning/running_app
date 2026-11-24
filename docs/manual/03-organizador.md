@@ -213,6 +213,10 @@ la inscripción y tiene que elegir uno.
 - Pulsa **Añadir un diseño**, sube la imagen y ponle un nombre (por ejemplo,
   «Camiseta técnica negra»). El nombre se muestra tal como lo escribes, sin
   traducir. Puedes tener hasta **6 diseños** por evento.
+- Si ya usaste una camiseta en otro de tus eventos, pulsa **Copiar de otro
+  evento** y elige el diseño: se añade con su imagen y su nombre, sin subirla
+  de nuevo. La copia es solo de este evento; cambiarla o quitarla aquí no
+  afecta al otro.
 - Todos los diseños comparten el **mismo precio** y las **mismas tallas** de
   la camiseta del evento.
 - Cada corredor compra **una** camiseta. Los menores no llevan camiseta.
